@@ -105,17 +105,4 @@ const String INIT_COMMANDS[INIT_COMMANDS_COUNT] = {
     CMD_DIAGNOSTIC                 // Диагностическая команда
 };
 
-// Основные команды датчиков для мониторинга
-#define SENSOR_COMMANDS_COUNT 8
-const String SENSOR_COMMANDS[SENSOR_COMMANDS_COUNT] = {
-    CMD_READ_SENSOR_STATUS_FLAGS,      // Статус флагов
-    CMD_READ_SENSOR_ON_OFF_FLAGS,      // Флаги вкл/выкл
-    CMD_READ_SENSOR_OPERATIONAL,       // Операционные измерения
-    CMD_READ_SENSOR_OPERATING_STATE,   // Состояние устройства
-    CMD_READ_SENSOR_OPERATING_TIMES,   // Время работы
-    CMD_READ_SENSOR_SUBSYSTEMS_STATUS, // Статус подсистем
-    CMD_READ_SENSOR_TEMP_THRESHOLDS,   // Температурные пороги
-    CMD_READ_SENSOR_START_COUNTERS     // Счетчики запусков
-};
-
 #endif // WBUSCONSTANTS_H

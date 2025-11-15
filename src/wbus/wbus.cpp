@@ -30,6 +30,9 @@ void connectCallback(bool success, String cmd, String response)
     webastoInfo.getAllInfo();
     webastoSensors.getOperationalInfo();
     webastoSensors.getFuelSettings();
+    webastoSensors.getOnOffFlags();
+    webastoSensors.getStatusFlags();
+    webastoSensors.getOperatingState();
   }
   else
   {
