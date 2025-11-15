@@ -42,6 +42,10 @@ void loop()
     {
       wbusQueue.clear();
     }
+    else if (command == "info" || command == "i")
+    {
+      webastoInfo.printInfo();
+    }
     else if (command == "errors" || command == "err")
     {
       webastoError.check();
@@ -49,18 +53,6 @@ void loop()
     else if (command == "clear" || command == "clr")
     {
       webastoError.clear();
-    }
-
-    else if (command == "i")
-    {
-      webastoInfo.getWBusVersion();
-      webastoInfo.getDeviceName();
-      webastoInfo.getWBusCode();
-      webastoInfo.getDeviceID();
-      webastoInfo.getHeaterManufactureDate();
-      webastoInfo.getControllerManufactureDate();
-      webastoInfo.getCustomerID();
-      webastoInfo.getSerialNumber();
     }
     else if (command == "help" || command == "h")
     {
