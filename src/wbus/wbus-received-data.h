@@ -50,9 +50,6 @@ struct WBusReceivedData
     // Методы для получения данных
     String getRxData() const { return rxString; }
     String getTxData() const { return txString; }
-
-    // Вспомогательные методы
-    String byteToHexString(byte b) const;
 };
 
 extern WBusReceivedData wBusReceivedData;

@@ -1,4 +1,5 @@
 #include "wbus/wbus-received-data.h"
+#include "common/utils/utils.h"
 
 void WBusReceivedData::startRxReception(byte headerByte)
 {
@@ -89,9 +90,4 @@ void WBusReceivedData::resetTx()
     txString = "";
     isReceivingTx = false;
     tx_reception_state = WBUS_RX_IDLE;
-}
-
-String WBusReceivedData::byteToHexString(byte b) const
-{
-    return (b < 0x10) ? "0" + String(b, HEX) : String(b, HEX);
 }

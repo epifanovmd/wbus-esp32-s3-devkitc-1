@@ -100,6 +100,60 @@ public:
     {
         return errorCodes.find(errorCode) != errorCodes.end();
     }
+
+    void decodeNakError(byte command, byte errorCode)
+    {
+        String commandName = getCommandName(command);
+        String errorDescription = getNakErrorDescription(errorCode);
+
+        Serial.println();
+        Serial.println("   Команда: " + commandName);
+        Serial.println("   Причина: " + errorDescription);
+    }
+
+    String getCommandName(byte command)
+    {
+        switch (command)
+        {
+        case 0x21:
+            return "Parking Heat (0x21)";
+        case 0x22:
+            return "Ventilation (0x22)";
+        case 0x23:
+            return "Supplemental Heat (0x23)";
+        case 0x10:
+            return "Shutdown (0x10)";
+        case 0x38:
+            return "Diagnostic (0x38)";
+        default:
+            return "Unknown Command (0x" + String(command, HEX) + ")";
+        }
+    }
+
+    String getNakErrorDescription(byte errorCode)
+    {
+        switch (errorCode)
+        {
+        case 0x33:
+            return "Невозможно выполнить в текущем состоянии";
+        case 0x22:
+            return "Неправильные параметры команды";
+        case 0x11:
+            return "Команда не поддерживается";
+        case 0x44:
+            return "Аппаратная ошибка";
+        case 0x55:
+            return "Температура вне диапазона";
+        default:
+            return "Неизвестная ошибка (0x" + String(errorCode, HEX) + ")";
+        }
+    }
+
+    bool isNakResponse(const String &response)
+    {
+        // Формат: 4F 04 7F [command] [error_code] [crc]
+        return response.indexOf("4F 04 7F") == 0;
+    }
 };
 
 #endif // WBUS_ERROR_CODES_H

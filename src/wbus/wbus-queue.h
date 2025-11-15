@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "common/queue-map/queue-map.h"
+#include "wbus/wbus-error-codes.h"
 
 enum WBusQueueState
 {
@@ -14,6 +15,7 @@ enum WBusQueueState
 class WBusQueue
 {
 private:
+    WebastoErrorCodes errorCodes;
     QueueMap _queue;
     WBusQueueState _state = WBUS_QUEUE_IDLE_STATE;
     unsigned long _processDelay = 0;
@@ -36,6 +38,7 @@ public:
 
     void clear();
     void process();
+    void processNakResponse(const String response);
 };
 
 extern WBusQueue wbusQueue;

@@ -118,14 +118,4 @@ const String SENSOR_COMMANDS[SENSOR_COMMANDS_COUNT] = {
     CMD_READ_SENSOR_START_COUNTERS     // Счетчики запусков
 };
 
-// Команды информации об устройстве
-#define INFO_COMMANDS_COUNT 5
-const String INFO_COMMANDS[INFO_COMMANDS_COUNT] = {
-    CMD_READ_INFO_DEVICE_ID,       // ID устройства
-    CMD_READ_INFO_HW_VERSION,      // Версия железа
-    CMD_READ_INFO_WBUS_VERSION,    // Версия W-Bus
-    CMD_READ_INFO_DEVICE_NAME,     // Имя устройства
-    CMD_READ_INFO_WBUS_CODE        // WBUS-код
-};
-
 #endif // WBUSCONSTANTS_H

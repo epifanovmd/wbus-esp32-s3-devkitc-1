@@ -1,9 +1,8 @@
 #include "wbus-info.h"
 
 WebastoInfo webastoInfo;
-WbusDeviceInfo WebastoInfo::deviceInfo;
 
-String analyzeWBusCodeByte(uint8_t byteNum, uint8_t byteVal)
+String WebastoInfo::analyzeWBusCodeByte(uint8_t byteNum, uint8_t byteVal)
 {
     String result = "";
 
@@ -54,10 +53,6 @@ String analyzeWBusCodeByte(uint8_t byteNum, uint8_t byteVal)
             result += "  • Сигнал генератора D+\n";
         if (byteVal & 0x20)
             result += "  • Вентилятор в RPM (не в %)\n";
-        // if (byteVal & 0x40)
-        //     result += "  • Unknown (ZH)\n";
-        // if (byteVal & 0x80)
-        //     result += "  • Unknown (ZH)\n";
         break;
 
     case 3: // Byte 3
@@ -102,7 +97,6 @@ void WebastoInfo::analyzeWBusCode(const String &codeData)
 {
     deviceInfo.wbusCode = codeData;
 
-    // Анализ байтов W-BUS code и сохранение как строки с переносами
     String functions = "";
     for (int byteNum = 0; byteNum < 7; byteNum++)
     {
@@ -110,193 +104,268 @@ void WebastoInfo::analyzeWBusCode(const String &codeData)
         {
             String byteStr = codeData.substring(byteNum * 2, byteNum * 2 + 2);
             uint8_t byteVal = strtoul(byteStr.c_str(), NULL, 16);
-
             functions += analyzeWBusCodeByte(byteNum, byteVal);
         }
     }
 
-    // Сохраняем полный анализ как строку с переносами
     deviceInfo.supportedFunctions = functions;
 }
 
-// Остальные функции остаются без изменений...
+// Методы обработки ответов
+void WebastoInfo::handleWBusVersionResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d10a") + 4;
+    if (start >= 4 && rx.length() >= start + 2)
+    {
+        String versionData = rx.substring(start, start + 2);
+        uint8_t versionByte = strtoul(versionData.c_str(), NULL, 16);
+        uint8_t major = (versionByte >> 4) & 0x0F;
+        uint8_t minor = versionByte & 0x0F;
+
+        deviceInfo.wbusVersion = String(major) + "." + String(minor);
+        deviceInfo.lastUpdate = millis();
+    }
+}
+
+void WebastoInfo::handleDeviceNameResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d10b") + 4;
+    if (start >= 4)
+    {
+        String nameData = rx.substring(start, rx.length() - 2);
+
+        String deviceName = "";
+        for (int i = 0; i < nameData.length(); i += 2)
+        {
+            if (i + 2 <= nameData.length())
+            {
+                String byteStr = nameData.substring(i, i + 2);
+                char c = (char)strtoul(byteStr.c_str(), NULL, 16);
+                if (c >= 32 && c <= 126)
+                {
+                    deviceName += c;
+                }
+            }
+        }
+
+        deviceInfo.deviceName = deviceName;
+        deviceInfo.lastUpdate = millis();
+    }
+}
+
+void WebastoInfo::handleWBusCodeResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d10c") + 4;
+    if (start >= 4)
+    {
+        String codeData = rx.substring(start, rx.length() - 2);
+        analyzeWBusCode(codeData);
+        deviceInfo.lastUpdate = millis();
+    }
+}
+
+void WebastoInfo::handleDeviceIDResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d101") + 4;
+    if (start >= 4)
+    {
+        String idData = rx.substring(start, rx.length() - 2);
+        deviceInfo.deviceID = idData;
+        deviceInfo.lastUpdate = millis();
+    }
+}
+
+void WebastoInfo::handleHeaterManufactureDateResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d105") + 4;
+    if (start >= 4 && rx.length() >= start + 6)
+    {
+        String dateData = rx.substring(start, start + 6);
+        String dayStr = dateData.substring(0, 2);
+        String monthStr = dateData.substring(2, 4);
+        String yearStr = dateData.substring(4, 6);
+
+        deviceInfo.heaterManufactureDate = dayStr + "." + monthStr + ".20" + yearStr;
+        deviceInfo.lastUpdate = millis();
+    }
+}
+
+void WebastoInfo::handleControllerManufactureDateResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d104") + 4;
+    if (start >= 4 && rx.length() >= start + 6)
+    {
+        String dateData = rx.substring(start, start + 6);
+        String dayStr = dateData.substring(0, 2);
+        String monthStr = dateData.substring(2, 4);
+        String yearStr = dateData.substring(4, 6);
+
+        deviceInfo.controllerManufactureDate = dayStr + "." + monthStr + ".20" + yearStr;
+        deviceInfo.lastUpdate = millis();
+    }
+}
+
+void WebastoInfo::handleCustomerIDResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d107") + 4;
+    if (start >= 4)
+    {
+        String data = rx.substring(start, rx.length() - 2);
+
+        String customerID = "";
+        for (int i = 0; i < data.length(); i += 2)
+        {
+            if (i + 2 <= data.length())
+            {
+                String byteStr = data.substring(i, i + 2);
+                if (byteStr == "00")
+                    break;
+                char c = (char)strtoul(byteStr.c_str(), NULL, 16);
+                if (c >= 32 && c <= 126)
+                {
+                    customerID += c;
+                }
+            }
+        }
+
+        deviceInfo.customerID = customerID;
+        deviceInfo.lastUpdate = millis();
+    }
+}
+
+void WebastoInfo::handleSerialNumberResponse(bool status, String tx, String rx)
+{
+    if (!status)
+        return;
+
+    rx.replace(" ", "");
+    rx.toLowerCase();
+
+    int start = rx.indexOf("d109") + 4;
+    if (start >= 4)
+    {
+        String data = rx.substring(start, rx.length() - 2);
+        deviceInfo.serialNumber = data.substring(0, 10);
+        deviceInfo.testStandCode = data.substring(10);
+        deviceInfo.lastUpdate = millis();
+    }
+
+    printInfo();
+}
+
+// Публичные методы
 void WebastoInfo::getWBusVersion()
 {
-    wbusQueue.add(CMD_READ_INFO_WBUS_VERSION, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_WBUS_VERSION,
+                  [this](bool status, String tx, String rx)
                   {
-        if (!status) return;
-        
-        rx.replace(" ", "");
-        rx.toLowerCase();
-        
-        int start = rx.indexOf("d10a") + 4;
-        if (start >= 4 && rx.length() >= start + 2) {
-            String versionData = rx.substring(start, start + 2);
-            uint8_t versionByte = strtoul(versionData.c_str(), NULL, 16);
-            uint8_t major = (versionByte >> 4) & 0x0F;
-            uint8_t minor = versionByte & 0x0F;
-            
-            deviceInfo.wbusVersion = String(major) + "." + String(minor);
-            deviceInfo.lastUpdate = millis();
-        } });
+                      this->handleWBusVersionResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getDeviceName()
 {
-    wbusQueue.add(CMD_READ_INFO_DEVICE_NAME, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_DEVICE_NAME,
+                  [this](bool status, String tx, String rx)
                   {
-        if (!status) return;
-        
-        rx.replace(" ", "");
-        rx.toLowerCase();
-        
-        int start = rx.indexOf("d10b") + 4;
-        if (start >= 4) {
-            String nameData = rx.substring(start, rx.length() - 2);
-            
-            String deviceName = "";
-            for (int i = 0; i < nameData.length(); i += 2) {
-                if (i + 2 <= nameData.length()) {
-                    String byteStr = nameData.substring(i, i + 2);
-                    char c = (char)strtoul(byteStr.c_str(), NULL, 16);
-                    if (c >= 32 && c <= 126) {
-                        deviceName += c;
-                    }
-                }
-            }
-            
-            deviceInfo.deviceName = deviceName;
-            deviceInfo.lastUpdate = millis();
-        } });
+                      this->handleDeviceNameResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getWBusCode()
 {
-    wbusQueue.add(CMD_READ_INFO_WBUS_CODE, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_WBUS_CODE,
+                  [this](bool status, String tx, String rx)
                   {
-        if (!status) return;
-        
-        rx.replace(" ", "");
-        rx.toLowerCase();
-        
-        int start = rx.indexOf("d10c") + 4;
-        if (start >= 4) {
-            String codeData = rx.substring(start, rx.length() - 2);
-            analyzeWBusCode(codeData);
-            deviceInfo.lastUpdate = millis();
-        } });
+                      this->handleWBusCodeResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getDeviceID()
 {
-    wbusQueue.add(CMD_READ_INFO_DEVICE_ID, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_DEVICE_ID,
+                  [this](bool status, String tx, String rx)
                   {
-        if (!status) return;
-        
-        rx.replace(" ", "");
-        rx.toLowerCase();
-        
-        int start = rx.indexOf("d101") + 4;
-        if (start >= 4) {
-            String idData = rx.substring(start, rx.length() - 2);
-            deviceInfo.deviceID = idData;
-            deviceInfo.lastUpdate = millis();
-        } });
+                      this->handleDeviceIDResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getHeaterManufactureDate()
 {
-    wbusQueue.add(CMD_READ_INFO_HEATER_MFG_DATE, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_HEATER_MFG_DATE,
+                  [this](bool status, String tx, String rx)
                   {
-        if (!status) return;
-        
-        rx.replace(" ", "");
-        rx.toLowerCase();
-        
-        int start = rx.indexOf("d105") + 4;
-        if (start >= 4 && rx.length() >= start + 6) {
-            String dateData = rx.substring(start, start + 6);
-            String dayStr = dateData.substring(0, 2);
-            String monthStr = dateData.substring(2, 4);
-            String yearStr = dateData.substring(4, 6);
-            
-            deviceInfo.heaterManufactureDate = dayStr + "." + monthStr + ".20" + yearStr;
-            deviceInfo.lastUpdate = millis();
-        } });
+                      this->handleHeaterManufactureDateResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getControllerManufactureDate()
 {
-    wbusQueue.add(CMD_READ_INFO_CTRL_MFG_DATE, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_CTRL_MFG_DATE,
+                  [this](bool status, String tx, String rx)
                   {
-        if (!status) return;
-        
-        rx.replace(" ", "");
-        rx.toLowerCase();
-        
-        int start = rx.indexOf("d104") + 4;
-        if (start >= 4 && rx.length() >= start + 6) {
-            String dateData = rx.substring(start, start + 6);
-            String dayStr = dateData.substring(0, 2);
-            String monthStr = dateData.substring(2, 4);
-            String yearStr = dateData.substring(4, 6);
-            
-            deviceInfo.controllerManufactureDate = dayStr + "." + monthStr + ".20" + yearStr;
-            deviceInfo.lastUpdate = millis();
-        } });
+                      this->handleControllerManufactureDateResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getCustomerID()
 {
-    wbusQueue.add(CMD_READ_INFO_CUSTOMER_ID, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_CUSTOMER_ID,
+                  [this](bool status, String tx, String rx)
                   {
-        if (!status) return;
-        
-        rx.replace(" ", "");
-        rx.toLowerCase();
-        
-        int start = rx.indexOf("d107") + 4;
-        if (start >= 4) {
-            String data = rx.substring(start, rx.length() - 2);
-            
-            // Упрощенная логика для Customer ID
-            String customerID = "";
-            for (int i = 0; i < data.length(); i += 2) {
-                if (i + 2 <= data.length()) {
-                    String byteStr = data.substring(i, i + 2);
-                    if (byteStr == "00") break;
-                    char c = (char)strtoul(byteStr.c_str(), NULL, 16);
-                    if (c >= 32 && c <= 126) {
-                        customerID += c;
-                    }
-                }
-            }
-            
-            deviceInfo.customerID = customerID;
-            deviceInfo.lastUpdate = millis();
-        } });
+                      this->handleCustomerIDResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getSerialNumber()
 {
-    wbusQueue.add(CMD_READ_INFO_SERIAL_NUMBER, [](bool status, String tx, String rx)
+    wbusQueue.add(CMD_READ_INFO_SERIAL_NUMBER,
+                  [this](bool status, String tx, String rx)
                   {
-                      if (!status)
-                          return;
-
-                      rx.replace(" ", "");
-                      rx.toLowerCase();
-
-                      int start = rx.indexOf("d109") + 4;
-                      if (start >= 4)
-                      {
-                          String data = rx.substring(start, rx.length() - 2);
-                          deviceInfo.serialNumber = data.substring(0, 10);
-                          deviceInfo.testStandCode = data.substring(10);
-                          deviceInfo.lastUpdate = millis();
-                      }
-
-                      printInfo(); });
+                      this->handleSerialNumberResponse(status, tx, rx);
+                  });
 }
 
 void WebastoInfo::getAllInfo()
@@ -318,7 +387,6 @@ void WebastoInfo::printInfo()
     Serial.println("         ИНФОРМАЦИЯ Webasto                                ");
     Serial.println("═══════════════════════════════════════════════════════════");
 
-    // В том же порядке, что и функции
     Serial.println("Версия W-шины:                              " + deviceInfo.wbusVersion);
     Serial.println("Обозначение устройства:                     " + deviceInfo.deviceName);
     Serial.println("Кодирование W-шины:                         " + deviceInfo.wbusCode);
@@ -334,7 +402,7 @@ void WebastoInfo::printInfo()
     Serial.print(deviceInfo.supportedFunctions);
 }
 
-WbusDeviceInfo WebastoInfo::getDeviceInfo()
+WebastoDeviceInfo WebastoInfo::getDeviceInfo()
 {
     return deviceInfo;
 }

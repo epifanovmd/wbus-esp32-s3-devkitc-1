@@ -2,25 +2,6 @@
 
 #include "wbus/wbus.h"
 
-void operationalMeasurementsCallback(bool success, String cmd, String response)
-{
-  if (success)
-  {
-    OperationalMeasurements measurements = WBusDecoders::decodeOperationalMeasurements(response);
-
-    Serial.println();
-    Serial.println("═══════════════════════════════════════════════════════════");
-    Serial.println("         📊 ДАННЫЕ ДАТЧИКА                                 ");
-    Serial.println("═══════════════════════════════════════════════════════════");
-    Serial.printf("🌡️  Температура:       %6.1f °C\n", measurements.temperature);
-    Serial.printf("🔋 Напряжение:         %6.1f V\n", measurements.voltage);
-    Serial.printf("🔥 Мощность:           %6d W\n", measurements.heatingPower);
-    Serial.printf("🔍 Сопротивление:      %6d мОм V\n", measurements.flameResistance);
-    Serial.printf("🔄 Пламя:              %14s\n", measurements.flameDetected ? "Обнаружено" : "Отсутствует");
-    Serial.println();
-  }
-}
-
 void wakeUpWebasto()
 {
   Serial.println("🔔 Пробуждение Webasto...");
@@ -47,10 +28,8 @@ void connectCallback(bool success, String cmd, String response)
     wbusQueue.setProcessDelay(150);
 
     webastoInfo.getAllInfo();
-    wbusQueue.add(CMD_READ_SENSOR_OPERATIONAL, operationalMeasurementsCallback, true);
-    //  for (int i = 0; i < SENSOR_COMMANDS_COUNT; i++) {
-    //           sendWbusCommandWithAck(SENSOR_COMMANDS[i], nullptr, true);
-    //         }
+    webastoSensors.getOperationalInfo();
+    webastoSensors.getFuelSettings();
   }
   else
   {

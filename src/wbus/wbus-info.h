@@ -6,7 +6,7 @@
 #include "wbus/wbus.constants.h"
 
 // Структура для хранения информации об устройстве
-struct WbusDeviceInfo
+struct WebastoDeviceInfo
 {
     // Основная информация
     String wbusVersion;
@@ -29,7 +29,7 @@ struct WbusDeviceInfo
     unsigned long lastUpdate;
 
     // Конструктор
-    WbusDeviceInfo()
+    WebastoDeviceInfo()
     {
         clear();
     }
@@ -61,23 +61,34 @@ struct WbusDeviceInfo
 
 class WebastoInfo
 {
-public:
-    static void getWBusVersion();
-    static void getDeviceName();
-    static void getWBusCode();
-    static void getDeviceID();
-    static void getHeaterManufactureDate();
-    static void getControllerManufactureDate();
-    static void getCustomerID();
-    static void getSerialNumber();
-
-    static void getAllInfo();
-    static void printInfo();
-    static WbusDeviceInfo getDeviceInfo();
-
 private:
-    static WbusDeviceInfo deviceInfo;
-    static void analyzeWBusCode(const String &codeData);
+    WebastoDeviceInfo deviceInfo;
+    String analyzeWBusCodeByte(uint8_t byteNum, uint8_t byteVal);
+    void analyzeWBusCode(const String &codeData);
+
+    // Приватные методы для callback'ов
+    void handleWBusVersionResponse(bool status, String tx, String rx);
+    void handleDeviceNameResponse(bool status, String tx, String rx);
+    void handleWBusCodeResponse(bool status, String tx, String rx);
+    void handleDeviceIDResponse(bool status, String tx, String rx);
+    void handleHeaterManufactureDateResponse(bool status, String tx, String rx);
+    void handleControllerManufactureDateResponse(bool status, String tx, String rx);
+    void handleCustomerIDResponse(bool status, String tx, String rx);
+    void handleSerialNumberResponse(bool status, String tx, String rx);
+
+public:
+    void getWBusVersion();
+    void getDeviceName();
+    void getWBusCode();
+    void getDeviceID();
+    void getHeaterManufactureDate();
+    void getControllerManufactureDate();
+    void getCustomerID();
+    void getSerialNumber();
+
+    void getAllInfo();
+    void printInfo();
+    WebastoDeviceInfo getDeviceInfo();
 };
 
 extern WebastoInfo webastoInfo;

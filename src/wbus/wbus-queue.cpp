@@ -1,6 +1,7 @@
 #include "wbus/wbus.h"
 #include "wbus/wbus-queue.h"
 #include "wbus/wbus-sender.h"
+#include "wbus/wbus-error-codes.h"
 
 WBusQueue wbusQueue;
 
@@ -87,8 +88,35 @@ void WBusQueue::_sendCurrentCommand()
     sendWbusCommand(command);
 }
 
+void WBusQueue::processNakResponse(const String response) {
+    if (!errorCodes.isNakResponse(response)) return;
+    
+    // Парсим NAK пакет
+    String cleanResponse = response;
+    cleanResponse.replace(" ", "");
+    
+    if (cleanResponse.length() >= 10) {
+        byte failedCommand = strtoul(cleanResponse.substring(8, 10).c_str(), NULL, 16);
+        byte errorCode = strtoul(cleanResponse.substring(10, 12).c_str(), NULL, 16);
+        
+        Serial.println();
+        Serial.println("❌ NAK получен:");
+        Serial.println("   Невыполненная команда: 0x" + String(failedCommand, HEX));
+        Serial.println("   Код ошибки: 0x" + String(errorCode, HEX));
+        
+        // Декодируем причину ошибки
+        errorCodes.decodeNakError(failedCommand, errorCode);
+    }
+}
+
 void WBusQueue::_completeCurrentCommand(String response, bool success)
 {
+    if (errorCodes.isNakResponse(response))
+    {
+        success = false;
+        processNakResponse(response);
+    }
+
     _state = WBUS_QUEUE_IDLE_STATE;
     _retries = 0;
     QueueItem queueItem = _queue.pop();
