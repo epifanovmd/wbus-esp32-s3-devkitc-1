@@ -10,13 +10,13 @@ void operationalMeasurementsCallback(bool success, String cmd, String response)
 
     Serial.println();
     Serial.println("┌──────────────────────────────────┐");
-    Serial.println("│           📊 ДАННЫЕ ДАТЧИКА       │");
+    Serial.println("│           📊 ДАННЫЕ ДАТЧИКА      │");
     Serial.println("├──────────────────────────────────┤");
     Serial.printf("│ 🌡️  Температура: %6.1f °C       │\n", measurements.temperature);
-    Serial.printf("│ 🔋 Напряжение:   %6.1f V         │\n", measurements.voltage);
+    Serial.printf("│ 🔋 Напряжение:   %6.1f V        │\n", measurements.voltage);
     Serial.printf("│ 🔥 Мощность:    %6d W         │\n", measurements.heatingPower);
     Serial.printf("│ 🔍 Сопротивление:%6d мОм      │\n", measurements.flameResistance);
-    Serial.printf("│ 🔄 Пламя:       %14s │\n", measurements.flameDetected ? "Обнаружено" : "Нет");
+    Serial.printf("│ 🔄 Пламя:       %14s      │\n", measurements.flameDetected ? "Обнаружено" : "Отсутствует");
     Serial.println("└──────────────────────────────────┘");
   }
   else

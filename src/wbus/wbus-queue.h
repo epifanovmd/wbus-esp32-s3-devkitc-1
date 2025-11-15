@@ -22,7 +22,7 @@ private:
     unsigned long _timeout = 1000;
     unsigned long _retryDelay = 300;
     unsigned long _retries = 0;
-    unsigned long _maxRetries = 3;
+    unsigned long _maxRetries = 10;
 
     void _sendCurrentCommand();
     void _completeCurrentCommand(String response, bool success = true);

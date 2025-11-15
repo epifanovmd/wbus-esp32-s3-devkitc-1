@@ -16,6 +16,8 @@
 #include "wbus/wbus-sender.h"
 #include "wbus/wbus-decoders.h"
 #include "wbus/wbus-callbacks.h"
+#include "wbus/wbus-error.h"
+#include "wbus/wbus-info.h"
 
 
 void readWBusData();
