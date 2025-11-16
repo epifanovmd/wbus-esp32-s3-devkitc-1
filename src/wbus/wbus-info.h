@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "wbus-queue.h"
 #include "wbus.constants.h"
+#include "wbus-decoder.h"
 
 // Структура для хранения информации об устройстве
 struct WebastoDeviceInfo
@@ -48,7 +49,6 @@ struct WebastoDeviceInfo
         additionalCode = "";
         wbusCode = "";
         supportedFunctions = "";
-
         lastUpdate = 0;
     }
 
@@ -63,8 +63,6 @@ class WebastoInfo
 {
 private:
     WebastoDeviceInfo deviceInfo;
-    String analyzeWBusCodeByte(uint8_t byteNum, uint8_t byteVal);
-    void analyzeWBusCode(const String &codeData);
 
     // Приватные методы для callback'ов
     void handleWBusVersionResponse(bool status, String tx, String rx);
@@ -89,10 +87,7 @@ public:
     void getAllInfo();
     void printInfo();
     WebastoDeviceInfo getDeviceInfo();
-    bool hasDeviceInfo()
-    {
-        return deviceInfo.hasData();
-    }
+    bool hasDeviceInfo() { return deviceInfo.hasData(); }
 };
 
 extern WebastoInfo webastoInfo;

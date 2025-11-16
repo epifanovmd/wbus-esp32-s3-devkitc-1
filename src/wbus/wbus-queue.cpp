@@ -148,6 +148,7 @@ void WBusQueue::_handleRepeat()
         Serial.println();
         Serial.print("❌ Все попытки исчерпаны");
         _completeCurrentCommand("", false);
+        clear();
     }
     else
     {

@@ -2,298 +2,98 @@
 
 WebastoInfo webastoInfo;
 
-String WebastoInfo::analyzeWBusCodeByte(uint8_t byteNum, uint8_t byteVal)
-{
-    String result = "";
-
-    switch (byteNum)
-    {
-    case 0: // Byte 0
-        // if (byteVal & 0x01)
-        //     result += "  • Unknown (ZH)\n";
-        if (byteVal & 0x08)
-            result += "  • Простое вкл/выкл\n";
-        if (byteVal & 0x10)
-            result += "  • Паркинг-нагрев\n";
-        if (byteVal & 0x20)
-            result += "  • Дополнительный нагрев\n";
-        if (byteVal & 0x40)
-            result += "  • Вентиляция\n";
-        if (byteVal & 0x80)
-            result += "  • Boost режим\n";
-        break;
-
-    case 1: // Byte 1
-        if (byteVal & 0x02)
-            result += "  • Внешнее управление цирк. насосом\n";
-        if (byteVal & 0x04)
-            result += "  • Вентилятор горения (CAV)\n";
-        if (byteVal & 0x08)
-            result += "  • Свеча накаливания\n";
-        if (byteVal & 0x10)
-            result += "  • Топливный насос (FP)\n";
-        if (byteVal & 0x20)
-            result += "  • Циркуляционный насос (CP)\n";
-        if (byteVal & 0x40)
-            result += "  • Реле вентилятора автомобиля (VFR)\n";
-        if (byteVal & 0x80)
-            result += "  • Желтый LED\n";
-        break;
-
-    case 2: // Byte 2
-        if (byteVal & 0x01)
-            result += "  • Зеленый LED\n";
-        if (byteVal & 0x02)
-            result += "  • Искровой разрядник (нет свечи)\n";
-        if (byteVal & 0x04)
-            result += "  • Соленоидный клапан\n";
-        if (byteVal & 0x08)
-            result += "  • Индикатор вспомогательного привода\n";
-        if (byteVal & 0x10)
-            result += "  • Сигнал генератора D+\n";
-        if (byteVal & 0x20)
-            result += "  • Вентилятор в RPM (не в %)\n";
-        break;
-
-    case 3: // Byte 3
-        if (byteVal & 0x02)
-            result += "  • Калибровка CO2\n";
-        if (byteVal & 0x08)
-            result += "  • Индикатор работы (OI)\n";
-        break;
-
-    case 4: // Byte 4
-        // if (byteVal & 0x0F)
-        //     result += "  • Unknown (ZH)\n";
-        if (byteVal & 0x10)
-            result += "  • Мощность в ваттах (иначе в %)\n";
-        // if (byteVal & 0x20)
-        //     result += "  • Unknown (ZH)\n";
-        if (byteVal & 0x40)
-            result += "  • Индикатор пламени (FI)\n";
-        if (byteVal & 0x80)
-            result += "  • Подогрев форсунки\n";
-        break;
-
-    case 5: // Byte 5
-        if (byteVal & 0x20)
-            result += "  • Флаг зажигания (T15)\n";
-        if (byteVal & 0x40)
-            result += "  • Доступны температурные пороги\n";
-        if (byteVal & 0x80)
-            result += "  • Чтение подогрева топлива\n";
-        break;
-
-    case 6: // Byte 6
-        if (byteVal & 0x02)
-            result += "  • Уставки: сопр. пламени, об. вентилятора, темп. выхода\n";
-        break;
-    }
-
-    return result;
-}
-
-void WebastoInfo::analyzeWBusCode(const String &codeData)
-{
-    deviceInfo.wbusCode = codeData;
-
-    String functions = "";
-    for (int byteNum = 0; byteNum < 7; byteNum++)
-    {
-        if (byteNum * 2 + 2 <= codeData.length())
-        {
-            String byteStr = codeData.substring(byteNum * 2, byteNum * 2 + 2);
-            uint8_t byteVal = strtoul(byteStr.c_str(), NULL, 16);
-            functions += analyzeWBusCodeByte(byteNum, byteVal);
-        }
-    }
-
-    deviceInfo.supportedFunctions = functions;
-}
-
 // Методы обработки ответов
 void WebastoInfo::handleWBusVersionResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d10a") + 4;
-    if (start >= 4 && rx.length() >= start + 2)
-    {
-        String versionData = rx.substring(start, start + 2);
-        uint8_t versionByte = strtoul(versionData.c_str(), NULL, 16);
-        uint8_t major = (versionByte >> 4) & 0x0F;
-        uint8_t minor = versionByte & 0x0F;
-
-        deviceInfo.wbusVersion = String(major) + "." + String(minor);
+    DecodedVersion version = wBusDecoder.decodeWBusVersion(rx);
+    if (version.isValid) {
+        deviceInfo.wbusVersion = version.versionString;
         deviceInfo.lastUpdate = millis();
     }
 }
 
 void WebastoInfo::handleDeviceNameResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d10b") + 4;
-    if (start >= 4)
-    {
-        String nameData = rx.substring(start, rx.length() - 2);
-
-        String deviceName = "";
-        for (int i = 0; i < nameData.length(); i += 2)
-        {
-            if (i + 2 <= nameData.length())
-            {
-                String byteStr = nameData.substring(i, i + 2);
-                char c = (char)strtoul(byteStr.c_str(), NULL, 16);
-                if (c >= 32 && c <= 126)
-                {
-                    deviceName += c;
-                }
-            }
-        }
-
-        deviceInfo.deviceName = deviceName;
+    DecodedTextData name = wBusDecoder.decodeDeviceName(rx);
+    if (name.isValid) {
+        deviceInfo.deviceName = name.text;
         deviceInfo.lastUpdate = millis();
     }
 }
 
 void WebastoInfo::handleWBusCodeResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d10c") + 4;
-    if (start >= 4)
-    {
-        String codeData = rx.substring(start, rx.length() - 2);
-        analyzeWBusCode(codeData);
+    DecodedWBusCode code = wBusDecoder.decodeWBusCode(rx);
+    if (code.isValid) {
+        deviceInfo.wbusCode = code.codeString;
+        deviceInfo.supportedFunctions = code.supportedFunctions;
         deviceInfo.lastUpdate = millis();
     }
 }
 
 void WebastoInfo::handleDeviceIDResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d101") + 4;
-    if (start >= 4)
-    {
-        String idData = rx.substring(start, rx.length() - 2);
-        deviceInfo.deviceID = idData;
+    DecodedTextData id = wBusDecoder.decodeDeviceID(rx);
+    if (id.isValid) {
+        deviceInfo.deviceID = id.text;
         deviceInfo.lastUpdate = millis();
     }
 }
 
 void WebastoInfo::handleHeaterManufactureDateResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d105") + 4;
-    if (start >= 4 && rx.length() >= start + 6)
-    {
-        String dateData = rx.substring(start, start + 6);
-        String dayStr = dateData.substring(0, 2);
-        String monthStr = dateData.substring(2, 4);
-        String yearStr = dateData.substring(4, 6);
-
-        deviceInfo.heaterManufactureDate = dayStr + "." + monthStr + ".20" + yearStr;
+    DecodedManufactureDate date = wBusDecoder.decodeHeaterManufactureDate(rx);
+    if (date.isValid) {
+        deviceInfo.heaterManufactureDate = date.dateString;
         deviceInfo.lastUpdate = millis();
     }
 }
 
 void WebastoInfo::handleControllerManufactureDateResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d104") + 4;
-    if (start >= 4 && rx.length() >= start + 6)
-    {
-        String dateData = rx.substring(start, start + 6);
-        String dayStr = dateData.substring(0, 2);
-        String monthStr = dateData.substring(2, 4);
-        String yearStr = dateData.substring(4, 6);
-
-        deviceInfo.controllerManufactureDate = dayStr + "." + monthStr + ".20" + yearStr;
+    DecodedManufactureDate date = wBusDecoder.decodeControllerManufactureDate(rx);
+    if (date.isValid) {
+        deviceInfo.controllerManufactureDate = date.dateString;
         deviceInfo.lastUpdate = millis();
     }
 }
 
 void WebastoInfo::handleCustomerIDResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d107") + 4;
-    if (start >= 4)
-    {
-        String data = rx.substring(start, rx.length() - 2);
-
-        String customerID = "";
-        for (int i = 0; i < data.length(); i += 2)
-        {
-            if (i + 2 <= data.length())
-            {
-                String byteStr = data.substring(i, i + 2);
-                if (byteStr == "00")
-                    break;
-                char c = (char)strtoul(byteStr.c_str(), NULL, 16);
-                if (c >= 32 && c <= 126)
-                {
-                    customerID += c;
-                }
-            }
-        }
-
-        deviceInfo.customerID = customerID;
+    DecodedTextData customerID = wBusDecoder.decodeCustomerID(rx);
+    if (customerID.isValid) {
+        deviceInfo.customerID = customerID.text;
         deviceInfo.lastUpdate = millis();
     }
 }
 
 void WebastoInfo::handleSerialNumberResponse(bool status, String tx, String rx)
 {
-    if (!status)
-        return;
+    if (!status) return;
 
-    rx.replace(" ", "");
-    rx.toLowerCase();
-
-    int start = rx.indexOf("d109") + 4;
-    if (start >= 4)
-    {
-        String data = rx.substring(start, rx.length() - 2);
-        deviceInfo.serialNumber = data.substring(0, 10);
-        deviceInfo.testStandCode = data.substring(10);
+    DecodedTextData serial = wBusDecoder.decodeSerialNumber(rx);
+    if (serial.isValid) {
+        deviceInfo.serialNumber = serial.text;
+        // testStandCode можно добавить если нужно
         deviceInfo.lastUpdate = millis();
     }
 }
 
-// Публичные методы
+// Публичные методы (остаются без изменений)
 void WebastoInfo::getWBusVersion()
 {
     wbusQueue.add(CMD_READ_INFO_WBUS_VERSION,
