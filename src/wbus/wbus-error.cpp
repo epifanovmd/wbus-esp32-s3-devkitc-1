@@ -1,5 +1,8 @@
 #include "wbus-error.h"
 #include "common/utils/utils.h"
+#include <functional>
+#include "wbus-queue.h"
+#include "wbus.constants.h"
 
 WebastoError webastoError;
 

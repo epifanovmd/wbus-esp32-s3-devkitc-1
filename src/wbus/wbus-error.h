@@ -2,9 +2,6 @@
 #define WBUS_ERROR_H
 
 #include <Arduino.h>
-#include <functional>
-#include "wbus-queue.h"
-#include "wbus.constants.h"
 #include "wbus-error-codes.h"
 
 class WebastoError
