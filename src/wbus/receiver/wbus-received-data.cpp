@@ -1,4 +1,4 @@
-#include "wbus/wbus-received-data.h"
+#include "wbus-received-data.h"
 #include "common/utils/utils.h"
 
 void WBusReceivedData::startRxReception(byte headerByte)

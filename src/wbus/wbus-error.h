@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 #include <functional>
-#include "wbus/wbus-queue.h"
-#include "wbus/wbus.constants.h"
+#include "wbus-queue.h"
+#include "wbus.constants.h"
 #include "wbus-error-codes.h"
 
 class WebastoError

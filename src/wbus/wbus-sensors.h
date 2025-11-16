@@ -2,8 +2,6 @@
 #define WBUS_SENSORS_H
 
 #include <Arduino.h>
-#include "wbus/wbus-queue.h"
-#include "wbus/wbus.constants.h"
 
 struct OperationalMeasurements
 {

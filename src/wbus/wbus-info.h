@@ -2,8 +2,8 @@
 #define WBUS_INFO_H
 
 #include <Arduino.h>
-#include "wbus/wbus-queue.h"
-#include "wbus/wbus.constants.h"
+#include "wbus-queue.h"
+#include "wbus.constants.h"
 
 // Структура для хранения информации об устройстве
 struct WebastoDeviceInfo
@@ -89,6 +89,10 @@ public:
     void getAllInfo();
     void printInfo();
     WebastoDeviceInfo getDeviceInfo();
+    bool hasDeviceInfo()
+    {
+        return deviceInfo.hasData();
+    }
 };
 
 extern WebastoInfo webastoInfo;

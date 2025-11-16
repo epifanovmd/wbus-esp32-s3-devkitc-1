@@ -1,11 +1,12 @@
 // wbus-receiver.cpp
 
-#include "wbus/wbus.h"
+#include "wbus-receiver.h"
 
-WBusReceivedData wBusReceivedData;
+WBusReceiver wBusReceiver;
+// WBusReceivedData wBusReceivedData;
 
 // Основная функция приема и обработки пакетов
-void readWBusData()
+void WBusReceiver::process()
 {
   wBusReceivedData.resetState(); // Сбрасываем состояние при каждом вызове
 

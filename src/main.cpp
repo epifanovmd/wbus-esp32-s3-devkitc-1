@@ -1,79 +1,67 @@
 // main.cpp
 
-#include "common/tja1020/tja1020.h"
 #include "wbus/wbus.h"
+#include "web-server/web-server.h"
+
+const char *ap_ssid = "Webasto_WiFi";
+const char *ap_password = "Epifan123";
 
 void setup()
 {
   // Инициализация пинов управления TJA1020
-  initTJA1020();
+  wBus.init();
 
   Serial.begin(115200);
   Serial.println("🚗 Webasto W-Bus");
   Serial.println("=================================");
   Serial.println();
 
+  Serial.println("📡 Запуск точки доступа...");
+  Serial.println("SSID: " + String(ap_ssid));
+  Serial.println("Password: " + String(ap_password));
+
+  WiFi.mode(WIFI_AP);
+  bool ap_started = WiFi.softAP(ap_ssid, ap_password);
+
+  if (ap_started)
+  {
+    Serial.println("✅ Точка доступа запущена");
+    Serial.println("IP адрес: " + WiFi.softAPIP().toString());
+    Serial.println("MAC адрес: " + WiFi.softAPmacAddress());
+  }
+  else
+  {
+    Serial.println("❌ Ошибка запуска точки доступа");
+    while (1)
+    {
+      delay(1000);
+    } // Останавливаем выполнение
+  }
+
+  // Запускаем веб-сервер
+  webServer.begin();
+
   // Автоматическое пробуждение при старте
-  wakeUpTJA1020();
   printHelp();
+
+  Serial.println();
+  Serial.println("📱 Подключитесь с телефона к WiFi:");
+  Serial.println("   Сеть: " + String(ap_ssid));
+  Serial.println("   Пароль: " + String(ap_password));
+  Serial.println("   Затем откройте браузер: http://" + WiFi.softAPIP().toString());
+  Serial.println();
 }
 
 void loop()
 {
-  // Проверяем команды от пользователя
-  if (Serial.available())
-  {
-    String command = Serial.readString();
-    command.trim();
+  webServer.handleClient();
 
-    if (command == "wake" || command == "w")
-    {
-      wakeUpTJA1020();
-    }
-    else if (command == "sleep" || command == "s")
-    {
-      sleepTJA1020();
-    }
-    else if (command == "connect" || command == "con")
-    {
-      connectToWebasto();
-    }
-    else if (command == "disconnect")
-    {
-      wbusQueue.clear();
-    }
-    else if (command == "info" || command == "i")
-    {
-      webastoInfo.printInfo();
-    }
-    else if (command == "errors" || command == "err")
-    {
-      webastoError.check();
-    }
-    else if (command == "clear" || command == "clr")
-    {
-      webastoError.clear();
-    }
-    else if (command == "help" || command == "h")
-    {
-      printHelp();
-    }
-    else if (command == "break")
-    {
-      wakeUpWebasto();
-    }
-    else
-    {
-      sendWbusCommand(command);
-    }
-  }
-
-  wbusQueue.process();
+  wBus.processQueue();
 
   // Чтение и обработка пакетов W-Bus
   if (digitalRead(NSLP_PIN) == HIGH)
   {
-    readWBusData();
+    wBus.processReceiver();
   }
 
   delay(1);

@@ -1,6 +1,9 @@
 // wbus-sender.cpp
 
-#include "wbus/wbus-sender.h"
+#include "wbus-sender.h"
+#include "common/utils/utils.h"
+#include "common/print/print.h"
+#include "common/serial/serial.h"
 
 // Функция проверки валидности WBUS пакета (обновленная)
 bool validateWbusPacket(WBusPacket packet) {

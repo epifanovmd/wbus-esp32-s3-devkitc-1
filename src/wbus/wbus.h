@@ -7,24 +7,9 @@
 #include "common/constants.h"
 #include "common/print/print.h"
 #include "common/utils/utils.h"
-#include "common/serial/serial.h"
-#include "common/queue-map/queue-map.h"
-#include "wbus/wbus-queue.h"
-#include "wbus/wbus-received-data.h"
-#include "wbus/wbus.constants.h"
-#include "wbus/wbus-sender.h"
-#include "wbus/wbus-sensors.h"
-#include "wbus/wbus-error.h"
-#include "wbus/wbus-info.h"
 
-
-void readWBusData();
-
-void wakeUpWebasto();
-void connectToWebasto();
-void readErrors();
-
-enum WebastoState {
+enum WebastoState
+{
     WBUS_STATE_OFF,
     WBUS_STATE_INITIALIZING,
     WBUS_STATE_READY,
@@ -33,16 +18,21 @@ enum WebastoState {
     WBUS_STATE_ERROR
 };
 
-class WebastoStateMachine {
+class WBus
+{
 private:
     WebastoState currentState = WBUS_STATE_OFF;
-    
+
 public:
-    void updateState(String sensorData) {
-        // Логика определения состояния на основе данных датчиков
-    }
-    
+    void init();
+    void wakeUp();
+    void connect();
+    void processQueue();
+    void processReceiver();
+
     WebastoState getState() { return currentState; }
 };
+
+extern WBus wBus;
 
 #endif // WBUS_H

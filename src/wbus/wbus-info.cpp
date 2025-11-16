@@ -291,8 +291,6 @@ void WebastoInfo::handleSerialNumberResponse(bool status, String tx, String rx)
         deviceInfo.testStandCode = data.substring(10);
         deviceInfo.lastUpdate = millis();
     }
-
-    printInfo();
 }
 
 // Публичные методы

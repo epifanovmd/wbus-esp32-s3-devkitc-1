@@ -1,7 +1,7 @@
-#include "wbus/wbus.h"
-#include "wbus/wbus-queue.h"
-#include "wbus/wbus-sender.h"
-#include "wbus/wbus-error-codes.h"
+#include "wbus-queue.h"
+#include "wbus-sender.h"
+#include "wbus-error-codes.h"
+#include "receiver/wbus-receiver.h"
 
 WBusQueue wbusQueue;
 
@@ -57,10 +57,10 @@ void WBusQueue::process()
         break;
 
     case WBUS_QUEUE_SENDING_STATE:
-        if (wBusReceivedData.isRxReceived())
+        if (wBusReceiver.wBusReceivedData.isRxReceived())
         {
             // ✅ Ответ получен
-            _completeCurrentCommand(wBusReceivedData.rxString);
+            _completeCurrentCommand(wBusReceiver.wBusReceivedData.rxString);
         }
         else if (millis() - _lastSendTime > _timeout)
         {

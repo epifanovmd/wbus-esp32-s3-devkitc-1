@@ -1,5 +1,7 @@
+#include "wbus-sensors.h"
 #include "common/utils/utils.h"
-#include "wbus/wbus-sensors.h"
+#include "wbus-queue.h"
+#include "wbus.constants.h"
 
 WebastoSensors webastoSensors;
 

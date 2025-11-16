@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "common/queue-map/queue-map.h"
-#include "wbus/wbus-error-codes.h"
+#include "wbus-error-codes.h"
 
 enum WBusQueueState
 {

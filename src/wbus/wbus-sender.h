@@ -2,7 +2,8 @@
 #ifndef WBUS_SENDER_H
 #define WBUS_SENDER_H
 
-#include "wbus/wbus.h"
+#include <Arduino.h>
+#include "common/constants.h"
 
 struct WBusPacket
 {
