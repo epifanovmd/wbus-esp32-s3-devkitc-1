@@ -16,7 +16,8 @@ void WBus::init()
 
 void WBus::wakeUp()
 {
-  Serial.println("🔔 Пробуждение Webasto...");
+  // Serial.println();
+  // Serial.println("🔔 Пробуждение Webasto...");
 
   // BREAK set - удерживаем линию в LOW 50ms
   WBusSerial.write(0x00);
@@ -26,13 +27,14 @@ void WBus::wakeUp()
   WBusSerial.flush();
   delay(50);
 
-  Serial.println("✅ BREAK последовательность отправлена");
+  // Serial.println("✅ BREAK последовательность отправлена");
 }
 
 void WBus::connect()
 {
   if (connectionState == CONNECTING)
   {
+    Serial.println();
     Serial.println("⚠️  Подключение уже выполняется...");
     return;
   }
@@ -40,6 +42,7 @@ void WBus::connect()
   connectionState = CONNECTING;
   lastConnectionAttempt = millis();
 
+  Serial.println();
   Serial.println("🔌 Подключение к Webasto...");
   wakeUp();
 
@@ -57,11 +60,11 @@ void WBus::connect()
           currentState = WBUS_STATE_READY;
           Serial.println();
           Serial.println("✅ Подключение прошло успешно");
-          wbusQueue.setProcessDelay(150);
+          wbusQueue.setProcessDelay(550);
 
           webastoInfo.getAdditionalInfo();
-          webastoSensors.getAllSensorData();
-          webastoErrors.check();
+          webastoSensors.getAllSensorData(true);
+          webastoErrors.check(true);
         }
         else
         {
@@ -111,143 +114,133 @@ void WBus::updateConnectionState()
 // КОМАНДЫ УПРАВЛЕНИЯ
 // =============================================================================
 
+void WBus::shutdown()
+{
+  if (!isConnected())
+  {
+    wakeUp();
+  }
+
+  wbusQueue.add(CMD_SHUTDOWN, [this](bool success, String cmd, String response)
+                {
+        if (success) {
+            currentState = WBUS_STATE_READY;
+            Serial.println();
+            Serial.println("🛑 Нагреватель выключен");
+        } else {
+          Serial.println();
+            Serial.println("❌ Ошибка выключения нагревателя");
+        } });
+}
+
 void WBus::startParkingHeat(int minutes)
 {
   if (!isConnected())
   {
-    Serial.println();
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   minutes = constrain(minutes, 1, 255);
-  String command = "F4 03 21 " + String(minutes, HEX) + " " + String(0xED ^ minutes, HEX);
+  String command = createParkHeatCommand(minutes);
 
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
-    if (success) {
-      currentState = WBUS_STATE_HEATING;
-       Serial.println();
-      Serial.println("🔥 Запущен паркинг-нагрев на " + String(minutes) + " минут");
-    } else {
-       Serial.println();
-      Serial.println("❌ Ошибка запуска паркинг-нагрева");
-    } });
+        if (success) {
+            currentState = WBUS_STATE_HEATING;
+            Serial.println();
+            Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
+          
+        } else {
+          Serial.println();
+            Serial.println("❌ Ошибка запуска паркинг-нагрева");
+        } });
 }
 
 void WBus::startVentilation(int minutes)
 {
   if (!isConnected())
   {
-    Serial.println();
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   minutes = constrain(minutes, 1, 255);
-  String command = "F4 03 22 " + String(minutes, HEX) + " " + String(0xEE ^ minutes, HEX);
+  String command = createVentilateCommand(minutes);
 
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
-    if (success) {
-      currentState = WBUS_STATE_VENTILATING;
-       Serial.println();
-      Serial.println("💨 Запущена вентиляция на " + String(minutes) + " минут");
-    } else {
-       Serial.println();
-      Serial.println("❌ Ошибка запуска вентиляции");
-    } });
+        if (success) {
+            currentState = WBUS_STATE_VENTILATING;
+            Serial.println();
+            Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
+    
+        } else {
+          Serial.println();
+            Serial.println("❌ Ошибка запуска вентиляции");
+        } });
 }
 
 void WBus::startSupplementalHeat(int minutes)
 {
   if (!isConnected())
   {
-    Serial.println();
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   minutes = constrain(minutes, 1, 255);
-  String command = "F4 03 23 " + String(minutes, HEX) + " " + String(0xEF ^ minutes, HEX);
+  String command = createSuppHeatCommand(minutes);
 
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
-    if (success) {
-      currentState = WBUS_STATE_HEATING;
-       Serial.println();
-      Serial.println("🔥 Запущен дополнительный нагрев на " + String(minutes) + " минут");
-    } else {
-       Serial.println();
-      Serial.println("❌ Ошибка запуска дополнительного нагрева");
-    } });
-}
-
-void WBus::startBoostMode(int minutes)
-{
-  if (!isConnected())
-  {
-    Serial.println();
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
-  }
-
-  minutes = constrain(minutes, 1, 255);
-  String command = "F4 03 25 " + String(minutes, HEX) + " " + String(0xF1 ^ minutes, HEX);
-
-  wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
-                {
-    if (success) {
-      currentState = WBUS_STATE_HEATING;
-       Serial.println();
-      Serial.println("⚡ Запущен Boost режим на " + String(minutes) + " минут");
-    } else {
-       Serial.println();
-      Serial.println("❌ Ошибка запуска Boost режима");
-    } });
-}
-
-void WBus::shutdown()
-{
-  if (!isConnected())
-  {
-    Serial.println();
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
-  }
-
-  wbusQueue.add(CMD_SHUTDOWN, [this](bool success, String cmd, String response)
-                {
-    if (success) {
-      currentState = WBUS_STATE_READY;
-       Serial.println();
-      Serial.println("🛑 Нагреватель выключен");
-    } else {
-       Serial.println();
-      Serial.println("❌ Ошибка выключения нагревателя");
-    } });
+        if (success) {
+            currentState = WBUS_STATE_HEATING;
+            Serial.println();
+            Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
+        } else {
+          Serial.println();
+            Serial.println("❌ Ошибка запуска дополнительного нагрева");
+        } });
 }
 
 void WBus::controlCirculationPump(bool enable)
 {
   if (!isConnected())
   {
-    Serial.println();
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
-  String command = enable ? "F4 03 24 01 F3" : "F4 03 24 00 F2";
+  String command = createCircPumpCommand(enable);
 
   wbusQueue.add(command, [this, enable](bool success, String cmd, String response)
                 {
-    if (success) {
-       Serial.println();
-      Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
-    } else {
-       Serial.println();
-      Serial.println("❌ Ошибка управления циркуляционным насосом");
-    } });
+        if (success) {
+          Serial.println();
+            Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
+        } else {
+          Serial.println();
+            Serial.println("❌ Ошибка управления циркуляционным насосом");
+        } });
+}
+
+void WBus::startBoostMode(int minutes)
+{
+  if (!isConnected())
+  {
+    wakeUp();
+  }
+
+  minutes = constrain(minutes, 1, 255);
+  String command = createBoostCommand(minutes);
+
+  wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
+                {
+        if (success) {
+            currentState = WBUS_STATE_HEATING;
+            Serial.println();
+            Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
+        } else {
+          Serial.println();
+            Serial.println("❌ Ошибка запуска Boost режима");
+        } });
 }
 
 // =============================================================================
@@ -258,8 +251,7 @@ void WBus::testCombustionFan(int seconds, int powerPercent)
 {
   if (!isConnected())
   {
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   seconds = constrain(seconds, 1, 255);
@@ -270,8 +262,10 @@ void WBus::testCombustionFan(int seconds, int powerPercent)
   wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
                 {
         if (success) {
+          Serial.println();
             Serial.println("🌀 Тест вентилятора горения: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         } else {
+          Serial.println();
             Serial.println("❌ Ошибка теста вентилятора горения");
         } });
 }
@@ -280,8 +274,7 @@ void WBus::testFuelPump(int seconds, int frequencyHz)
 {
   if (!isConnected())
   {
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   seconds = constrain(seconds, 1, 255);
@@ -292,8 +285,10 @@ void WBus::testFuelPump(int seconds, int frequencyHz)
   wbusQueue.add(command, [this, seconds, frequencyHz](bool success, String cmd, String response)
                 {
         if (success) {
+          Serial.println();
             Serial.println("⛽ Тест топливного насоса: " + String(seconds) + "сек, " + String(frequencyHz) + "Гц");
         } else {
+          Serial.println();
             Serial.println("❌ Ошибка теста топливного насоса");
         } });
 }
@@ -302,8 +297,7 @@ void WBus::testGlowPlug(int seconds, int powerPercent)
 {
   if (!isConnected())
   {
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   seconds = constrain(seconds, 1, 255);
@@ -314,8 +308,10 @@ void WBus::testGlowPlug(int seconds, int powerPercent)
   wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
                 {
         if (success) {
+          Serial.println();
             Serial.println("🔌 Тест свечи накаливания: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         } else {
+          Serial.println();
             Serial.println("❌ Ошибка теста свечи накаливания");
         } });
 }
@@ -324,8 +320,7 @@ void WBus::testCirculationPump(int seconds, int powerPercent)
 {
   if (!isConnected())
   {
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   seconds = constrain(seconds, 1, 255);
@@ -336,8 +331,10 @@ void WBus::testCirculationPump(int seconds, int powerPercent)
   wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
                 {
         if (success) {
+          Serial.println();
             Serial.println("💧 Тест циркуляционного насоса: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         } else {
+          Serial.println();
             Serial.println("❌ Ошибка теста циркуляционного насоса");
         } });
 }
@@ -346,8 +343,7 @@ void WBus::testVehicleFan(int seconds)
 {
   if (!isConnected())
   {
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   seconds = constrain(seconds, 1, 255);
@@ -357,8 +353,10 @@ void WBus::testVehicleFan(int seconds)
   wbusQueue.add(command, [this, seconds](bool success, String cmd, String response)
                 {
         if (success) {
+          Serial.println();
             Serial.println("🌀 Тест реле вентилятора автомобиля: " + String(seconds) + "сек");
         } else {
+          Serial.println();
             Serial.println("❌ Ошибка теста реле вентилятора автомобиля");
         } });
 }
@@ -367,8 +365,7 @@ void WBus::testSolenoidValve(int seconds)
 {
   if (!isConnected())
   {
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   seconds = constrain(seconds, 1, 255);
@@ -378,8 +375,10 @@ void WBus::testSolenoidValve(int seconds)
   wbusQueue.add(command, [this, seconds](bool success, String cmd, String response)
                 {
         if (success) {
+          Serial.println();
             Serial.println("🔘 Тест соленоидного клапана: " + String(seconds) + "сек");
         } else {
+          Serial.println();
             Serial.println("❌ Ошибка теста соленоидного клапана");
         } });
 }
@@ -388,8 +387,7 @@ void WBus::testFuelPreheating(int seconds, int powerPercent)
 {
   if (!isConnected())
   {
-    Serial.println("❌ Нет подключения к Webasto");
-    return;
+    wakeUp();
   }
 
   seconds = constrain(seconds, 1, 255);
@@ -400,8 +398,10 @@ void WBus::testFuelPreheating(int seconds, int powerPercent)
   wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
                 {
         if (success) {
+          Serial.println();
             Serial.println("🔥 Тест подогрева топлива: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         } else {
+          Serial.println();
             Serial.println("❌ Ошибка теста подогрева топлива");
         } });
 }
@@ -588,6 +588,10 @@ void WBus::processQueue()
     }
     else
     {
+      if (!isConnected())
+      {
+        wakeUp();
+      }
       wbusQueue.add(command);
     }
   }
