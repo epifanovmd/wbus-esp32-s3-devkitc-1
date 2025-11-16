@@ -1,6 +1,5 @@
 #include "wbus-queue.h"
 #include "wbus-sender.h"
-#include "wbus-error-codes.h"
 #include "receiver/wbus-receiver.h"
 
 WBusQueue wbusQueue;
@@ -30,6 +29,21 @@ void WBusQueue::setRepeatDelay(unsigned long retryDelay)
 void WBusQueue::setMaxRetries(unsigned long retries)
 {
     _maxRetries = retries;
+}
+
+bool WBusQueue::removeCommand(String command)
+{
+    return _queue.remove(command);
+}
+
+bool WBusQueue::containsCommand(String command)
+{
+    return _queue.contains(command);
+}
+
+void WBusQueue::printQueue()
+{
+    _queue.print();
 }
 
 void WBusQueue::clear()
@@ -88,30 +102,33 @@ void WBusQueue::_sendCurrentCommand()
     sendWbusCommand(command);
 }
 
-void WBusQueue::processNakResponse(const String response) {
-    if (!errorCodes.isNakResponse(response)) return;
-    
+void WBusQueue::processNakResponse(const String response)
+{
+    if (!errorsDecoder.isNakResponse(response))
+        return;
+
     // Парсим NAK пакет
     String cleanResponse = response;
     cleanResponse.replace(" ", "");
-    
-    if (cleanResponse.length() >= 10) {
+
+    if (cleanResponse.length() >= 10)
+    {
         byte failedCommand = strtoul(cleanResponse.substring(8, 10).c_str(), NULL, 16);
         byte errorCode = strtoul(cleanResponse.substring(10, 12).c_str(), NULL, 16);
-        
+
         Serial.println();
         Serial.println("❌ NAK получен:");
         Serial.println("   Невыполненная команда: 0x" + String(failedCommand, HEX));
         Serial.println("   Код ошибки: 0x" + String(errorCode, HEX));
-        
+
         // Декодируем причину ошибки
-        errorCodes.decodeNakError(failedCommand, errorCode);
+        errorsDecoder.decodeNakError(failedCommand, errorCode);
     }
 }
 
 void WBusQueue::_completeCurrentCommand(String response, bool success)
 {
-    if (errorCodes.isNakResponse(response))
+    if (errorsDecoder.isNakResponse(response))
     {
         success = false;
         processNakResponse(response);

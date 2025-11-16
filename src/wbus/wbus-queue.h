@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "common/queue-map/queue-map.h"
-#include "wbus-error-codes.h"
+#include "wbus-errors-decoder.h"
 
 enum WBusQueueState
 {
@@ -15,7 +15,7 @@ enum WBusQueueState
 class WBusQueue
 {
 private:
-    WebastoErrorCodes errorCodes;
+    WebastoErrorsDecoder errorsDecoder;
     QueueMap _queue;
     WBusQueueState _state = WBUS_QUEUE_IDLE_STATE;
     unsigned long _processDelay = 0;
@@ -36,9 +36,13 @@ public:
     void setRepeatDelay(unsigned long retryDelay);
     void setMaxRetries(unsigned long retries);
 
+    bool removeCommand(String command);
+    bool containsCommand(String command);
     void clear();
     void process();
     void processNakResponse(const String response);
+
+    void printQueue();
 };
 
 extern WBusQueue wbusQueue;

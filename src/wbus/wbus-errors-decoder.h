@@ -1,16 +1,66 @@
-#ifndef WBUS_ERROR_CODES_H
-#define WBUS_ERROR_CODES_H
+#ifndef WBUS_ERRORS_DECODER_H
+#define WBUS_ERRORS_DECODER_H
 
 #include <Arduino.h>
 #include <map>
+#include <vector>
 
-class WebastoErrorCodes
+// Структура для хранения информации об ошибке
+struct WebastoError
+{
+    uint8_t code;
+    String description;
+    uint8_t counter;
+    bool isActive;
+    String hexCode;
+
+    WebastoError(uint8_t errorCode = 0, uint8_t errorCounter = 0)
+        : code(errorCode), counter(errorCounter), isActive(true)
+    {
+        hexCode = "0x";
+        if (code < 0x10)
+            hexCode += "0";
+        hexCode += String(code, HEX);
+    }
+};
+
+// Структура для хранения всех ошибок
+struct ErrorCollection
+{
+    std::vector<WebastoError> errors;
+    bool hasErrors = false;
+    int errorCount = 0;
+    String lastUpdate = "";
+
+    void clear()
+    {
+        errors.clear();
+        hasErrors = false;
+        errorCount = 0;
+    }
+
+    void addError(const WebastoError &error)
+    {
+        errors.push_back(error);
+        hasErrors = true;
+        errorCount = errors.size();
+    }
+
+    bool isEmpty() const
+    {
+        return errors.empty();
+    }
+};
+
+class WebastoErrorsDecoder
 {
 private:
     std::map<uint8_t, String> errorCodes;
 
+    void hexStringToBytes(const String &hexString, uint8_t *output, int maxLength);
+
 public:
-    WebastoErrorCodes()
+    WebastoErrorsDecoder()
     {
         initializeErrorCodes();
     }
@@ -84,76 +134,20 @@ public:
         errorCodes[0x87] = "Постоянная блокировка подогревателя";
     }
 
-    String getErrorDescription(uint8_t errorCode)
-    {
-        if (errorCodes.find(errorCode) != errorCodes.end())
-        {
-            return errorCodes[errorCode];
-        }
-        else
-        {
-            return "Неизвестная ошибка, код – " + errorCode;
-        }
-    }
+    ErrorCollection decodeErrorPacket(const String &packet);
+    ErrorCollection decodeErrorList(const uint8_t *data, uint8_t dataLength);
+    WebastoError decodeSingleError(uint8_t errorCode, uint8_t counter = 0);
 
-    bool errorExists(uint8_t errorCode)
-    {
-        return errorCodes.find(errorCode) != errorCodes.end();
-    }
+    String getErrorDescription(uint8_t errorCode);
+    bool errorExists(uint8_t errorCode);
+    void decodeNakError(byte command, byte errorCode);
+    String getCommandName(byte command);
+    String getNakErrorDescription(byte errorCode);
+    bool isNakResponse(const String &response);
 
-    void decodeNakError(byte command, byte errorCode)
-    {
-        String commandName = getCommandName(command);
-        String errorDescription = getNakErrorDescription(errorCode);
-
-        Serial.println();
-        Serial.println("   Команда: " + commandName);
-        Serial.println("   Причина: " + errorDescription);
-    }
-
-    String getCommandName(byte command)
-    {
-        switch (command)
-        {
-        case 0x21:
-            return "Parking Heat (0x21)";
-        case 0x22:
-            return "Ventilation (0x22)";
-        case 0x23:
-            return "Supplemental Heat (0x23)";
-        case 0x10:
-            return "Shutdown (0x10)";
-        case 0x38:
-            return "Diagnostic (0x38)";
-        default:
-            return "Unknown Command (0x" + String(command, HEX) + ")";
-        }
-    }
-
-    String getNakErrorDescription(byte errorCode)
-    {
-        switch (errorCode)
-        {
-        case 0x33:
-            return "Невозможно выполнить в текущем состоянии";
-        case 0x22:
-            return "Неправильные параметры команды";
-        case 0x11:
-            return "Команда не поддерживается";
-        case 0x44:
-            return "Аппаратная ошибка";
-        case 0x55:
-            return "Температура вне диапазона";
-        default:
-            return "Неизвестная ошибка (0x" + String(errorCode, HEX) + ")";
-        }
-    }
-
-    bool isNakResponse(const String &response)
-    {
-        // Формат: 4F 04 7F [command] [error_code] [crc]
-        return response.indexOf("4F 04 7F") == 0;
-    }
+    String formatErrorsForDisplay(const ErrorCollection &errorCollection);
 };
 
-#endif // WBUS_ERROR_CODES_H
+extern WebastoErrorsDecoder webastoErrorsDecoder;
+
+#endif // WBUS_ERRORS_DECODER_H

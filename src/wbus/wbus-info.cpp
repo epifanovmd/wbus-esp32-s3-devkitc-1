@@ -189,15 +189,19 @@ void WebastoInfo::getMainInfo()
     getWBusCode();
 }
 
-void WebastoInfo::getAllInfo()
+void WebastoInfo::getAdditionalInfo()
 {
-    getMainInfo();
-
     getDeviceID();
     getControllerManufactureDate();
     getHeaterManufactureDate();
     getCustomerID();
     getSerialNumber();
+}
+
+void WebastoInfo::getAllInfo()
+{
+    getMainInfo();
+    getAdditionalInfo();
 }
 
 void WebastoInfo::printInfo()

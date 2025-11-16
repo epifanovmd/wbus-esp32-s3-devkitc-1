@@ -9,6 +9,7 @@
 bool validateWbusPacket(WBusPacket packet) {
   // Проверка минимальной длины
   if (packet.byteCount < 3) {
+    Serial.println();
     Serial.println("❌ Слишком короткий пакет (минимум 3 байта)");
     return false;
   }
@@ -16,6 +17,7 @@ bool validateWbusPacket(WBusPacket packet) {
   // Проверка заголовка
   byte header = packet.data[0];
   if (header != TXHEADER && header != RXHEADER) {
+    Serial.println();
     Serial.print("❌ Неверный заголовок: ");
     printHex(header, true);
     return false;
@@ -24,6 +26,7 @@ bool validateWbusPacket(WBusPacket packet) {
   // Проверка длины пакета
   byte declaredLength = packet.data[1];
   if (packet.byteCount != declaredLength + 2) { // +2 для header и length байтов
+    Serial.println();
     Serial.print("❌ Несоответствие длины: объявлено ");
     Serial.print(declaredLength);
     Serial.print(", фактически ");
@@ -40,7 +43,8 @@ bool validateWbusPacket(WBusPacket packet) {
   byte receivedChecksum = packet.data[packet.byteCount - 1];
 
   if (calculatedChecksum != receivedChecksum) {
-    Serial.println("❌ Контрольная сумма неверна!");
+    Serial.println();
+    Serial.print("❌ Контрольная сумма неверна!");
     Serial.print("   Ожидалось: ");
     printHex(calculatedChecksum, false);
     Serial.print(", получено: ");

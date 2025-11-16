@@ -1,11 +1,17 @@
 #ifndef WBUSCONSTANTS_H
 #define WBUSCONSTANTS_H
 
+#include "common/utils/utils.h"
+
 // =================================================================================
 // Структура пакета:
 // [ Заголовок | Длина | Команда | Данные ... | Контрольная сумма ]
 // =================================================================================
 
+
+// =================================================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РАСЧЕТА CRC
+// =================================================================================
 
 // =================================================================================
 // БАЗОВЫЕ КОМАНДЫ УПРАВЛЕНИЯ (время в минутах указывается в данных – 3B = 59 минут)
@@ -29,16 +35,62 @@
 
 
 // =================================================================================
-// КОМАНДЫ ТЕСТИРОВАНИЯ КОМПОНЕНТОВ
+// МАКРОСЫ ДЛЯ ТЕСТИРОВАНИЯ КОМПОНЕНТОВ С ДИНАМИЧЕСКИМ РАСЧЕТОМ CRC
 // =================================================================================
 
-#define CMD_TEST_CAF_50P_10S "F4 06 45 01 0A 00 64 98"  // Тест вентилятора - 10 секунд, 50% мощности
-#define CMD_TEST_FUEL_PUMP_10HZ_5S "F4 06 45 02 05 00 C8 78" // Тест топливного насоса - 5 секунд, 10 Гц
-#define CMD_TEST_GLOW_PLUG_75P_15S "F4 06 45 03 0F 00 96 2D" // Тест свечи накаливания - 15 секунд, 75% мощности  
-#define CMD_TEST_CIRC_PUMP_100P_20S "F4 06 45 04 14 00 C8 6F" // Тест циркуляционного насоса - 20 секунд, 100% мощности
-#define CMD_TEST_VEHICLE_FAN_8S "F4 06 45 05 08 00 01 BB" // Тест реле вентилятора - 8 секунд, включено
-#define CMD_TEST_SOLENOID_12S "F4 06 45 09 0C 00 01 B3" // Тест соленоидного клапана - 12 секунд, включено
-#define CMD_TEST_FUEL_PREHEAT_50P_25S "F4 06 45 0F 19 00 64 C5" // Тест подогрева топлива - 25 секунд, 50% мощности
+// Функция для создания команды тестирования компонента
+inline String createTestCommand(uint8_t component, uint8_t seconds, uint16_t magnitude) {
+    // Формируем массив байт для расчета контрольной суммы
+    // Команда состоит из 8 байт: header + length + command + component + seconds + magnitude_high + magnitude_low + CRC
+    byte data[] = {
+        0xF4, 0x06, 0x45, component, 
+        seconds, 
+        (byte)(magnitude >> 8), 
+        (byte)(magnitude & 0xFF)
+    };
+    byte checksum = calculateChecksum(data, 7);
+
+    return "F4 06 45 " + 
+           byteToHexString(component) + " " + 
+           byteToHexString(seconds) + " " + 
+           byteToHexString(magnitude >> 8) + " " + 
+           byteToHexString(magnitude & 0xFF) + " " + 
+           byteToHexString(checksum);
+}
+
+// Функции для конкретных компонентов
+inline String createTestCAFCommand(uint8_t seconds, uint8_t powerPercent) {
+    uint16_t magnitude = powerPercent * 2; // 1% = 2 единицы (50% = 0x64)
+    return createTestCommand(0x01, seconds, magnitude);
+}
+
+inline String createTestFuelPumpCommand(uint8_t seconds, uint8_t frequencyHz) {
+    uint16_t magnitude = frequencyHz * 20; // 1 Гц = 20 единиц (10 Гц = 0xC8)
+    return createTestCommand(0x02, seconds, magnitude);
+}
+
+inline String createTestGlowPlugCommand(uint8_t seconds, uint8_t powerPercent) {
+    uint16_t magnitude = powerPercent * 2; // 1% = 2 единицы (75% = 0x96)
+    return createTestCommand(0x03, seconds, magnitude);
+}
+
+inline String createTestCircPumpCommand(uint8_t seconds, uint8_t powerPercent) {
+    uint16_t magnitude = powerPercent * 2; // 1% = 2 единицы (100% = 0xC8)
+    return createTestCommand(0x04, seconds, magnitude);
+}
+
+inline String createTestVehicleFanCommand(uint8_t seconds) {
+    return createTestCommand(0x05, seconds, 0x0001); // всегда 0x0001 для реле
+}
+
+inline String createTestSolenoidCommand(uint8_t seconds) {
+    return createTestCommand(0x09, seconds, 0x0001); // всегда 0x0001 для соленоида
+}
+
+inline String createTestFuelPreheatCommand(uint8_t seconds, uint8_t powerPercent) {
+    uint16_t magnitude = powerPercent * 2; // 1% = 2 единицы (50% = 0x64)
+    return createTestCommand(0x0F, seconds, magnitude);
+}
 
 // =================================================================================
 // КОМАНДЫ ЧТЕНИЯ ДАННЫХ - СЕНСОРЫ (0x50)
@@ -54,7 +106,7 @@
 // #define CMD_READ_SENSOR_WORKING_DURATION "F4 03 50 11 96" // Чтение датчика - время работы PH и SH
 // #define CMD_READ_SENSOR_START_COUNTERS "F4 03 50 12 95" // Чтение датчика - счетчики запусков
 // #define CMD_READ_SENSOR_TEMP_THRESHOLDS "F4 03 50 13 B4" // Чтение датчика - температурные пороги
-// #define CMD_READ_SENSOR_SUBSYSTEMS_STATUS "F4 03 50 0F A8" // Чтение датчика - статус подсистем (ТЭНы, насосы, вентиляторы)
+#define CMD_READ_SENSOR_SUBSYSTEMS_STATUS "F4 03 50 0F A8" // Чтение датчика - статус подсистем (ТЭНы, насосы, вентиляторы)
 // #define CMD_READ_SENSOR_FUEL_PREHEAT "F4 03 50 19 AE" // Чтение датчика - сопротивление и мощность подогрева топлива
 // #define CMD_READ_SENSOR_VENT_DURATION "F4 03 50 18 AF" // Чтение датчика - продолжительность вентиляции
 

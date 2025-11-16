@@ -36,3 +36,22 @@ byte hexStringToByte(const String &hexStr)
 {
   return (byte)strtol(hexStr.c_str(), NULL, 16);
 }
+
+byte *hexStringToByteArray(const String &hexString, int &byteCount)
+{
+  static byte data[32]; // Статический буфер для данных
+  byteCount = 0;
+
+  String cleanString = hexString;
+  cleanString.replace(" ", "");
+
+  for (int i = 0; i < cleanString.length(); i += 2)
+  {
+    if (byteCount < 32 && i + 2 <= cleanString.length())
+    {
+      data[byteCount++] = hexStringToByte(cleanString.substring(i, i + 2));
+    }
+  }
+
+  return data;
+}
