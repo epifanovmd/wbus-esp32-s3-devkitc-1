@@ -84,6 +84,7 @@ public:
     void getCustomerID();
     void getSerialNumber();
 
+    void getMainInfo();
     void getAllInfo();
     void printInfo();
     WebastoDeviceInfo getDeviceInfo();

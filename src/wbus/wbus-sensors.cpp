@@ -141,20 +141,6 @@ void WebastoSensors::handleFuelSettingsResponse(bool success, String cmd, String
     }
 
     Serial.println("Коэф. вентиляции:      " + ventInfo + " - " + ventDescription);
-
-    // Дополнительная информация о конфигурации
-    Serial.println();
-    Serial.println("💡 ИНТЕРПРЕТАЦИЯ:");
-    Serial.println("   • Устройство настроено на " + fuelSettings.fuelTypeName);
-    Serial.println("   • Максимальное время работы: " + String(fuelSettings.maxHeatingTime) + " минут");
-    Serial.println("   • Время вентиляции: " + String(fuelSettings.ventilationFactor) + " минут");
-
-    // Проверка типичных конфигураций
-    if (fuelSettings.fuelType == 0x0D && fuelSettings.maxHeatingTime == 60 && fuelSettings.ventilationFactor == 60)
-    {
-      Serial.println("   ✅ Стандартная конфигурация для дизельного топлива");
-    }
-
     Serial.println();
   }
   else
@@ -247,45 +233,6 @@ void WebastoSensors::handleOnOffFlagsResponse(bool success, String cmd, String r
     Serial.println("   " + String(onOffFlags.vehicleFanRelay ? "✅" : "❌") + " Реле вентилятора авто (VFR)");
     Serial.println("   " + String(onOffFlags.nozzleStockHeating ? "✅" : "❌") + " Подогрев форсунки (NSH)");
     Serial.println("   " + String(onOffFlags.flameIndicator ? "✅" : "❌") + " Индикатор пламени (FI)");
-
-    Serial.println();
-    Serial.println("🎯 АКТИВНЫЕ КОМПОНЕНТЫ: " + onOffFlags.activeComponents);
-
-    // Анализ режима работы на основе активных компонентов
-    Serial.println();
-    Serial.println("💡 АНАЛИЗ РЕЖИМА РАБОТЫ:");
-
-    if (onOffFlags.glowPlug && onOffFlags.fuelPump && onOffFlags.combustionAirFan)
-    {
-      Serial.println("   🔥 Режим запуска/прогрева");
-    }
-    else if (onOffFlags.flameIndicator && onOffFlags.fuelPump)
-    {
-      Serial.println("   🔥 Режим активного горения");
-    }
-    else if (onOffFlags.circulationPump && !onOffFlags.fuelPump)
-    {
-      Serial.println("   💧 Режим циркуляции/вентиляции");
-    }
-    else if (onOffFlags.activeComponents == "нет активных")
-    {
-      Serial.println("   💤 Ожидание/выключен");
-    }
-    else
-    {
-      Serial.println("   ⚙️  Специальный режим");
-    }
-
-    // Проверка корректности состояния
-    if (onOffFlags.flameIndicator && !onOffFlags.fuelPump)
-    {
-      Serial.println("   ⚠️  ВНИМАНИЕ: Пламя без подачи топлива!");
-    }
-    if (onOffFlags.fuelPump && !onOffFlags.combustionAirFan)
-    {
-      Serial.println("   ⚠️  ВНИМАНИЕ: Топливо без воздуха!");
-    }
-
     Serial.println();
   }
   else
@@ -422,69 +369,6 @@ void WebastoSensors::handleStatusFlagsResponse(bool success, String cmd, String 
     Serial.println("   " + String(statusFlags.ventilationRequest ? "✅" : "❌") + " Вентиляция");
     Serial.println("   " + String(statusFlags.boostMode ? "✅" : "❌") + " Boost режим");
     Serial.println("   " + String(statusFlags.auxiliaryDrive ? "✅" : "❌") + " Вспомогательный привод");
-
-    Serial.println();
-    Serial.println("📈 СВОДКА: " + statusFlags.statusSummary);
-    Serial.println("🎛️  РЕЖИМ: " + statusFlags.operationMode);
-
-    // Анализ состояния системы
-    Serial.println();
-    Serial.println("💡 АНАЛИЗ СИСТЕМЫ:");
-
-    // Проверка питания
-    if (statusFlags.generatorSignal)
-    {
-      Serial.println("   🔋 Двигатель работает (генератор активен)");
-    }
-    else
-    {
-      Serial.println("   🔋 Питание только от АКБ");
-    }
-
-    // Проверка сезона
-    if (statusFlags.summerMode)
-    {
-      Serial.println("   ☀️  Летний режим - только вентиляция");
-    }
-    else
-    {
-      Serial.println("   ❄️  Зимний режим - доступен нагрев");
-    }
-
-    // Проверка готовности
-    if (statusFlags.mainSwitch && statusFlags.ignitionSignal)
-    {
-      Serial.println("   ✅ Система готова к работе");
-    }
-    else if (!statusFlags.mainSwitch)
-    {
-      Serial.println("   ⚠️  Главный выключатель выключен");
-    }
-    else if (!statusFlags.ignitionSignal)
-    {
-      Serial.println("   ⚠️  Зажигание выключено");
-    }
-
-    // Проверка конфликтов режимов
-    int activeModes = 0;
-    if (statusFlags.parkingHeatRequest)
-      activeModes++;
-    if (statusFlags.supplementalHeatRequest)
-      activeModes++;
-    if (statusFlags.ventilationRequest)
-      activeModes++;
-
-    if (activeModes > 1)
-    {
-      Serial.println("   ⚠️  Обнаружено несколько активных режимов!");
-    }
-
-    // Проверка летнего режима с нагревом
-    if (statusFlags.summerMode && (statusFlags.parkingHeatRequest || statusFlags.supplementalHeatRequest))
-    {
-      Serial.println("   ⚠️  Конфликт: нагрев в летнем режиме!");
-    }
-
     Serial.println();
   }
   else
@@ -803,89 +687,9 @@ void WebastoSensors::handleOperatingStateResponse(bool success, String cmd, Stri
     Serial.println("═══════════════════════════════════════════════════════════");
 
     Serial.println("📊 ДАННЫЕ СОСТОЯНИЯ:");
-    Serial.println("   Код состояния:      0x" + String(operatingState.stateCode, HEX) +
-                   " (" + String(operatingState.stateCode, DEC) + ")");
+    Serial.println("   Код состояния:      0x" + String(operatingState.stateCode, HEX) + " (" + String(operatingState.stateCode, DEC) + ")");
     Serial.println("   Номер состояния:    " + String(operatingState.stateNumber));
-    Serial.println("   Флаги устройства:   0x" + String(operatingState.deviceStateFlags, HEX) +
-                   " [" + operatingState.deviceStateInfo + "]");
-
-    Serial.println();
-    Serial.println("🎯 ИНФОРМАЦИЯ О СОСТОЯНИИ:");
-    Serial.println("   Название:           " + operatingState.stateName);
-    Serial.println("   Описание:           " + operatingState.stateDescription);
-
-    Serial.println();
-    Serial.println("💡 АНАЛИЗ СИСТЕМЫ:");
-
-    // Анализ текущего состояния
-    if (operatingState.stateCode == 0x04)
-    {
-      Serial.println("   ✅ Система выключена и готова к работе");
-    }
-    else if (operatingState.stateCode >= 0x05 && operatingState.stateCode <= 0x06)
-    {
-      Serial.println("   🔥 Активный процесс горения");
-      if (operatingState.stateCode == 0x05)
-        Serial.println("   📏 Частичная нагрузка");
-      if (operatingState.stateCode == 0x06)
-        Serial.println("   📏 Полная нагрузка");
-    }
-    else if (operatingState.stateCode >= 0x24 && operatingState.stateCode <= 0x27)
-    {
-      Serial.println("   🚀 Процесс запуска системы");
-    }
-    else if (operatingState.stateCode >= 0x2E && operatingState.stateCode <= 0x35)
-    {
-      Serial.println("   🔌 Работа системы зажигания");
-    }
-    else if (operatingState.stateCode >= 0x45 && operatingState.stateCode <= 0x4D)
-    {
-      Serial.println("   ⏹️  Завершение работы");
-    }
-    else if (operatingState.stateCode >= 0x1C && operatingState.stateCode <= 0x1D)
-    {
-      Serial.println("   💨 Режим вентиляции");
-    }
-    else
-    {
-      Serial.println("   ⚙️  Промежуточное состояние");
-    }
-
-    // Анализ флагов устройства
-    if (operatingState.deviceStateFlags & 0x01)
-    {
-      Serial.println("   ⚡ Активен стартерный режим");
-    }
-    if (operatingState.deviceStateFlags & 0x02)
-    {
-      Serial.println("   🌡️  Превышен верхний температурный предел");
-    }
-    if (operatingState.deviceStateFlags & 0x04)
-    {
-      Serial.println("   🛡️  Активен флаг безопасности");
-    }
-    if (operatingState.deviceStateFlags & 0x08)
-    {
-      Serial.println("   📐 Активно регулирование системы");
-    }
-
-    // Предупреждения для критических состояний
-    if (operatingState.stateCode >= 0x43 && operatingState.stateCode <= 0x44)
-    {
-      Serial.println();
-      Serial.println("   ⚠️  ВНИМАНИЕ: Обнаружен сбой горения!");
-    }
-    if (operatingState.stateCode == 0x15 || operatingState.stateCode == 0x28)
-    {
-      Serial.println();
-      Serial.println("   ⚠️  ВНИМАНИЕ: Система заблокирована!");
-    }
-    if (operatingState.stateCode == 0x27)
-    {
-      Serial.println();
-      Serial.println("   ⚠️  ВНИМАНИЕ: Отключение питания!");
-    }
-
+    Serial.println("   Флаги устройства:   0x" + String(operatingState.deviceStateFlags, HEX) + " [" + operatingState.deviceStateInfo + "]");
     Serial.println();
   }
   else

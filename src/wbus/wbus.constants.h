@@ -49,14 +49,14 @@
 #define CMD_READ_SENSOR_FUEL_SETTINGS "F4 03 50 04 A3" // Чтение датчика - тип топлива и настройки
 #define CMD_READ_SENSOR_OPERATIONAL "F4 03 50 05 A2" // Чтение датчика - операционные измерения (температура, напряжение и т.д.)
 #define CMD_READ_SENSOR_OPERATING_STATE "F4 03 50 06 A1" // Чтение датчика - состояние устройства
-#define CMD_READ_SENSOR_OPERATING_TIMES "F4 03 50 07 A0" // Чтение датчика - время работы и счетчики
-#define CMD_READ_SENSOR_BURN_DURATION "F4 03 50 10 97" // Чтение датчика - продолжительность горения
-#define CMD_READ_SENSOR_WORKING_DURATION "F4 03 50 11 96" // Чтение датчика - время работы PH и SH
-#define CMD_READ_SENSOR_START_COUNTERS "F4 03 50 12 95" // Чтение датчика - счетчики запусков
-#define CMD_READ_SENSOR_TEMP_THRESHOLDS "F4 03 50 13 B4" // Чтение датчика - температурные пороги
-#define CMD_READ_SENSOR_SUBSYSTEMS_STATUS "F4 03 50 0F A8" // Чтение датчика - статус подсистем (ТЭНы, насосы, вентиляторы)
-#define CMD_READ_SENSOR_FUEL_PREHEAT "F4 03 50 19 AE" // Чтение датчика - сопротивление и мощность подогрева топлива
-#define CMD_READ_SENSOR_VENT_DURATION "F4 03 50 18 AF" // Чтение датчика - продолжительность вентиляции
+// #define CMD_READ_SENSOR_OPERATING_TIMES "F4 03 50 07 A0" // Чтение датчика - время работы и счетчики
+// #define CMD_READ_SENSOR_BURN_DURATION "F4 03 50 10 97" // Чтение датчика - продолжительность горения
+// #define CMD_READ_SENSOR_WORKING_DURATION "F4 03 50 11 96" // Чтение датчика - время работы PH и SH
+// #define CMD_READ_SENSOR_START_COUNTERS "F4 03 50 12 95" // Чтение датчика - счетчики запусков
+// #define CMD_READ_SENSOR_TEMP_THRESHOLDS "F4 03 50 13 B4" // Чтение датчика - температурные пороги
+// #define CMD_READ_SENSOR_SUBSYSTEMS_STATUS "F4 03 50 0F A8" // Чтение датчика - статус подсистем (ТЭНы, насосы, вентиляторы)
+// #define CMD_READ_SENSOR_FUEL_PREHEAT "F4 03 50 19 AE" // Чтение датчика - сопротивление и мощность подогрева топлива
+// #define CMD_READ_SENSOR_VENT_DURATION "F4 03 50 18 AF" // Чтение датчика - продолжительность вентиляции
 
 
 // =================================================================================
@@ -64,8 +64,8 @@
 // =================================================================================
 
 #define CMD_READ_INFO_DEVICE_ID "F4 03 51 01 A7" // Чтение информации - ID устройства
-#define CMD_READ_INFO_HW_VERSION "F4 03 51 02 A6" // Чтение информации - версия железа
-#define CMD_READ_INFO_DATASET_ID "F4 03 51 03 A5" // Чтение информации - ID набора данных
+// #define CMD_READ_INFO_HW_VERSION "F4 03 51 02 A6" // Чтение информации - версия железа
+// #define CMD_READ_INFO_DATASET_ID "F4 03 51 03 A5" // Чтение информации - ID набора данных
 #define CMD_READ_INFO_CTRL_MFG_DATE "F4 03 51 04 A2" // Чтение информации - дата производства контроллера
 #define CMD_READ_INFO_HEATER_MFG_DATE "F4 03 51 05 A3" // Чтение информации - дата производства нагревателя
 #define CMD_READ_INFO_CUSTOMER_ID "F4 03 51 07 A1" // Чтение информации - ID клиента (партномер)
@@ -80,7 +80,7 @@
 // =================================================================================
 
 #define CMD_READ_ERRORS_LIST "F4 03 56 01 A0" // Чтение ошибок - список кодов ошибок
-#define CMD_READ_ERROR_BLOCK "F4 04 56 02 98 3C" // Чтение ошибок - блок информации об ошибке
+// #define CMD_READ_ERROR_BLOCK "F4 04 56 02 98 3C" // Чтение ошибок - блок информации об ошибке
 #define CMD_CLEAR_ERRORS "F4 03 56 03 A2" // Очистка ошибок
 
 
@@ -88,21 +88,7 @@
 // КОМАНДЫ КАЛИБРОВКИ CO2 (0x57)
 // =================================================================================
 
-#define CMD_CO2_CAL_READ "F4 03 57 01 A1" // Калибровка CO2 - чтение значений
-#define CMD_CO2_CAL_WRITE "F4 03 57 03 A3" // Калибровка CO2 - запись значений  
-
-
-// =================================================================================
-// МАССИВЫ ДЛЯ ГРУППОВОЙ ОБРАБОТКИ
-// =================================================================================
-
-// Команды инициализации Webasto
-#define INIT_COMMANDS_COUNT 4
-const String INIT_COMMANDS[INIT_COMMANDS_COUNT] = {
-    CMD_READ_INFO_WBUS_VERSION,    // Запрос версии W-Bus
-    CMD_READ_INFO_DEVICE_NAME,     // Запрос имени устройства
-    CMD_READ_INFO_WBUS_CODE,       // Запрос WBUS-кода
-    CMD_DIAGNOSTIC                 // Диагностическая команда
-};
+// #define CMD_CO2_CAL_READ "F4 03 57 01 A1" // Калибровка CO2 - чтение значений
+// #define CMD_CO2_CAL_WRITE "F4 03 57 03 A3" // Калибровка CO2 - запись значений
 
 #endif // WBUSCONSTANTS_H

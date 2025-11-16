@@ -5,10 +5,12 @@ WebastoInfo webastoInfo;
 // Методы обработки ответов
 void WebastoInfo::handleWBusVersionResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedVersion version = wBusDecoder.decodeWBusVersion(rx);
-    if (version.isValid) {
+    if (version.isValid)
+    {
         deviceInfo.wbusVersion = version.versionString;
         deviceInfo.lastUpdate = millis();
     }
@@ -16,10 +18,12 @@ void WebastoInfo::handleWBusVersionResponse(bool status, String tx, String rx)
 
 void WebastoInfo::handleDeviceNameResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedTextData name = wBusDecoder.decodeDeviceName(rx);
-    if (name.isValid) {
+    if (name.isValid)
+    {
         deviceInfo.deviceName = name.text;
         deviceInfo.lastUpdate = millis();
     }
@@ -27,10 +31,12 @@ void WebastoInfo::handleDeviceNameResponse(bool status, String tx, String rx)
 
 void WebastoInfo::handleWBusCodeResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedWBusCode code = wBusDecoder.decodeWBusCode(rx);
-    if (code.isValid) {
+    if (code.isValid)
+    {
         deviceInfo.wbusCode = code.codeString;
         deviceInfo.supportedFunctions = code.supportedFunctions;
         deviceInfo.lastUpdate = millis();
@@ -39,10 +45,12 @@ void WebastoInfo::handleWBusCodeResponse(bool status, String tx, String rx)
 
 void WebastoInfo::handleDeviceIDResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedTextData id = wBusDecoder.decodeDeviceID(rx);
-    if (id.isValid) {
+    if (id.isValid)
+    {
         deviceInfo.deviceID = id.text;
         deviceInfo.lastUpdate = millis();
     }
@@ -50,10 +58,12 @@ void WebastoInfo::handleDeviceIDResponse(bool status, String tx, String rx)
 
 void WebastoInfo::handleHeaterManufactureDateResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedManufactureDate date = wBusDecoder.decodeHeaterManufactureDate(rx);
-    if (date.isValid) {
+    if (date.isValid)
+    {
         deviceInfo.heaterManufactureDate = date.dateString;
         deviceInfo.lastUpdate = millis();
     }
@@ -61,10 +71,12 @@ void WebastoInfo::handleHeaterManufactureDateResponse(bool status, String tx, St
 
 void WebastoInfo::handleControllerManufactureDateResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedManufactureDate date = wBusDecoder.decodeControllerManufactureDate(rx);
-    if (date.isValid) {
+    if (date.isValid)
+    {
         deviceInfo.controllerManufactureDate = date.dateString;
         deviceInfo.lastUpdate = millis();
     }
@@ -72,10 +84,12 @@ void WebastoInfo::handleControllerManufactureDateResponse(bool status, String tx
 
 void WebastoInfo::handleCustomerIDResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedTextData customerID = wBusDecoder.decodeCustomerID(rx);
-    if (customerID.isValid) {
+    if (customerID.isValid)
+    {
         deviceInfo.customerID = customerID.text;
         deviceInfo.lastUpdate = millis();
     }
@@ -83,10 +97,12 @@ void WebastoInfo::handleCustomerIDResponse(bool status, String tx, String rx)
 
 void WebastoInfo::handleSerialNumberResponse(bool status, String tx, String rx)
 {
-    if (!status) return;
+    if (!status)
+        return;
 
     DecodedTextData serial = wBusDecoder.decodeSerialNumber(rx);
-    if (serial.isValid) {
+    if (serial.isValid)
+    {
         deviceInfo.serialNumber = serial.text;
         // testStandCode можно добавить если нужно
         deviceInfo.lastUpdate = millis();
@@ -166,11 +182,17 @@ void WebastoInfo::getSerialNumber()
                   });
 }
 
-void WebastoInfo::getAllInfo()
+void WebastoInfo::getMainInfo()
 {
     getWBusVersion();
     getDeviceName();
     getWBusCode();
+}
+
+void WebastoInfo::getAllInfo()
+{
+    getMainInfo();
+
     getDeviceID();
     getControllerManufactureDate();
     getHeaterManufactureDate();

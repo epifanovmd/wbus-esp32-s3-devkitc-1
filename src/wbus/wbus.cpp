@@ -39,43 +39,36 @@ void WBus::connect()
   delay(100);
   Serial.println("🔌 Подключение к Webasto...");
 
-  for (int i = 0; i < INIT_COMMANDS_COUNT; i++)
-  {
-    if (i < INIT_COMMANDS_COUNT - 1)
-    {
-      wbusQueue.add(INIT_COMMANDS[i]);
-    }
-    else
-    {
-      wbusQueue.add(
-          INIT_COMMANDS[i],
-          [this](bool success, String cmd, String response)
-          {
-            Serial.println();
+  webastoInfo.getMainInfo();
 
-            if (success)
-            {
-              Serial.print("✅ Подключение прошло успешно");
-              wbusQueue.setProcessDelay(150);
+  wbusQueue.add(
+      CMD_DIAGNOSTIC,
+      [this](bool success, String cmd, String response)
+      {
+        Serial.println();
 
-              webastoInfo.getAllInfo();
-              webastoSensors.getOperationalInfo();
-              webastoSensors.getFuelSettings();
-              webastoSensors.getOnOffFlags();
-              webastoSensors.getStatusFlags();
-              webastoSensors.getOperatingState();
-            }
-            else
-            {
-              Serial.print("❌ Не удалось подключиться!");
-            }
-            Serial.println();
-          });
-    }
-  }
+        if (success)
+        {
+          Serial.print("✅ Подключение прошло успешно");
+          wbusQueue.setProcessDelay(150);
+
+          webastoInfo.getAllInfo();
+          webastoSensors.getOperationalInfo();
+          webastoSensors.getFuelSettings();
+          webastoSensors.getOnOffFlags();
+          webastoSensors.getStatusFlags();
+          webastoSensors.getOperatingState();
+        }
+        else
+        {
+          Serial.print("❌ Не удалось подключиться!");
+        }
+        Serial.println();
+      });
 }
 
-void WBus::processQueue() {
+void WBus::processQueue()
+{
   // Проверяем команды от пользователя
   if (Serial.available())
   {
@@ -127,6 +120,7 @@ void WBus::processQueue() {
   wbusQueue.process();
 }
 
-void WBus::processReceiver() {
+void WBus::processReceiver()
+{
   wBusReceiver.process();
 }
