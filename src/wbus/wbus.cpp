@@ -1,11 +1,14 @@
 #include "wbus/wbus.h"
 #include "kline-receiver/kline-receiver.h"
 #include "common/tja1020/tja1020.h"
+#include "common/timeout/timeout.h"
 #include "wbus/wbus-sensors.h"
 #include "wbus/wbus-info.h"
 #include "wbus/wbus-errors.h"
 
 WBus wBus;
+
+Timeout keepAliveTimeout(20000);
 
 void WBus::init()
 {
@@ -54,7 +57,7 @@ void WBus::connect()
           connectionState = CONNECTED;
           Serial.println();
           Serial.println("✅ Подключение прошло успешно");
-          wbusQueue.setProcessDelay(250);
+          wbusQueue.setInterval(250);
 
           webastoInfo.getAdditionalInfo();
           webastoSensors.getAllSensorData(true);
@@ -416,15 +419,6 @@ String WBus::getStateName()
   }
 }
 
-void WBus::updateState()
-{
-  if (millis() - lastStateUpdate > 2000)
-  { // Обновлять состояние каждые 2 секунды
-    updateStateFromSensors();
-    lastStateUpdate = millis();
-  }
-}
-
 void WBus::updateStateFromSensors()
 {
   // Используем данные из webastoSensors которые уже обновляются циклически
@@ -512,7 +506,7 @@ void WBus::processQueue()
       if (!isConnected())
         wakeUp();
 
-      wbusQueue.add(command);
+      wbusQueue.addPriority(command);
     }
   }
 
@@ -521,10 +515,8 @@ void WBus::processQueue()
 
 void WBus::processKeepAlive()
 {
-  if (millis() - _lastKeepAliveTime > 20000)
+  if (keepAliveTimeout.isReady())
   {
-    _lastKeepAliveTime = millis();
-
     if (!isConnected())
     {
       wakeUp();
@@ -536,7 +528,7 @@ void WBus::processKeepAlive()
     String keepAliveCommand = getKeepAliveCommandForCurrentState();
     if (!keepAliveCommand.isEmpty())
     {
-      wbusQueue.add(keepAliveCommand, [this](bool success, String cmd, String response)
+      wbusQueue.addPriority(keepAliveCommand, [this](bool success, String cmd, String response)
                     {
                 if (!success) {
                     Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());

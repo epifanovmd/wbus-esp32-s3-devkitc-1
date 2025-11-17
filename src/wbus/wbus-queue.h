@@ -18,11 +18,6 @@ private:
     WebastoErrorsDecoder errorsDecoder;
     QueueMap _queue;
     WBusQueueState _state = WBUS_QUEUE_IDLE_STATE;
-    unsigned long _processDelay = 0;
-    unsigned long _lastProcessTime = 0;
-    unsigned long _lastSendTime = 0;
-    unsigned long _timeout = 1000;
-    unsigned long _retryDelay = 300;
     unsigned long _retries = 0;
     unsigned long _maxRetries = 10;
 
@@ -32,8 +27,8 @@ private:
 
 public:
     bool add(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
-    void setProcessDelay(unsigned long processDelay);
-    void setRepeatDelay(unsigned long retryDelay);
+    bool addPriority(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
+    void setInterval(unsigned long interval);
     void setMaxRetries(unsigned long retries);
     void setTimeout(unsigned long timeout);
 
@@ -44,7 +39,6 @@ public:
     void processNakResponse(const String response);
 
     void printQueue();
-    void printSettings();
 };
 
 extern WBusQueue wbusQueue;

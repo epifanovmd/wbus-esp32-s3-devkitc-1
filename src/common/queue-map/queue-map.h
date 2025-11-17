@@ -22,6 +22,9 @@ public:
     // Добавить команду в конец очереди (с проверкой дубликатов)
     bool add(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
 
+    // Добавить команду в начало очереди (с проверкой дубликатов)
+    bool addPriority(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
+
     // Удалить команду из очереди по значению
     bool remove(String command);
 

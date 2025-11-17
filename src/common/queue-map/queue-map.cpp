@@ -24,6 +24,36 @@ bool QueueMap::add(String command, std::function<void(bool, String, String)> cal
     return true;
 }
 
+bool QueueMap::addPriority(String command, std::function<void(bool, String, String)> callback, bool loop)
+{
+    if (_size >= QUEUE_SIZE)
+    {
+        Serial.println();
+        Serial.println("❌ Очередь переполнена");
+        return false;
+    }
+
+    // Проверяем нет ли уже такой команды в очереди
+    if (contains(command))
+    {
+        return false;
+    }
+
+    // Сдвигаем все элементы на одну позицию вправо
+    for (int i = _size; i > 0; i--)
+    {
+        _queue[i] = _queue[i - 1];
+    }
+
+    // Добавляем новую команду в начало
+    _queue[0].command = command;
+    _queue[0].callback = callback;
+    _queue[0].loop = loop;
+    _size++;
+
+    return true;
+}
+
 // Проверить наличие команды в очереди
 bool QueueMap::contains(String command)
 {
@@ -140,6 +170,7 @@ void QueueMap::clear()
         _queue[i].loop = false;
     }
     _size = 0;
+    Serial.println();
     Serial.println("🧹 Очередь очищена");
 }
 

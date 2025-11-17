@@ -36,8 +36,6 @@ private:
     ConnectionState connectionState = DISCONNECTED;
     unsigned long lastConnectionAttempt = 0;
     bool autoReconnect = true;
-    unsigned long lastStateUpdate = 0;
-    unsigned long _lastKeepAliveTime = 0;
     unsigned long _lastRxTime = 0;
 
     void checkConnectionTimeout();
@@ -54,7 +52,6 @@ public:
     void processQueue();
     void processKeepAlive();
     void processReceiver();
-    void updateState();
 
     // Команды управления
     void shutdown();

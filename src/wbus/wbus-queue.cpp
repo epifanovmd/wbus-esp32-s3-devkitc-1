@@ -1,6 +1,10 @@
 #include "wbus-queue.h"
 #include "wbus-sender.h"
+#include "common/timeout/timeout.h"
 #include "kline-receiver/kline-receiver.h"
+
+Timeout queueTimer(150);
+Timeout timeoutTimer(2000, false);
 
 WBusQueue wbusQueue;
 
@@ -16,14 +20,21 @@ bool WBusQueue::add(String command, std::function<void(bool, String, String)> ca
     return _queue.add(command, callback, loop);
 }
 
-void WBusQueue::setProcessDelay(unsigned long processDelay)
+bool WBusQueue::addPriority(String command, std::function<void(bool, String, String)> callback, bool loop)
 {
-    _processDelay = processDelay;
+    WBusPacket packet = parseHexStringToPacket(command);
+
+    if (!validateWbusPacket(packet))
+    {
+        return false;
+    }
+
+    return _queue.addPriority(command, callback, loop);
 }
 
-void WBusQueue::setRepeatDelay(unsigned long retryDelay)
+void WBusQueue::setInterval(unsigned long interval)
 {
-    _retryDelay = retryDelay;
+    queueTimer.setInterval(interval);
 }
 
 void WBusQueue::setMaxRetries(unsigned long retries)
@@ -33,7 +44,7 @@ void WBusQueue::setMaxRetries(unsigned long retries)
 
 void WBusQueue::setTimeout(unsigned long timeout)
 {
-    _timeout = timeout;
+    timeoutTimer.setInterval(timeout);
     Serial.println();
     Serial.println("⏰ Таймаут установлен: " + String(timeout) + "мс");
 }
@@ -68,13 +79,10 @@ void WBusQueue::process()
     case WBUS_QUEUE_IDLE_STATE:
         if (!_queue.isEmpty())
         {
-            if (_processDelay > 0 && millis() - _lastProcessTime < _processDelay)
+            if (queueTimer.isReady())
             {
-                break;
+                _sendCurrentCommand();
             }
-            _lastProcessTime = millis();
-
-            _sendCurrentCommand();
         }
         break;
 
@@ -84,7 +92,7 @@ void WBusQueue::process()
             // ✅ Ответ получен
             _completeCurrentCommand(kLineReceiver.kLineReceivedData.rxString);
         }
-        else if (millis() - _lastSendTime > _timeout)
+        else if (timeoutTimer.isReady())
         {
             // ⏰ Таймаут
             _handleRepeat();
@@ -92,10 +100,7 @@ void WBusQueue::process()
         break;
 
     case WBUS_QUEUE_WAITING_RETRY_STATE:
-        if (millis() - _lastSendTime > _retryDelay)
-        {
             _sendCurrentCommand();
-        }
         break;
     }
 }
@@ -104,7 +109,7 @@ void WBusQueue::_sendCurrentCommand()
 {
     String command = _queue.get().command;
 
-    _lastSendTime = millis();
+    timeoutTimer.reset();
     _state = WBUS_QUEUE_SENDING_STATE;
 
     sendWbusCommand(command);
@@ -178,30 +183,5 @@ void WBusQueue::_handleRepeat()
     else
     {
         _state = WBUS_QUEUE_WAITING_RETRY_STATE;
-        _lastSendTime = millis();
     }
-}
-
-// =============================================================================
-// ОТЛАДОЧНЫЕ МЕТОДЫ
-// =============================================================================
-
-void WBusQueue::printSettings()
-{
-    Serial.println();
-    Serial.println("═══════════════════════════════════════════════════════════");
-    Serial.println("                 ⚙️  НАСТРОЙКИ ОЧЕРЕДИ                    ");
-    Serial.println("═══════════════════════════════════════════════════════════");
-
-    Serial.println("Состояние:           " + String(_state == WBUS_QUEUE_IDLE_STATE ? "Ожидание" : _state == WBUS_QUEUE_SENDING_STATE ? "Отправка"
-                                                                                                                                      : "Повтор"));
-    Serial.println("Таймаут:             " + String(_timeout) + "мс");
-    Serial.println("Задержка повтора:    " + String(_retryDelay) + "мс");
-    Serial.println("Макс. попыток:       " + String(_maxRetries));
-    Serial.println("Задержка обработки:  " + String(_processDelay) + "мс");
-    Serial.println("Текущие попытки:     " + String(_retries));
-    Serial.println("Размер очереди:      " + String(_queue.size()));
-
-    Serial.println("═══════════════════════════════════════════════════════════");
-    Serial.println();
 }
