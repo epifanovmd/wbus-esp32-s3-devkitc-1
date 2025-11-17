@@ -57,11 +57,11 @@ public:
     void updateState();
 
     // Команды управления
+    void shutdown();
     void startParkingHeat(int minutes = 60);
     void startVentilation(int minutes = 60);
     void startSupplementalHeat(int minutes = 60);
     void startBoostMode(int minutes = 60);
-    void shutdown();
     void controlCirculationPump(bool enable);
 
     // Тестирование компонентов
@@ -74,16 +74,10 @@ public:
     void testFuelPreheating(int seconds = 25, int powerPercent = 50);
 
     // Статусы
-        String getStateName();
+    String getStateName();
     WebastoState getState() { return currentState; }
     ConnectionState getConnectionState() { return connectionState; }
     bool isConnected() { return connectionState == CONNECTED; }
-
-    // Управление
-    void setAutoReconnect(bool enable) { autoReconnect = enable; }
-
-    // Информация
-    void printStatus();
 };
 
 extern WBus wBus;

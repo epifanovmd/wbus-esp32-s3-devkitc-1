@@ -487,10 +487,6 @@ void WBus::processQueue()
     {
       disconnect();
     }
-    else if (command == "status" || command == "st")
-    {
-      printStatus();
-    }
     else if (command == "info" || command == "i")
     {
       webastoInfo.printInfo();
@@ -560,48 +556,4 @@ void WBus::processReceiver()
 
   // Проверяем таймаут соединения
   checkConnectionTimeout();
-}
-
-// =============================================================================
-// ВЫВОД СТАТУСА
-// =============================================================================
-
-void WBus::printStatus()
-{
-  Serial.println();
-  Serial.println("═══════════════════════════════════════════════════════════");
-  Serial.println("                 📊 СТАТУС WEBASTO                        ");
-  Serial.println("═══════════════════════════════════════════════════════════");
-
-  // Статус подключения
-  String connStatus;
-  switch (connectionState)
-  {
-  case DISCONNECTED:
-    connStatus = "🔴 Отключено";
-    break;
-  case CONNECTING:
-    connStatus = "🟡 Подключение...";
-    break;
-  case CONNECTED:
-    connStatus = "🟢 Подключено";
-    break;
-  case CONNECTION_FAILED:
-    connStatus = "🔴 Ошибка подключения";
-    break;
-  }
-  Serial.println("Подключение:        " + connStatus);
-
-  // Состояние нагревателя
-  Serial.println("Состояние:          " + getStateName());
-
-  // Keep-alive статус
-  String keepAliveStatus = getKeepAliveCommandForCurrentState().isEmpty()
-                               ? "❌ Не требуется"
-                               : "✅ Активен (" + String((millis() - _lastKeepAliveTime) / 1000) + "с назад)";
-  Serial.println("Keep-alive:         " + keepAliveStatus);
-
-  Serial.println("Автопереподключение:" + String(autoReconnect ? "✅ Вкл" : "❌ Выкл"));
-  Serial.println("═══════════════════════════════════════════════════════════");
-  Serial.println();
 }
