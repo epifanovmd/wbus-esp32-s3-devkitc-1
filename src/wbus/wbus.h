@@ -5,15 +5,20 @@
 #include "common/constants.h"
 #include "common/print/print.h"
 #include "common/utils/utils.h"
+#include "wbus-sensors.h"
 
 enum WebastoState
 {
-    WBUS_STATE_OFF,
-    WBUS_STATE_INITIALIZING,
-    WBUS_STATE_READY,
-    WBUS_STATE_HEATING,
-    WBUS_STATE_VENTILATING,
-    WBUS_STATE_ERROR
+    WBUS_STATE_OFF,          // Выключен
+    WBUS_STATE_READY,        // Готов к работе
+    WBUS_STATE_PARKING_HEAT, // Паркинг-нагрев
+    WBUS_STATE_VENTILATION,  // Вентиляция
+    WBUS_STATE_SUPP_HEAT,    // Дополнительный нагрев
+    WBUS_STATE_BOOST,        // Boost режим
+    WBUS_STATE_CIRC_PUMP,    // Только циркуляционный насос
+    WBUS_STATE_STARTUP,      // Запуск
+    WBUS_STATE_SHUTDOWN,     // Выключение
+    WBUS_STATE_ERROR         // Ошибка
 };
 
 enum ConnectionState
@@ -31,16 +36,25 @@ private:
     ConnectionState connectionState = DISCONNECTED;
     unsigned long lastConnectionAttempt = 0;
     bool autoReconnect = true;
+    unsigned long lastStateUpdate = 0;
+    unsigned long _lastKeepAliveTime = 0;
+    unsigned long _lastRxTime = 0;
+
+    void checkConnectionTimeout();
+    void updateStateFromSensors();
+    WebastoState determineStateFromFlags(const StatusFlags &flags, OnOffFlags &onOff);
+    String getKeepAliveCommandForCurrentState();
 
 public:
     void init();
     void wakeUp();
     void connect();
     void disconnect();
-    void reconnect();
-    
+
     void processQueue();
+    void processKeepAlive();
     void processReceiver();
+    void updateState();
 
     // Команды управления
     void startParkingHeat(int minutes = 60);
@@ -49,7 +63,7 @@ public:
     void startBoostMode(int minutes = 60);
     void shutdown();
     void controlCirculationPump(bool enable);
-    
+
     // Тестирование компонентов
     void testCombustionFan(int seconds = 10, int powerPercent = 50);
     void testFuelPump(int seconds = 5, int frequencyHz = 10);
@@ -60,15 +74,13 @@ public:
     void testFuelPreheating(int seconds = 25, int powerPercent = 50);
 
     // Статусы
+        String getStateName();
     WebastoState getState() { return currentState; }
     ConnectionState getConnectionState() { return connectionState; }
     bool isConnected() { return connectionState == CONNECTED; }
-    bool isHeating() { return currentState == WBUS_STATE_HEATING; }
-    bool isVentilating() { return currentState == WBUS_STATE_VENTILATING; }
-    
+
     // Управление
     void setAutoReconnect(bool enable) { autoReconnect = enable; }
-    void updateConnectionState(); // для автоматического переподключения
 
     // Информация
     void printStatus();

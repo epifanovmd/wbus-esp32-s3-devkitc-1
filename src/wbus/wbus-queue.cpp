@@ -1,6 +1,6 @@
 #include "wbus-queue.h"
 #include "wbus-sender.h"
-#include "receiver/wbus-receiver.h"
+#include "kline-receiver/kline-receiver.h"
 
 WBusQueue wbusQueue;
 
@@ -31,6 +31,13 @@ void WBusQueue::setMaxRetries(unsigned long retries)
     _maxRetries = retries;
 }
 
+void WBusQueue::setTimeout(unsigned long timeout)
+{
+    _timeout = timeout;
+    Serial.println();
+    Serial.println("⏰ Таймаут установлен: " + String(timeout) + "мс");
+}
+
 bool WBusQueue::removeCommand(String command)
 {
     return _queue.remove(command);
@@ -55,6 +62,7 @@ void WBusQueue::clear()
 
 void WBusQueue::process()
 {
+    // Обработка обычной очереди
     switch (_state)
     {
     case WBUS_QUEUE_IDLE_STATE:
@@ -71,10 +79,10 @@ void WBusQueue::process()
         break;
 
     case WBUS_QUEUE_SENDING_STATE:
-        if (wBusReceiver.wBusReceivedData.isRxReceived())
+        if (kLineReceiver.kLineReceivedData.isRxReceived())
         {
             // ✅ Ответ получен
-            _completeCurrentCommand(wBusReceiver.wBusReceivedData.rxString);
+            _completeCurrentCommand(kLineReceiver.kLineReceivedData.rxString);
         }
         else if (millis() - _lastSendTime > _timeout)
         {
@@ -172,4 +180,28 @@ void WBusQueue::_handleRepeat()
         _state = WBUS_QUEUE_WAITING_RETRY_STATE;
         _lastSendTime = millis();
     }
+}
+
+// =============================================================================
+// ОТЛАДОЧНЫЕ МЕТОДЫ
+// =============================================================================
+
+void WBusQueue::printSettings()
+{
+    Serial.println();
+    Serial.println("═══════════════════════════════════════════════════════════");
+    Serial.println("                 ⚙️  НАСТРОЙКИ ОЧЕРЕДИ                    ");
+    Serial.println("═══════════════════════════════════════════════════════════");
+
+    Serial.println("Состояние:           " + String(_state == WBUS_QUEUE_IDLE_STATE ? "Ожидание" : _state == WBUS_QUEUE_SENDING_STATE ? "Отправка"
+                                                                                                                                      : "Повтор"));
+    Serial.println("Таймаут:             " + String(_timeout) + "мс");
+    Serial.println("Задержка повтора:    " + String(_retryDelay) + "мс");
+    Serial.println("Макс. попыток:       " + String(_maxRetries));
+    Serial.println("Задержка обработки:  " + String(_processDelay) + "мс");
+    Serial.println("Текущие попытки:     " + String(_retries));
+    Serial.println("Размер очереди:      " + String(_queue.size()));
+
+    Serial.println("═══════════════════════════════════════════════════════════");
+    Serial.println();
 }

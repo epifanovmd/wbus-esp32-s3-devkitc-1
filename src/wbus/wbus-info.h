@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "wbus-queue.h"
 #include "wbus.constants.h"
-#include "wbus-decoder.h"
+#include "wbus-info-decoder.h"
 
 // Структура для хранения информации об устройстве
 struct WebastoDeviceInfo

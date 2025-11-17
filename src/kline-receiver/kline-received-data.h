@@ -1,15 +1,16 @@
-#ifndef WBUSRECEIVEDDATA_H
-#define WBUSRECEIVEDDATA_H
+#ifndef KLINERECEIVEDDATA_H
+#define KLINERECEIVEDDATA_H
 
 #include <Arduino.h>
 
-enum WbusReceptionStates
+enum KLineReceptionStates
 {
-    WBUS_RX_IDLE,
-    WBUS_RX_RECEIVED
+    KLINE_IDLE,
+    KLINE_RX_RECEIVED,
+    KLINE_TX_RECEIVED
 };
 
-struct WBusReceivedData
+struct KLineReceivedData
 {
     String rxString = "";
     String txString = "";
@@ -17,8 +18,8 @@ struct WBusReceivedData
     bool isReceivingTx = false;
     int bytesToRead = 0;
     int bytesRead = 0;
-    WbusReceptionStates rx_reception_state = WBUS_RX_IDLE;
-    WbusReceptionStates tx_reception_state = WBUS_RX_IDLE;
+    KLineReceptionStates rx_reception_state = KLINE_IDLE;
+    KLineReceptionStates tx_reception_state = KLINE_IDLE;
 
     // Методы для инициализации приема
     void startRxReception(byte headerByte);
@@ -44,14 +45,14 @@ struct WBusReceivedData
 
     // Методы для проверки состояния
     bool isReceiving() const { return isReceivingRx || isReceivingTx; }
-    bool isRxReceived() const { return rx_reception_state == WBUS_RX_RECEIVED; }
-    bool isTxReceived() const { return tx_reception_state == WBUS_RX_RECEIVED; }
+    bool isRxReceived() const { return rx_reception_state == KLINE_RX_RECEIVED; }
+    bool isTxReceived() const { return tx_reception_state == KLINE_TX_RECEIVED; }
 
     // Методы для получения данных
     String getRxData() const { return rxString; }
     String getTxData() const { return txString; }
 };
 
-extern WBusReceivedData wBusReceivedData;
+extern KLineReceivedData kLineReceivedData;
 
-#endif // WBUSRECEIVEDDATA_H
+#endif // KLINERECEIVEDDATA_H

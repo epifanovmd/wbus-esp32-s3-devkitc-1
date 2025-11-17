@@ -35,6 +35,7 @@ public:
     void setProcessDelay(unsigned long processDelay);
     void setRepeatDelay(unsigned long retryDelay);
     void setMaxRetries(unsigned long retries);
+    void setTimeout(unsigned long timeout);
 
     bool removeCommand(String command);
     bool containsCommand(String command);
@@ -43,6 +44,7 @@ public:
     void processNakResponse(const String response);
 
     void printQueue();
+    void printSettings();
 };
 
 extern WBusQueue wbusQueue;

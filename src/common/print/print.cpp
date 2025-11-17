@@ -10,7 +10,6 @@ void printHelp()
   Serial.println("sleep/s      - спящий режим TJA1020");
   Serial.println("connect/con  - подключение к Webasto");
   Serial.println("disconnect/dc- отключение от Webasto");
-  Serial.println("reconnect/rc - переподключение");
   Serial.println("status/st    - статус подключения");
   Serial.println("");
   Serial.println("🔥 КОМАНДЫ УПРАВЛЕНИЯ:");

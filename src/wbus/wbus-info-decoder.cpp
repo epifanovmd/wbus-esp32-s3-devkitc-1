@@ -1,4 +1,4 @@
-#include "wbus-decoder.h"
+#include "wbus-info-decoder.h"
 #include "common/utils/utils.h"
 
 WBusDecoder wBusDecoder;

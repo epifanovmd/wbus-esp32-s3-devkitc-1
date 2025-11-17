@@ -1,7 +1,7 @@
-#include "wbus-received-data.h"
+#include "kline-received-data.h"
 #include "common/utils/utils.h"
 
-void WBusReceivedData::startRxReception(byte headerByte)
+void KLineReceivedData::startRxReception(byte headerByte)
 {
     isReceivingRx = true;
     rxString = "";
@@ -9,7 +9,7 @@ void WBusReceivedData::startRxReception(byte headerByte)
     rxString += byteToHexString(headerByte) + " ";
 }
 
-void WBusReceivedData::startTxReception(byte headerByte)
+void KLineReceivedData::startTxReception(byte headerByte)
 {
     isReceivingTx = true;
     txString = "";
@@ -17,7 +17,7 @@ void WBusReceivedData::startTxReception(byte headerByte)
     txString += byteToHexString(headerByte) + " ";
 }
 
-void WBusReceivedData::addByte(byte readByte)
+void KLineReceivedData::addByte(byte readByte)
 {
     // Второй байт - длина пакета
     if (bytesRead == 1)
@@ -34,60 +34,60 @@ void WBusReceivedData::addByte(byte readByte)
     bytesRead++;
 }
 
-bool WBusReceivedData::isPacketComplete()
+bool KLineReceivedData::isPacketComplete()
 {
     return bytesRead >= bytesToRead + 2;
 }
 
-void WBusReceivedData::completeRxReception()
+void KLineReceivedData::completeRxReception()
 {
     rxString.trim();
     isReceivingRx = false;
-    rx_reception_state = WBUS_RX_RECEIVED;
+    rx_reception_state = KLINE_RX_RECEIVED;
 }
 
-void WBusReceivedData::completeTxReception()
+void KLineReceivedData::completeTxReception()
 {
     txString.trim();
     isReceivingTx = false;
-    tx_reception_state = WBUS_RX_RECEIVED;
+    tx_reception_state = KLINE_TX_RECEIVED;
 }
 
-void WBusReceivedData::printTx()
+void KLineReceivedData::printTx()
 {
     Serial.println();
     Serial.print("📤 TX: " + getTxData());
 }
 
-void WBusReceivedData::printRx()
+void KLineReceivedData::printRx()
 {
 
     Serial.println();
     Serial.print("📨 RX: " + getRxData());
 }
 
-void WBusReceivedData::reset()
+void KLineReceivedData::reset()
 {
     resetRx();
     resetTx();
 }
 
-void WBusReceivedData::resetState()
+void KLineReceivedData::resetState()
 {
-    rx_reception_state = WBUS_RX_IDLE;
-    tx_reception_state = WBUS_RX_IDLE;
+    rx_reception_state = KLINE_IDLE;
+    tx_reception_state = KLINE_IDLE;
 }
 
-void WBusReceivedData::resetRx()
+void KLineReceivedData::resetRx()
 {
     rxString = "";
     isReceivingRx = false;
-    rx_reception_state = WBUS_RX_IDLE;
+    rx_reception_state = KLINE_IDLE;
 }
 
-void WBusReceivedData::resetTx()
+void KLineReceivedData::resetTx()
 {
     txString = "";
     isReceivingTx = false;
-    tx_reception_state = WBUS_RX_IDLE;
+    tx_reception_state = KLINE_IDLE;
 }

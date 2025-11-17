@@ -2,4 +2,4 @@
 
 #include "common/serial/serial.h"
 
-HardwareSerial WBusSerial(1); // RX=18, TX=17
+HardwareSerial KLineSerial(1); // RX=18, TX=17

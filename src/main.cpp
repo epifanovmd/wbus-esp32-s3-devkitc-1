@@ -1,7 +1,9 @@
 // main.cpp
 
 #include "wbus/wbus.h"
-#include "web-server/web-server.h"
+#include <WiFi.h>
+#include <WebServer.h>
+#include <WebSocketsServer.h>
 
 const char *ap_ssid = "Webasto_WiFi";
 const char *ap_password = "Epifan123";
@@ -38,9 +40,6 @@ void setup()
     } // Останавливаем выполнение
   }
 
-  // Запускаем веб-сервер
-  webServer.begin();
-
   // Автоматическое пробуждение при старте
   printHelp();
 
@@ -54,13 +53,10 @@ void setup()
 
 void loop()
 {
-  webServer.handleClient();
-
-  wBus.processQueue();
-
   // Чтение и обработка пакетов W-Bus
   if (digitalRead(NSLP_PIN) == HIGH)
   {
+    wBus.processQueue();
     wBus.processReceiver();
   }
 

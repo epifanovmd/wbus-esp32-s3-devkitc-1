@@ -113,7 +113,7 @@ bool sendWbusCommand(String command) {
 
   // Отправка пакета
   for (int i = 0; i < packet.byteCount; i++) {
-    WBusSerial.write(packet.data[i]);
+    KLineSerial.write(packet.data[i]);
   }
 
   return true;

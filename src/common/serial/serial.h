@@ -5,6 +5,6 @@
 
 #include <HardwareSerial.h>
 
-extern HardwareSerial WBusSerial;
+extern HardwareSerial KLineSerial;
 
 #endif // SERIAL_H

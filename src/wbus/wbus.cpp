@@ -1,5 +1,5 @@
 #include "wbus/wbus.h"
-#include "wbus/receiver/wbus-receiver.h"
+#include "kline-receiver/kline-receiver.h"
 #include "common/tja1020/tja1020.h"
 #include "wbus/wbus-sensors.h"
 #include "wbus/wbus-info.h"
@@ -16,18 +16,13 @@ void WBus::init()
 
 void WBus::wakeUp()
 {
-  // Serial.println();
-  // Serial.println("🔔 Пробуждение Webasto...");
-
   // BREAK set - удерживаем линию в LOW 50ms
-  WBusSerial.write(0x00);
+  KLineSerial.write(0x00);
   delay(50);
 
   // BREAK reset - отпускаем линию и ждем 50ms
-  WBusSerial.flush();
+  KLineSerial.flush();
   delay(50);
-
-  // Serial.println("✅ BREAK последовательность отправлена");
 }
 
 void WBus::connect()
@@ -57,10 +52,9 @@ void WBus::connect()
         if (success)
         {
           connectionState = CONNECTED;
-          currentState = WBUS_STATE_READY;
           Serial.println();
           Serial.println("✅ Подключение прошло успешно");
-          wbusQueue.setProcessDelay(550);
+          wbusQueue.setProcessDelay(250);
 
           webastoInfo.getAdditionalInfo();
           webastoSensors.getAllSensorData(true);
@@ -79,34 +73,20 @@ void WBus::disconnect()
 {
   wbusQueue.clear();
   connectionState = DISCONNECTED;
-  currentState = WBUS_STATE_OFF;
   Serial.println();
   Serial.println("🔌 Отключение от Webasto");
 }
 
-void WBus::reconnect()
+void WBus::checkConnectionTimeout()
 {
-  if (connectionState == CONNECTED)
+  if (connectionState == CONNECTED && _lastRxTime > 0)
   {
-    Serial.println();
-    Serial.println("⚠️  Уже подключено");
-    return;
-  }
+    unsigned long timeSinceLastRx = millis() - _lastRxTime;
 
-  disconnect();
-  delay(1000);
-  connect();
-}
-
-void WBus::updateConnectionState()
-{
-  // Автоматическое переподключение
-  if (autoReconnect && connectionState == CONNECTION_FAILED &&
-      millis() - lastConnectionAttempt > 30000)
-  { // 30 секунд
-    Serial.println();
-    Serial.println("🔄 Попытка автоматического переподключения...");
-    reconnect();
+    if (timeSinceLastRx > 5000)
+    { // 5 секунд без ответа
+      connectionState = CONNECTION_FAILED;
+    }
   }
 }
 
@@ -117,14 +97,11 @@ void WBus::updateConnectionState()
 void WBus::shutdown()
 {
   if (!isConnected())
-  {
     wakeUp();
-  }
 
   wbusQueue.add(CMD_SHUTDOWN, [this](bool success, String cmd, String response)
                 {
         if (success) {
-            currentState = WBUS_STATE_READY;
             Serial.println();
             Serial.println("🛑 Нагреватель выключен");
         } else {
@@ -136,9 +113,7 @@ void WBus::shutdown()
 void WBus::startParkingHeat(int minutes)
 {
   if (!isConnected())
-  {
     wakeUp();
-  }
 
   minutes = constrain(minutes, 1, 255);
   String command = createParkHeatCommand(minutes);
@@ -146,7 +121,6 @@ void WBus::startParkingHeat(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
-            currentState = WBUS_STATE_HEATING;
             Serial.println();
             Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
           
@@ -159,9 +133,7 @@ void WBus::startParkingHeat(int minutes)
 void WBus::startVentilation(int minutes)
 {
   if (!isConnected())
-  {
     wakeUp();
-  }
 
   minutes = constrain(minutes, 1, 255);
   String command = createVentilateCommand(minutes);
@@ -169,7 +141,6 @@ void WBus::startVentilation(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
-            currentState = WBUS_STATE_VENTILATING;
             Serial.println();
             Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
     
@@ -182,9 +153,7 @@ void WBus::startVentilation(int minutes)
 void WBus::startSupplementalHeat(int minutes)
 {
   if (!isConnected())
-  {
     wakeUp();
-  }
 
   minutes = constrain(minutes, 1, 255);
   String command = createSuppHeatCommand(minutes);
@@ -192,7 +161,6 @@ void WBus::startSupplementalHeat(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
-            currentState = WBUS_STATE_HEATING;
             Serial.println();
             Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
         } else {
@@ -204,9 +172,7 @@ void WBus::startSupplementalHeat(int minutes)
 void WBus::controlCirculationPump(bool enable)
 {
   if (!isConnected())
-  {
     wakeUp();
-  }
 
   String command = createCircPumpCommand(enable);
 
@@ -224,9 +190,7 @@ void WBus::controlCirculationPump(bool enable)
 void WBus::startBoostMode(int minutes)
 {
   if (!isConnected())
-  {
     wakeUp();
-  }
 
   minutes = constrain(minutes, 1, 255);
   String command = createBoostCommand(minutes);
@@ -234,7 +198,6 @@ void WBus::startBoostMode(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
-            currentState = WBUS_STATE_HEATING;
             Serial.println();
             Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
         } else {
@@ -406,6 +369,199 @@ void WBus::testFuelPreheating(int seconds, int powerPercent)
         } });
 }
 
+String WBus::getKeepAliveCommandForCurrentState()
+{
+  switch (currentState)
+  {
+  case WBUS_STATE_PARKING_HEAT:
+    return CMD_KEEPALIVE_PARKING;
+  case WBUS_STATE_VENTILATION:
+    return CMD_KEEPALIVE_VENT;
+  case WBUS_STATE_SUPP_HEAT:
+    return CMD_KEEPALIVE_SUPP_HEAT;
+  case WBUS_STATE_BOOST:
+    return CMD_KEEPALIVE_BOOST;
+  case WBUS_STATE_CIRC_PUMP:
+    return CMD_KEEPALIVE_CIRC_PUMP;
+  case WBUS_STATE_OFF:
+  case WBUS_STATE_READY:
+  case WBUS_STATE_STARTUP:
+  case WBUS_STATE_SHUTDOWN:
+  case WBUS_STATE_ERROR:
+  default:
+    return ""; // Эти состояния не требуют keep-alive
+  }
+}
+
+String WBus::getStateName()
+{
+  switch (currentState)
+  {
+  case WBUS_STATE_OFF:
+    return "🔴 Выключен";
+  case WBUS_STATE_READY:
+    return "🟢 Готов";
+  case WBUS_STATE_PARKING_HEAT:
+    return "🔥 Паркинг-нагрев";
+  case WBUS_STATE_VENTILATION:
+    return "💨 Вентиляция";
+  case WBUS_STATE_SUPP_HEAT:
+    return "🔥 Доп. нагрев";
+  case WBUS_STATE_BOOST:
+    return "⚡ Boost";
+  case WBUS_STATE_CIRC_PUMP:
+    return "💧 Цирк. насос";
+  default:
+    return "❓ Неизвестно";
+  }
+}
+
+void WBus::updateState()
+{
+  if (millis() - lastStateUpdate > 2000)
+  { // Обновлять состояние каждые 2 секунды
+    updateStateFromSensors();
+    lastStateUpdate = millis();
+  }
+}
+
+void WBus::updateStateFromSensors()
+{
+  // Используем данные из webastoSensors которые уже обновляются циклически
+  StatusFlags flags = webastoSensors.getStatusFlagsData();
+  OnOffFlags onOff = webastoSensors.getOnOffFlagsData();
+
+  WebastoState newState = determineStateFromFlags(flags, onOff);
+
+  if (newState != currentState)
+  {
+    currentState = newState;
+  }
+}
+
+WebastoState WBus::determineStateFromFlags(const StatusFlags &flags, OnOffFlags &onOff)
+{
+  // Анализируем флаги статуса
+  if (flags.parkingHeatRequest)
+    return WBUS_STATE_PARKING_HEAT;
+  if (flags.ventilationRequest)
+    return WBUS_STATE_VENTILATION;
+  if (flags.supplementalHeatRequest)
+    return WBUS_STATE_SUPP_HEAT;
+  if (flags.boostMode)
+    return WBUS_STATE_BOOST;
+
+  // Проверяем активные компоненты
+  if (onOff.circulationPump && !onOff.combustionAirFan && !onOff.fuelPump)
+    return WBUS_STATE_CIRC_PUMP;
+
+  // Если ничего активного не найдено, но главный выключатель включен
+  if (flags.mainSwitch)
+    return WBUS_STATE_READY;
+
+  return WBUS_STATE_OFF;
+}
+
+void WBus::processQueue()
+{
+  // Проверяем команды от пользователя
+  if (Serial.available())
+  {
+    String command = Serial.readString();
+    command.trim();
+    command.toLowerCase();
+
+    if (command == "wake" || command == "w")
+    {
+      wakeUpTJA1020();
+    }
+    else if (command == "sleep" || command == "s")
+    {
+      sleepTJA1020();
+    }
+    else if (command == "connect" || command == "con")
+    {
+      connect();
+    }
+    else if (command == "disconnect" || command == "dc")
+    {
+      disconnect();
+    }
+    else if (command == "status" || command == "st")
+    {
+      printStatus();
+    }
+    else if (command == "info" || command == "i")
+    {
+      webastoInfo.printInfo();
+    }
+    else if (command == "sensors")
+    {
+      webastoSensors.printSensorData();
+    }
+    else if (command == "errors" || command == "err")
+    {
+      webastoErrors.check();
+    }
+    else if (command == "clear" || command == "clr")
+    {
+      webastoErrors.clear();
+    }
+    else if (command == "help" || command == "h")
+    {
+      printHelp();
+    }
+    else
+    {
+      if (!isConnected())
+        wakeUp();
+
+      wbusQueue.add(command);
+    }
+  }
+
+  wbusQueue.process();
+}
+
+void WBus::processKeepAlive()
+{
+  if (millis() - _lastKeepAliveTime > 20000)
+  {
+    _lastKeepAliveTime = millis();
+
+    if (!isConnected())
+    {
+      wakeUp();
+    }
+
+    // Сначала обновляем состояние на основе текущих данных
+    updateStateFromSensors();
+
+    String keepAliveCommand = getKeepAliveCommandForCurrentState();
+    if (!keepAliveCommand.isEmpty())
+    {
+      wbusQueue.add(keepAliveCommand, [this](bool success, String cmd, String response)
+                    {
+                if (!success) {
+                    Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());
+                } });
+    }
+  }
+}
+
+void WBus::processReceiver()
+{
+  kLineReceiver.process();
+
+  if (kLineReceiver.kLineReceivedData.isRxReceived())
+  {
+    _lastRxTime = millis();
+  }
+
+  // Проверяем таймаут соединения
+  checkConnectionTimeout();
+}
+
 // =============================================================================
 // ВЫВОД СТАТУСА
 // =============================================================================
@@ -437,169 +593,15 @@ void WBus::printStatus()
   Serial.println("Подключение:        " + connStatus);
 
   // Состояние нагревателя
-  String state;
-  switch (currentState)
-  {
-  case WBUS_STATE_OFF:
-    state = "🔴 Выключен";
-    break;
-  case WBUS_STATE_INITIALIZING:
-    state = "🟡 Инициализация";
-    break;
-  case WBUS_STATE_READY:
-    state = "🟢 Готов";
-    break;
-  case WBUS_STATE_HEATING:
-    state = "🔥 Нагрев";
-    break;
-  case WBUS_STATE_VENTILATING:
-    state = "💨 Вентиляция";
-    break;
-  case WBUS_STATE_ERROR:
-    state = "🚨 Ошибка";
-    break;
-  }
-  Serial.println();
-  Serial.println("Состояние:          " + state);
+  Serial.println("Состояние:          " + getStateName());
 
-  // Дополнительная информация
+  // Keep-alive статус
+  String keepAliveStatus = getKeepAliveCommandForCurrentState().isEmpty()
+                               ? "❌ Не требуется"
+                               : "✅ Активен (" + String((millis() - _lastKeepAliveTime) / 1000) + "с назад)";
+  Serial.println("Keep-alive:         " + keepAliveStatus);
+
   Serial.println("Автопереподключение:" + String(autoReconnect ? "✅ Вкл" : "❌ Выкл"));
   Serial.println("═══════════════════════════════════════════════════════════");
   Serial.println();
-}
-
-// =============================================================================
-// ОБРАБОТКА КОМАНД ПОЛЬЗОВАТЕЛЯ
-// =============================================================================
-
-void WBus::processQueue()
-{
-  // Обновляем статус подключения
-  updateConnectionState();
-
-  // Проверяем команды от пользователя
-  if (Serial.available())
-  {
-    String command = Serial.readString();
-    command.trim();
-    command.toLowerCase();
-
-    if (command == "wake" || command == "w")
-    {
-      wakeUpTJA1020();
-    }
-    else if (command == "sleep" || command == "s")
-    {
-      sleepTJA1020();
-    }
-    else if (command == "connect" || command == "con")
-    {
-      connect();
-    }
-    else if (command == "disconnect" || command == "dc")
-    {
-      disconnect();
-    }
-    else if (command == "reconnect" || command == "rc")
-    {
-      reconnect();
-    }
-    else if (command == "status" || command == "st")
-    {
-      printStatus();
-    }
-    else if (command == "info" || command == "i")
-    {
-      webastoInfo.printInfo();
-    }
-    else if (command == "sensors")
-    {
-      webastoSensors.printSensorData();
-    }
-    else if (command == "errors" || command == "err")
-    {
-      webastoErrors.check();
-    }
-    else if (command == "clear" || command == "clr")
-    {
-      webastoErrors.clear();
-    }
-    // Команды управления
-    else if (command == "heat" || command == "h")
-    {
-      startParkingHeat(30);
-    }
-    else if (command == "vent" || command == "v")
-    {
-      startVentilation(30);
-    }
-    else if (command == "boost" || command == "b")
-    {
-      startBoostMode(15);
-    }
-    else if (command == "stop" || command == "off")
-    {
-      shutdown();
-    }
-    else if (command == "pump on")
-    {
-      controlCirculationPump(true);
-    }
-    else if (command == "pump off")
-    {
-      controlCirculationPump(false);
-    }
-    // Тестирование
-    else if (command == "test fan")
-    {
-      testCombustionFan(5, 50);
-    }
-    else if (command == "test fuel")
-    {
-      testFuelPump(3, 10);
-    }
-    else if (command == "test glow")
-    {
-      testGlowPlug(5, 50);
-    }
-    else if (command == "test circ")
-    {
-      testCirculationPump(5, 80);
-    }
-    else if (command == "test vehicle")
-    {
-      testVehicleFan(5);
-    }
-    else if (command == "test solenoid")
-    {
-      testSolenoidValve(5);
-    }
-    else if (command == "test preheat")
-    {
-      testFuelPreheating(5, 50);
-    }
-    else if (command == "help" || command == "h")
-    {
-      printHelp();
-    }
-    else if (command == "break")
-    {
-      wakeUp();
-    }
-    else
-    {
-      if (!isConnected())
-      {
-        wakeUp();
-      }
-      wbusQueue.add(command);
-    }
-  }
-
-  wbusQueue.process();
-}
-
-void WBus::processReceiver()
-{
-  wBusReceiver.process();
 }

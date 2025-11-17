@@ -32,9 +32,7 @@ public:
     void getSubsystemsStatus(bool loop = false);
     void getAllSensorData(bool loop = false);
 
-    void startContinuousMonitoring();
-    void stopContinuousMonitoring();
-    void setLoopInterval(unsigned long interval);
+    void stopMonitoring();
 
     // Вывод данных
     void printSensorData();

@@ -14,9 +14,7 @@
 #define MESSAGE_BUFFER_SIZE 64
 #define BAUD_RATE 2400
 #define SERIAL_CONFIG SERIAL_8E1  // 8 бит, Even parity, 1 стоп-бит
-
-// Адреса устройств
-#define HEATER_ADDR 0x04
-#define DIAG_ADDR 0x0F
+#define RX_TJA_PIN 18
+#define TX_TJA_PIN 17
 
 #endif // CONSTANTS_H
