@@ -100,6 +100,14 @@ void WBusQueue::process()
         break;
 
     case WBUS_QUEUE_WAITING_RETRY_STATE:
+
+        // BREAK set - удерживаем линию в LOW 50ms
+        KLineSerial.write(0x00);
+        delay(50);
+
+        // BREAK reset - отпускаем линию и ждем 50ms
+        KLineSerial.flush();
+        delay(50);
         _sendCurrentCommand();
         break;
     }

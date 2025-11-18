@@ -7,6 +7,8 @@
 #include "common/utils/utils.h"
 #include "wbus-sensors.h"
 
+#define RGB_PIN RGB_BUILTIN
+
 enum WebastoState
 {
     WBUS_STATE_OFF,          // Выключен
@@ -42,6 +44,8 @@ private:
     void processKeepAlive();
     void updateStateFromSensors(std::function<void()> callback = nullptr);
     void checkConnection();
+    void setConnectionState(ConnectionState newState);
+    void setState(WebastoState newState);
 
 public:
     void init();

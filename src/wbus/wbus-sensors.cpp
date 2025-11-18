@@ -163,6 +163,16 @@ void WebastoSensors::stopMonitoring()
   wbusQueue.removeCommand(CMD_READ_SENSOR_SUBSYSTEMS_STATUS);
 }
 
+void WebastoSensors::clear()
+{
+    operationalMeasurements = OperationalMeasurements{};
+    fuelSettings = FuelSettings{};
+    onOffFlags = OnOffFlags{};
+    statusFlags = StatusFlags{};
+    operatingState = OperatingState{};
+    subsystemsStatus = SubsystemsStatus{};
+}
+
 // =============================================================================
 // ФУНКЦИЯ ВЫВОДА В SERIAL
 // =============================================================================

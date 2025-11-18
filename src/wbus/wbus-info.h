@@ -90,6 +90,8 @@ public:
     void getAllInfo();
     void printInfo();
 
+    void clear();
+
     WebastoDeviceInfo getDeviceInfo();
     bool hasDeviceInfo() { return deviceInfo.hasData(); }
 };

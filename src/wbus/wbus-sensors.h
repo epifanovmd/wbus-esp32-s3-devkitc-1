@@ -36,6 +36,7 @@ public:
     void handleCommandResponse(String tx, String rx);
 
     void stopMonitoring();
+    void clear();
 
     // Вывод данных
     void printSensorData();

@@ -264,6 +264,11 @@ void WebastoInfo::getAllInfo()
     getAdditionalInfo();
 }
 
+void WebastoInfo::clear()
+{
+    deviceInfo.clear();
+}
+
 void WebastoInfo::printInfo()
 {
     Serial.println();

@@ -14,11 +14,97 @@ WBus wBus;
 
 Timeout keepAliveTimeout(10000);
 
+void WBus::setConnectionState(ConnectionState newState)
+{
+  if (connectionState == newState)
+    return;
+
+  ConnectionState oldState = connectionState;
+  connectionState = newState;
+
+  // Логируем изменение состояния
+  String stateNames[] = {"DISCONNECTED", "CONNECTING", "CONNECTED", "CONNECTION_FAILED"};
+  Serial.println();
+  Serial.println("🔌 Состояние подключения: " + stateNames[oldState] + " → " + stateNames[newState]);
+
+  // Отправляем уведомление через WebSocket
+  String statusMessage = "Connection: " + stateNames[newState];
+  socketServer.sendSystemStatus(statusMessage);
+
+  // Дополнительные действия при изменении состояния
+  switch (newState)
+  {
+  case CONNECTING:
+    neopixelWrite(RGB_PIN, 255 / 4, 165 / 4, 0);
+    Serial.println();
+    Serial.println("🔌 Подключение к Webasto...");
+    break;
+  case CONNECTION_FAILED:
+    neopixelWrite(RGB_PIN, 255 / 4, 0, 0);
+    socketServer.sendError("❌ Ошибка подключения к Webasto");
+    break;
+
+  case CONNECTED:
+    neopixelWrite(RGB_PIN, 0, 255 / 4, 0);
+    socketServer.sendInfo("✅ Успешно подключено к Webasto");
+    break;
+
+  case DISCONNECTED:
+    neopixelWrite(RGB_PIN, 0, 0, 0);
+    webastoInfo.clear();
+    webastoSensors.clear();
+    webastoErrors.clear();
+    socketServer.sendInfo("🔌 Отключено от Webasto");
+    break;
+  }
+}
+
+void WBus::setState(WebastoState newState)
+{
+  if (currentState == newState)
+    return;
+
+  currentState = newState;
+
+  // Отправляем уведомление через WebSocket
+  socketServer.sendSystemStatus("Heater: " + getStateName());
+
+  // Дополнительные действия при изменении состояния
+  switch (newState)
+  {
+  case WBUS_STATE_PARKING_HEAT:
+    socketServer.sendInfo("🔥 Паркинг-нагрев активен");
+    break;
+
+  case WBUS_STATE_VENTILATION:
+    socketServer.sendInfo("💨 Вентиляция активна");
+    break;
+
+  case WBUS_STATE_SUPP_HEAT:
+    socketServer.sendInfo("🔥 Дополнительный нагрев активен");
+    break;
+
+  case WBUS_STATE_BOOST:
+    socketServer.sendInfo("⚡ Boost режим активен");
+    break;
+
+  case WBUS_STATE_OFF:
+    socketServer.sendInfo("🔴 Нагреватель выключен");
+    break;
+
+  case WBUS_STATE_READY:
+    socketServer.sendInfo("🟢 Нагреватель готов к работе");
+    break;
+  }
+}
+
 void WBus::init()
 {
   initTJA1020();
   wakeUpTJA1020();
-  connectionState = DISCONNECTED;
+  neopixelWrite(RGB_PIN, 0, 0, 0);
+  setConnectionState(DISCONNECTED);
+  setState(WBUS_STATE_OFF);
 }
 
 void WBus::wakeUp()
@@ -41,10 +127,8 @@ void WBus::connect()
     return;
   }
 
-  connectionState = CONNECTING;
+  setConnectionState(CONNECTING);
 
-  Serial.println();
-  Serial.println("🔌 Подключение к Webasto...");
   wakeUp();
 
   delay(100);
@@ -57,9 +141,8 @@ void WBus::connect()
       {
         if (!rx.isEmpty())
         {
-          connectionState = CONNECTED;
-          Serial.println();
-          Serial.println("✅ Подключение прошло успешно");
+          setConnectionState(CONNECTED);
+
           wbusQueue.setInterval(200);
 
           webastoInfo.getAdditionalInfo();
@@ -68,7 +151,7 @@ void WBus::connect()
         }
         else
         {
-          connectionState = CONNECTION_FAILED;
+          setConnectionState(CONNECTION_FAILED);
           Serial.println();
           Serial.println("❌ Не удалось подключиться!");
         }
@@ -78,9 +161,10 @@ void WBus::connect()
 void WBus::disconnect()
 {
   wbusQueue.clear();
-  connectionState = DISCONNECTED;
-  Serial.println();
-  Serial.println("🔌 Отключение от Webasto");
+  setConnectionState(DISCONNECTED);
+  setState(WBUS_STATE_SHUTDOWN);
+  // Serial.println();
+  // Serial.println("🔌 Отключение от Webasto");
 }
 
 // =============================================================================
@@ -114,7 +198,7 @@ void WBus::startParkingHeat(int minutes)
   wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
     if (!rx.isEmpty()) {
-      currentState = WBUS_STATE_PARKING_HEAT;
+            setState(WBUS_STATE_PARKING_HEAT);
       Serial.println();
       Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
 
@@ -135,7 +219,7 @@ void WBus::startVentilation(int minutes)
   wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
     if (!rx.isEmpty()) {
-      currentState = WBUS_STATE_VENTILATION;
+        setState(WBUS_STATE_VENTILATION);
       Serial.println();
       Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
 
@@ -156,7 +240,7 @@ void WBus::startSupplementalHeat(int minutes)
   wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
     if (!rx.isEmpty()) {
-      currentState = WBUS_STATE_SUPP_HEAT;
+     setState(WBUS_STATE_SUPP_HEAT);
       Serial.println();
       Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
     } else {
@@ -175,7 +259,7 @@ void WBus::controlCirculationPump(bool enable)
   wbusQueue.add(command, [this, enable](String tx, String rx)
                 {
     if (!rx.isEmpty()) {
-      currentState = WBUS_STATE_CIRC_PUMP;
+      setState(WBUS_STATE_CIRC_PUMP);
       Serial.println();
       Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
     } else {
@@ -195,7 +279,7 @@ void WBus::startBoostMode(int minutes)
   wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
     if (!rx.isEmpty()) {
-      currentState = WBUS_STATE_BOOST;
+           setState(WBUS_STATE_BOOST);
       Serial.println();
       Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
     } else {
@@ -425,7 +509,7 @@ void WBus::updateStateFromSensors(std::function<void()> callback)
     WebastoState newState = determineStateFromFlags(flags, onOff);
 
     if (newState != currentState) {
-      currentState = newState;
+   setState(newState);
     }
 
     if (callback != nullptr) {
@@ -550,16 +634,24 @@ void WBus::processKeepAlive()
 
 void WBus::checkConnection()
 {
-  if (wbusQueue.isEmpty())
+  if (wbusQueue.isEmpty() && connectionState != DISCONNECTED)
   {
-    connectionState = DISCONNECTED;
+    setConnectionState(DISCONNECTED);
+  }
+  else if (connectionState == CONNECTION_FAILED)
+  {
+    // Если было состояние ошибки, но мы получили успешный ответ - восстанавливаем соединение
+    if (_lastRxTime > 0 && millis() - _lastRxTime < 2000) // Ответ получен в последние 2 секунды
+    {
+      setConnectionState(CONNECTED);
+    }
   }
   else if (connectionState == CONNECTED)
   {
-    // 5 секунд без ответа
+    // 5 секунд без ответа - считаем что соединение разорвано
     if (_lastRxTime > 0 && millis() - _lastRxTime > 5000)
     {
-      connectionState = CONNECTION_FAILED;
+      setConnectionState(CONNECTION_FAILED);
     }
   }
 }
