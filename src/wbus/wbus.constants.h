@@ -68,7 +68,7 @@ inline String createBoostCommand(uint8_t minutes = 59)
 // КОМАНДЫ ДИАГНОСТИКИ И СЕРВИСА
 // =================================================================================
 
-#define CMD_DIAGNOSTIC "F4 02 38 CE"               // Диагностическая команда (инициализация)
+#define CMD_DIAGNOSTIC "F4 02 38 CE"                // Диагностическая команда (инициализация)
 #define CMD_KEEPALIVE_PARKING "F4 04 44 21 00 95"   // Keep-alive для паркинга
 #define CMD_KEEPALIVE_VENT "F4 04 44 22 00 96"      // Keep-alive для вентиляции
 #define CMD_KEEPALIVE_SUPP_HEAT "F4 04 44 23 00 97" // Keep-alive для дополнительного нагрева

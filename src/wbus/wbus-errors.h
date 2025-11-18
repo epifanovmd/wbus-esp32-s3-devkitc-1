@@ -7,7 +7,7 @@
 class WebastoErrors
 {
 private:
-    ErrorCollection _currentErrors;
+    ErrorCollection currentErrors;
 
     void handleErrorResponse(bool status, String tx, String rx);
     void printErrors();
@@ -17,9 +17,9 @@ public:
     void clear();
 
     void stopLoop();
-    bool hasErrors() const { return _currentErrors.hasErrors; }
-    int errorCount() const { return _currentErrors.errorCount; }
-    ErrorCollection getErrors() const { return _currentErrors; }
+    bool hasErrors() const { return currentErrors.hasErrors; }
+    int errorCount() const { return currentErrors.errorCount; }
+    ErrorCollection getErrors() const { return currentErrors; }
 };
 
 extern WebastoErrors webastoErrors;

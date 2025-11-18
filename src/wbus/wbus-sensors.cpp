@@ -101,7 +101,7 @@ void WebastoSensors::getAllSensorData(bool loop)
   getOperationalInfo(loop);
   if (!loop)
   {
-   getFuelSettings(loop);
+    getFuelSettings(loop);
   }
   getOnOffFlags(loop);
   getStatusFlags(loop);

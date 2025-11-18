@@ -76,14 +76,14 @@ struct SubsystemsStatus
     uint8_t combustionFanPower;   // Мощность вентилятора горения в процентах * 2
     uint8_t unknownByte3;         // Неизвестный байт
     uint8_t circulationPumpPower; // Мощность циркуляционного насоса в процентах * 2
-    
+
     // Вычисленные значения
-    float glowPlugPowerPercent;     // Мощность свечи в %
-    float fuelPumpFrequencyHz;      // Частота ТН в Гц
-    float combustionFanPowerPercent; // Мощность вентилятора в %
+    float glowPlugPowerPercent;        // Мощность свечи в %
+    float fuelPumpFrequencyHz;         // Частота ТН в Гц
+    float combustionFanPowerPercent;   // Мощность вентилятора в %
     float circulationPumpPowerPercent; // Мощность циркуляционного насоса в %
-    
-    String statusSummary;          // Сводка статуса
+
+    String statusSummary; // Сводка статуса
 };
 
 class WBusSensorsDecoder
@@ -100,16 +100,15 @@ private:
     // Вспомогательные методы
     String determineVentilationDescription(uint8_t ventFactor);
     bool validatePacketStructure(const String &response, uint8_t expectedCommand, uint8_t expectedIndex, int minLength);
-    String buildSubsystemsSummaryString(const SubsystemsStatus& status);
+    String buildSubsystemsSummaryString(const SubsystemsStatus &status);
 
 public:
-
     OperationalMeasurements decodeOperationalInfo(const String &response);
     FuelSettings decodeFuelSettings(const String &response);
     OnOffFlags decodeOnOffFlags(const String &response);
     StatusFlags decodeStatusFlags(const String &response);
     OperatingState decodeOperatingState(const String &response);
-    SubsystemsStatus decodeSubsystemsStatus(const String& response);
+    SubsystemsStatus decodeSubsystemsStatus(const String &response);
 };
 
 extern WBusSensorsDecoder wBusSensorsDecoder;

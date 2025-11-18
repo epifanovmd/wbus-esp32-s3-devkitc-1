@@ -100,7 +100,7 @@ void WBusQueue::process()
         break;
 
     case WBUS_QUEUE_WAITING_RETRY_STATE:
-            _sendCurrentCommand();
+        _sendCurrentCommand();
         break;
     }
 }
@@ -163,8 +163,8 @@ void WBusQueue::_completeCurrentCommand(String response, bool success)
 
     if (_queue.isEmpty())
     {
-        Serial.println();
-        Serial.print("❌ Очередь команд пуста");
+        // Serial.println();
+        // Serial.print("❌ Очередь команд пуста");
     }
 }
 
@@ -175,8 +175,6 @@ void WBusQueue::_handleRepeat()
     Serial.print("❌ Попытка " + String(_retries));
     if (_retries >= _maxRetries)
     {
-        Serial.println();
-        Serial.print("❌ Все попытки исчерпаны");
         _completeCurrentCommand("", false);
         clear();
     }

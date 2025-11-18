@@ -376,56 +376,63 @@ OperatingState WBusSensorsDecoder::decodeOperatingState(const String &response)
 // ДЕКОДИРОВАНИЕ СТАТУСА ПОДСИСТЕМ
 // =============================================================================
 
-String WBusSensorsDecoder::buildSubsystemsSummaryString(const SubsystemsStatus& status)
+String WBusSensorsDecoder::buildSubsystemsSummaryString(const SubsystemsStatus &status)
 {
     String summary = "";
-    
-    if (status.glowPlugPowerPercent > 0) {
+
+    if (status.glowPlugPowerPercent > 0)
+    {
         summary += "Свеча:" + String(status.glowPlugPowerPercent, 0) + "%, ";
     }
-    if (status.fuelPumpFrequencyHz > 0) {
+    if (status.fuelPumpFrequencyHz > 0)
+    {
         summary += "ТН:" + String(status.fuelPumpFrequencyHz, 1) + "Гц, ";
     }
-    if (status.combustionFanPowerPercent > 0) {
+    if (status.combustionFanPowerPercent > 0)
+    {
         summary += "Вент:" + String(status.combustionFanPowerPercent, 0) + "%, ";
     }
-    if (status.circulationPumpPowerPercent > 0) {
+    if (status.circulationPumpPowerPercent > 0)
+    {
         summary += "ЦН:" + String(status.circulationPumpPowerPercent, 0) + "%, ";
     }
-    
-    if (summary.length() > 0) {
+
+    if (summary.length() > 0)
+    {
         return summary.substring(0, summary.length() - 2);
     }
     return "все системы выключены";
 }
 
-SubsystemsStatus WBusSensorsDecoder::decodeSubsystemsStatus(const String& response)
+SubsystemsStatus WBusSensorsDecoder::decodeSubsystemsStatus(const String &response)
 {
     SubsystemsStatus result = {0};
-    
-    if (!validatePacketStructure(response, 0x50, 0x0F, 9)) {
+
+    if (!validatePacketStructure(response, 0x50, 0x0F, 9))
+    {
         return result;
     }
-    
+
     int byteCount;
-    byte* data = hexStringToByteArray(response, byteCount);
-    
-    if (byteCount >= 9) {
+    byte *data = hexStringToByteArray(response, byteCount);
+
+    if (byteCount >= 9)
+    {
         // Извлекаем данные (байты 4-8)
         result.glowPlugPower = data[4];        // Мощность свечи (% * 2)
         result.fuelPumpFrequency = data[5];    // Частота ТН (Гц * 2)
         result.combustionFanPower = data[6];   // Мощность вентилятора (% * 2)
         result.unknownByte3 = data[7];         // Неизвестный байт
         result.circulationPumpPower = data[8]; // Мощность циркуляционного насоса (% * 2)
-        
+
         // Вычисляем реальные значения
         result.glowPlugPowerPercent = result.glowPlugPower / 2.0;
         result.fuelPumpFrequencyHz = result.fuelPumpFrequency / 2.0;
         result.combustionFanPowerPercent = result.combustionFanPower / 2.0;
         result.circulationPumpPowerPercent = result.circulationPumpPower / 2.0;
-        
+
         result.statusSummary = buildSubsystemsSummaryString(result);
     }
-    
+
     return result;
 }

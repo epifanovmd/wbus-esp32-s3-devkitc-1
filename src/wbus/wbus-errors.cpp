@@ -17,18 +17,18 @@ void WebastoErrors::printErrors()
     Serial.println("               🚨 ОШИБКИ WEBASTO                          ");
     Serial.println("═══════════════════════════════════════════════════════════");
 
-    if (_currentErrors.isEmpty())
+    if (currentErrors.isEmpty())
     {
         Serial.println("✅ Ошибок не обнаружено");
     }
     else
     {
-        Serial.println("📋 Найдено ошибок: " + String(_currentErrors.errorCount));
+        Serial.println("📋 Найдено ошибок: " + String(currentErrors.errorCount));
         Serial.println();
 
-        for (size_t i = 0; i < _currentErrors.errors.size(); i++)
+        for (size_t i = 0; i < currentErrors.errors.size(); i++)
         {
-            const WebastoError &error = _currentErrors.errors[i];
+            const WebastoError &error = currentErrors.errors[i];
             Serial.print("   ");
             Serial.print(i + 1);
             Serial.print(". ");
@@ -64,10 +64,7 @@ void WebastoErrors::handleErrorResponse(bool status, String tx, String rx)
     }
 
     // Декодируем и заполняем структуру
-    _currentErrors = webastoErrorsDecoder.decodeErrorPacket(rx);
-
-    // Автоматически выводим ошибки
-    printErrors();
+    currentErrors = webastoErrorsDecoder.decodeErrorPacket(rx);
 }
 
 // =============================================================================
@@ -84,12 +81,13 @@ void WebastoErrors::clear()
 {
     wbusQueue.add(CMD_CLEAR_ERRORS, [this](bool success, String tx, String rx)
                   {
-    this->_currentErrors.clear();
+                      this->currentErrors.clear();
 
-    // Выводим подтверждение
-    Serial.println();
-    Serial.println("✅ Ошибки очищены");
-    Serial.println(); });
+                      // Выводим подтверждение
+                      // Serial.println();
+                      // Serial.println("✅ Ошибки очищены");
+                      // Serial.println();
+                  });
 }
 
 void WebastoErrors::stopLoop()

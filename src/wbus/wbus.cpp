@@ -59,7 +59,7 @@ void WBus::connect()
           connectionState = CONNECTED;
           Serial.println();
           Serial.println("✅ Подключение прошло успешно");
-          wbusQueue.setInterval(250);
+          wbusQueue.setInterval(550);
 
           webastoInfo.getAdditionalInfo();
           webastoSensors.getAllSensorData(true);
