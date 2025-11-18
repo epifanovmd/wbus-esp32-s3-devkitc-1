@@ -18,6 +18,7 @@ void printHelp()
   Serial.println("sensors      - данные датчиков");
   Serial.println("errors/err   - чтение ошибок");
   Serial.println("clear/clr    - стереть ошибки");
+  Serial.println("log       - вкл/выкл логирования");
   Serial.println("help/h       - эта справка");
   Serial.println("========================================");
 }

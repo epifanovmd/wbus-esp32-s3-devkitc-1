@@ -54,6 +54,7 @@ void WBus::setConnectionState(ConnectionState newState)
     webastoInfo.clear();
     webastoSensors.clear();
     webastoErrors.clear();
+    _logging = false;
     socketServer.sendInfo("🔌 Отключено от Webasto");
     break;
   }
@@ -105,6 +106,7 @@ void WBus::init()
   neopixelWrite(RGB_PIN, 0, 0, 0);
   setConnectionState(DISCONNECTED);
   setState(WBUS_STATE_OFF);
+  _logging = false;
 }
 
 void WBus::wakeUp()
@@ -589,6 +591,17 @@ void WBus::processSerialCommands()
     {
       webastoErrors.reset();
     }
+    else if (command == "log")
+    {
+      if (wBus.isLogging())
+      {
+        wBus.stopLogging();
+      }
+      else
+      {
+        wBus.startLogging();
+      }
+    }
     else if (command == "help" || command == "h")
     {
       printHelp();
@@ -668,16 +681,22 @@ void WBus::process()
 
   if (kLineReceiver.kLineReceivedData.isRxReceived())
   {
-    socketServer.sendRx(kLineReceiver.kLineReceivedData.getRxData());
-    kLineReceiver.kLineReceivedData.printRx();
+    if (_logging)
+    {
+      socketServer.sendRx(kLineReceiver.kLineReceivedData.getRxData());
+      kLineReceiver.kLineReceivedData.printRx();
+    }
 
     _lastRxTime = millis();
   }
 
   if (kLineReceiver.kLineReceivedData.isTxReceived())
   {
-    socketServer.sendTx(kLineReceiver.kLineReceivedData.getTxData());
-    kLineReceiver.kLineReceivedData.printTx();
+    if (_logging)
+    {
+      socketServer.sendTx(kLineReceiver.kLineReceivedData.getTxData());
+      kLineReceiver.kLineReceivedData.printTx();
+    }
   }
 
   socketServer.loop();

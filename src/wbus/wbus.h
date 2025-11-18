@@ -37,6 +37,7 @@ private:
     WebastoState currentState = WBUS_STATE_OFF;
     ConnectionState connectionState = DISCONNECTED;
     unsigned long _lastRxTime = 0;
+    bool _logging = false;
 
     WebastoState determineStateFromFlags(const StatusFlags &flags, OnOffFlags &onOff);
     String getKeepAliveCommandForCurrentState();
@@ -77,6 +78,11 @@ public:
     WebastoState getState() { return currentState; }
     ConnectionState getConnectionState() { return connectionState; }
     bool isConnected() { return connectionState == CONNECTED; }
+    bool isLogging() { return _logging; }
+
+    // Логирование
+    void startLogging() { _logging = true; }
+    void stopLogging() { _logging = false; }
 };
 
 extern WBus wBus;
