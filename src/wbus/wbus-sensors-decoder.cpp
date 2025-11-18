@@ -210,7 +210,7 @@ String WBusSensorsDecoder::buildStatusSummaryString(const StatusFlags &flags)
     if (flags.summerMode)
         summary += "Лето, ";
     if (flags.externalControl)
-        summary += "Внешнее упр., ";
+        summary += "Внешнее управление, ";
 
     if (summary.length() > 0)
     {
