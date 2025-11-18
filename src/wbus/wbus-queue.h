@@ -19,7 +19,7 @@ private:
     QueueMap _queue;
     WBusQueueState _state = WBUS_QUEUE_IDLE_STATE;
     unsigned long _retries = 0;
-    unsigned long _maxRetries = 10;
+    unsigned long _maxRetries = 5;
 
     void _sendCurrentCommand();
     void _completeCurrentCommand(String response);

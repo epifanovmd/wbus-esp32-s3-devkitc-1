@@ -587,7 +587,7 @@ void WBus::processSerialCommands()
     }
     else if (command == "clear" || command == "clr")
     {
-      webastoErrors.clear();
+      webastoErrors.reset();
     }
     else if (command == "help" || command == "h")
     {

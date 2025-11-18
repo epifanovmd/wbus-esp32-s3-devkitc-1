@@ -13,6 +13,7 @@ private:
 
 public:
     void check(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    void reset();
     void clear();
 
     // универсальная функция обработки, по tx выбирает нужный обработчик

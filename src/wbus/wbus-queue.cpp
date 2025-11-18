@@ -179,7 +179,7 @@ void WBusQueue::_handleRepeat()
 {
     _retries++;
     Serial.println();
-    Serial.print("❌ Попытка " + String(_retries));
+    Serial.print("❌ Попытка " + String(_retries) + " – " + _queue.get().command);
     if (_retries >= _maxRetries)
     {
         _completeCurrentCommand("");

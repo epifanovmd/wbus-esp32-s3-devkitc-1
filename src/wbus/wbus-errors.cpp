@@ -90,7 +90,7 @@ void WebastoErrors::check(bool loop, std::function<void(String, String)> callbac
     } }, loop);
 }
 
-void WebastoErrors::clear()
+void WebastoErrors::reset()
 {
     wbusQueue.add(CMD_CLEAR_ERRORS, [this](String tx, String rx)
                   {
@@ -104,6 +104,11 @@ void WebastoErrors::clear()
                       // Serial.println("✅ Ошибки очищены");
                       // Serial.println();
                   });
+}
+
+void WebastoErrors::clear()
+{
+    currentErrors.clear();
 }
 
 void WebastoErrors::stopLoop()

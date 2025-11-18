@@ -57,8 +57,27 @@ void setup()
   Serial.println();
 }
 
+bool lastButtonState = HIGH;
+
 void loop()
 {
+
+  bool currentButtonState = digitalRead(0);
+
+  if (currentButtonState == LOW && lastButtonState == HIGH)
+  {
+    if (wBus.isConnected())
+    {
+      wBus.disconnect();
+    }
+    else
+    {
+      wBus.connect();
+    }
+  }
+
+  lastButtonState = currentButtonState;
+
   // Чтение и обработка пакетов W-Bus
   if (digitalRead(NSLP_PIN) == HIGH)
   {
