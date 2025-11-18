@@ -17,7 +17,7 @@ public:
     void clear();
 
     // универсальная функция обработки, по tx выбирает нужный обработчик
-    void handleCommandResponse(String tx, String rx);
+    bool handleCommandResponse(String tx, String rx);
 
     void printErrors();
     void stopLoop();

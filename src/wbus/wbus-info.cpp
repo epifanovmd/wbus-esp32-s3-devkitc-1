@@ -112,29 +112,55 @@ void WebastoInfo::handleSerialNumberResponse(String tx, String rx)
     }
 }
 
-void WebastoInfo::handleCommandResponse(String tx, String rx)
+bool WebastoInfo::handleCommandResponse(String tx, String rx)
 {
     if (rx.isEmpty())
-        return; // Не обрабатываем пустые ответы
+        return false; // Не обрабатываем пустые ответы
 
     if (tx == CMD_READ_INFO_WBUS_VERSION)
+    {
         handleWBusVersionResponse(tx, rx);
+        return true;
+    }
     else if (tx == CMD_READ_INFO_DEVICE_NAME)
+    {
         handleDeviceNameResponse(tx, rx);
+        return true;
+    }
     else if (tx == CMD_READ_INFO_WBUS_CODE)
+    {
         handleWBusCodeResponse(tx, rx);
+        return true;
+    }
     else if (tx == CMD_READ_INFO_DEVICE_ID)
+    {
         handleDeviceIDResponse(tx, rx);
+        return true;
+    }
     else if (tx == CMD_READ_INFO_HEATER_MFG_DATE)
+    {
         handleHeaterManufactureDateResponse(tx, rx);
+        return true;
+    }
     else if (tx == CMD_READ_INFO_CTRL_MFG_DATE)
+    {
         handleControllerManufactureDateResponse(tx, rx);
+        return true;
+    }
     else if (tx == CMD_READ_INFO_CUSTOMER_ID)
+    {
         handleCustomerIDResponse(tx, rx);
+        return true;
+    }
     else if (tx == CMD_READ_INFO_SERIAL_NUMBER)
+    {
         handleSerialNumberResponse(tx, rx);
+        return true;
+    }
     // else
     //     Serial.println("❌ Для этой команды нет обработчика: " + tx);
+
+    return false;
 }
 
 // Публичные методы (остаются без изменений)

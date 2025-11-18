@@ -65,15 +65,20 @@ void WebastoErrors::handleErrorResponse(String tx, String rx)
     }
 }
 
-void WebastoErrors::handleCommandResponse(String tx, String rx)
+bool WebastoErrors::handleCommandResponse(String tx, String rx)
 {
     if (rx.isEmpty())
-        return; // Не обрабатываем пустые ответы
+        return false; // Не обрабатываем пустые ответы
 
     if (tx == CMD_READ_ERRORS_LIST)
+    {
         handleErrorResponse(tx, rx);
+        return true;
+    }
     // else
     //     Serial.println("❌ Для этой команды нет обработчика: " + tx);
+
+    return false;
 }
 
 // =============================================================================

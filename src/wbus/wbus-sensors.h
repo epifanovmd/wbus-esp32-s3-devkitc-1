@@ -33,7 +33,7 @@ public:
     void getAllSensorData(bool loop = false, std::function<void(String, String)> callback = nullptr);
 
     // универсальная функция обработки, по tx выбирает нужный обработчик
-    void handleCommandResponse(String tx, String rx);
+    bool handleCommandResponse(String tx, String rx);
 
     void stopMonitoring();
     void clear();

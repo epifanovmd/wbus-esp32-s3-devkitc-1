@@ -56,25 +56,45 @@ void WebastoSensors::handleSubsystemsStatusResponse(String tx, String rx)
   }
 }
 
-void WebastoSensors::handleCommandResponse(String tx, String rx)
+bool WebastoSensors::handleCommandResponse(String tx, String rx)
 {
   if (rx.isEmpty())
-    return; // Не обрабатываем пустые ответы
+    return false; // Не обрабатываем пустые ответы
 
   if (tx == CMD_READ_SENSOR_OPERATIONAL)
+  {
     handleOperationalInfoResponse(tx, rx);
+    return true;
+  }
   else if (tx == CMD_READ_SENSOR_FUEL_SETTINGS)
+  {
     handleFuelSettingsResponse(tx, rx);
+    return true;
+  }
   else if (tx == CMD_READ_SENSOR_ON_OFF_FLAGS)
+  {
     handleOnOffFlagsResponse(tx, rx);
+    return true;
+  }
   else if (tx == CMD_READ_SENSOR_STATUS_FLAGS)
+  {
     handleStatusFlagsResponse(tx, rx);
+    return true;
+  }
   else if (tx == CMD_READ_SENSOR_OPERATING_STATE)
+  {
     handleOperatingStateResponse(tx, rx);
+    return true;
+  }
   else if (tx == CMD_READ_SENSOR_SUBSYSTEMS_STATUS)
+  {
     handleSubsystemsStatusResponse(tx, rx);
+    return true;
+  }
   // else
   //   Serial.println("❌ Для этой команды нет обрабочика: " + tx);
+
+  return false;
 }
 
 // =============================================================================
@@ -165,12 +185,12 @@ void WebastoSensors::stopMonitoring()
 
 void WebastoSensors::clear()
 {
-    operationalMeasurements = OperationalMeasurements{};
-    fuelSettings = FuelSettings{};
-    onOffFlags = OnOffFlags{};
-    statusFlags = StatusFlags{};
-    operatingState = OperatingState{};
-    subsystemsStatus = SubsystemsStatus{};
+  operationalMeasurements = OperationalMeasurements{};
+  fuelSettings = FuelSettings{};
+  onOffFlags = OnOffFlags{};
+  statusFlags = StatusFlags{};
+  operatingState = OperatingState{};
+  subsystemsStatus = SubsystemsStatus{};
 }
 
 // =============================================================================
