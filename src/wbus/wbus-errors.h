@@ -14,8 +14,11 @@ private:
 public:
     void check(bool loop = false, std::function<void(String, String)> callback = nullptr);
     void clear();
-    void printErrors();
 
+    // универсальная функция обработки, по tx выбирает нужный обработчик
+    void handleCommandResponse(String tx, String rx);
+
+    void printErrors();
     void stopLoop();
     bool hasErrors() const { return currentErrors.hasErrors; }
     int errorCount() const { return currentErrors.errorCount; }

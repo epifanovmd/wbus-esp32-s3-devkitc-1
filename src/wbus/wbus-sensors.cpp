@@ -1,7 +1,5 @@
 #include "wbus-sensors.h"
-
 #include "wbus-queue.h"
-
 #include "wbus.constants.h"
 
 WebastoSensors webastoSensors;
@@ -58,6 +56,27 @@ void WebastoSensors::handleSubsystemsStatusResponse(String tx, String rx)
   }
 }
 
+void WebastoSensors::handleCommandResponse(String tx, String rx)
+{
+  if (rx.isEmpty())
+    return; // Не обрабатываем пустые ответы
+
+  if (tx == CMD_READ_SENSOR_OPERATIONAL)
+    handleOperationalInfoResponse(tx, rx);
+  else if (tx == CMD_READ_SENSOR_FUEL_SETTINGS)
+    handleFuelSettingsResponse(tx, rx);
+  else if (tx == CMD_READ_SENSOR_ON_OFF_FLAGS)
+    handleOnOffFlagsResponse(tx, rx);
+  else if (tx == CMD_READ_SENSOR_STATUS_FLAGS)
+    handleStatusFlagsResponse(tx, rx);
+  else if (tx == CMD_READ_SENSOR_OPERATING_STATE)
+    handleOperatingStateResponse(tx, rx);
+  else if (tx == CMD_READ_SENSOR_SUBSYSTEMS_STATUS)
+    handleSubsystemsStatusResponse(tx, rx);
+  // else
+  //   Serial.println("❌ Для этой команды нет обрабочика: " + tx);
+}
+
 // =============================================================================
 // ПУБЛИЧНЫЕ МЕТОДЫ
 // =============================================================================
@@ -66,7 +85,7 @@ void WebastoSensors::getOperationalInfo(bool loop, std::function<void(String, St
 {
   wbusQueue.add(CMD_READ_SENSOR_OPERATIONAL, [this, callback](String tx, String rx)
                 {
-      this -> handleOperationalInfoResponse(tx, rx);
+      this -> handleCommandResponse(tx, rx);
       if (callback != nullptr) {
         callback(tx, rx);
       } }, loop);
@@ -76,7 +95,7 @@ void WebastoSensors::getFuelSettings(bool loop, std::function<void(String, Strin
 {
   wbusQueue.add(CMD_READ_SENSOR_FUEL_SETTINGS, [this, callback](String tx, String rx)
                 {
-    this -> handleFuelSettingsResponse(tx, rx);
+    this -> handleCommandResponse(tx, rx);
     if (callback != nullptr) {
       callback(tx, rx);
     } }, loop);
@@ -86,7 +105,7 @@ void WebastoSensors::getOnOffFlags(bool loop, std::function<void(String, String)
 {
   wbusQueue.add(CMD_READ_SENSOR_ON_OFF_FLAGS, [this, callback](String tx, String rx)
                 {
-    this -> handleOnOffFlagsResponse(tx, rx);
+    this -> handleCommandResponse(tx, rx);
     if (callback != nullptr) {
       callback(tx, rx);
     } }, loop);
@@ -96,7 +115,7 @@ void WebastoSensors::getStatusFlags(bool loop, std::function<void(String, String
 {
   wbusQueue.add(CMD_READ_SENSOR_STATUS_FLAGS, [this, callback](String tx, String rx)
                 {
-    this -> handleStatusFlagsResponse(tx, rx);
+    this -> handleCommandResponse(tx, rx);
     if (callback != nullptr) {
       callback(tx, rx);
     } }, loop);
@@ -106,7 +125,7 @@ void WebastoSensors::getOperatingState(bool loop, std::function<void(String, Str
 {
   wbusQueue.add(CMD_READ_SENSOR_OPERATING_STATE, [this, callback](String tx, String rx)
                 {
-    this -> handleOperatingStateResponse(tx, rx);
+    this -> handleCommandResponse(tx, rx);
     if (callback != nullptr) {
       callback(tx, rx);
     } }, loop);
@@ -116,7 +135,7 @@ void WebastoSensors::getSubsystemsStatus(bool loop, std::function<void(String, S
 {
   wbusQueue.add(CMD_READ_SENSOR_SUBSYSTEMS_STATUS, [this, callback](String tx, String rx)
                 {
-    this -> handleSubsystemsStatusResponse(tx, rx);
+    this -> handleCommandResponse(tx, rx);
     if (callback != nullptr) {
       callback(tx, rx);
     } }, loop);

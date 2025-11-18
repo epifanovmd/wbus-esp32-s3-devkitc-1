@@ -1,11 +1,7 @@
 #include "wbus-errors.h"
-
 #include "common/utils/utils.h"
-
 #include <functional>
-
 #include "wbus-queue.h"
-
 #include "wbus.constants.h"
 
 WebastoErrors webastoErrors;
@@ -69,6 +65,17 @@ void WebastoErrors::handleErrorResponse(String tx, String rx)
     }
 }
 
+void WebastoErrors::handleCommandResponse(String tx, String rx)
+{
+    if (rx.isEmpty())
+        return; // Не обрабатываем пустые ответы
+
+    if (tx == CMD_READ_ERRORS_LIST)
+        handleErrorResponse(tx, rx);
+    // else
+    //     Serial.println("❌ Для этой команды нет обработчика: " + tx);
+}
+
 // =============================================================================
 // ОСНОВНЫЕ МЕТОДЫ
 // =============================================================================
@@ -77,7 +84,7 @@ void WebastoErrors::check(bool loop, std::function<void(String, String)> callbac
 {
     wbusQueue.add(CMD_READ_ERRORS_LIST, [this, callback](String tx, String rx)
                   {
-    this -> handleErrorResponse(tx, rx);
+    this -> handleCommandResponse(tx, rx);
     if (callback != nullptr) {
       callback(tx, rx);
     } }, loop);

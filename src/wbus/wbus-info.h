@@ -2,9 +2,6 @@
 #define WBUS_INFO_H
 
 #include <Arduino.h>
-#include "wbus-queue.h"
-#include "wbus.constants.h"
-#include "wbus-info-decoder.h"
 
 // Структура для хранения информации об устройстве
 struct WebastoDeviceInfo
@@ -83,6 +80,9 @@ public:
     void getControllerManufactureDate(std::function<void(String, String)> callback = nullptr);
     void getCustomerID(std::function<void(String, String)> callback = nullptr);
     void getSerialNumber(std::function<void(String, String)> callback = nullptr);
+
+    // универсальная функция обработки, по tx выбирает нужный обработчик
+    void handleCommandResponse(String tx, String rx);
 
     // аггрегирующие функции
     void getMainInfo();

@@ -40,7 +40,7 @@ private:
     String getKeepAliveCommandForCurrentState();
     void processSerialCommands();
     void processKeepAlive();
-    void updateStateFromSensors();
+    void updateStateFromSensors(std::function<void()> callback = nullptr);
     void checkConnection();
 
 public:

@@ -1,4 +1,7 @@
 #include "wbus-info.h"
+#include "wbus-queue.h"
+#include "wbus-info-decoder.h"
+#include "wbus.constants.h"
 
 WebastoInfo webastoInfo;
 
@@ -109,13 +112,38 @@ void WebastoInfo::handleSerialNumberResponse(String tx, String rx)
     }
 }
 
+void WebastoInfo::handleCommandResponse(String tx, String rx)
+{
+    if (rx.isEmpty())
+        return; // Не обрабатываем пустые ответы
+
+    if (tx == CMD_READ_INFO_WBUS_VERSION)
+        handleWBusVersionResponse(tx, rx);
+    else if (tx == CMD_READ_INFO_DEVICE_NAME)
+        handleDeviceNameResponse(tx, rx);
+    else if (tx == CMD_READ_INFO_WBUS_CODE)
+        handleWBusCodeResponse(tx, rx);
+    else if (tx == CMD_READ_INFO_DEVICE_ID)
+        handleDeviceIDResponse(tx, rx);
+    else if (tx == CMD_READ_INFO_HEATER_MFG_DATE)
+        handleHeaterManufactureDateResponse(tx, rx);
+    else if (tx == CMD_READ_INFO_CTRL_MFG_DATE)
+        handleControllerManufactureDateResponse(tx, rx);
+    else if (tx == CMD_READ_INFO_CUSTOMER_ID)
+        handleCustomerIDResponse(tx, rx);
+    else if (tx == CMD_READ_INFO_SERIAL_NUMBER)
+        handleSerialNumberResponse(tx, rx);
+    // else
+    //     Serial.println("❌ Для этой команды нет обработчика: " + tx);
+}
+
 // Публичные методы (остаются без изменений)
 void WebastoInfo::getWBusVersion(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_WBUS_VERSION,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleWBusVersionResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);
@@ -128,7 +156,7 @@ void WebastoInfo::getDeviceName(std::function<void(String, String)> callback)
     wbusQueue.add(CMD_READ_INFO_DEVICE_NAME,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleDeviceNameResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);
@@ -141,7 +169,7 @@ void WebastoInfo::getWBusCode(std::function<void(String, String)> callback)
     wbusQueue.add(CMD_READ_INFO_WBUS_CODE,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleWBusCodeResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);
@@ -154,7 +182,7 @@ void WebastoInfo::getDeviceID(std::function<void(String, String)> callback)
     wbusQueue.add(CMD_READ_INFO_DEVICE_ID,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleDeviceIDResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);
@@ -167,7 +195,7 @@ void WebastoInfo::getHeaterManufactureDate(std::function<void(String, String)> c
     wbusQueue.add(CMD_READ_INFO_HEATER_MFG_DATE,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleHeaterManufactureDateResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);
@@ -180,7 +208,7 @@ void WebastoInfo::getControllerManufactureDate(std::function<void(String, String
     wbusQueue.add(CMD_READ_INFO_CTRL_MFG_DATE,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleControllerManufactureDateResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);
@@ -193,7 +221,7 @@ void WebastoInfo::getCustomerID(std::function<void(String, String)> callback)
     wbusQueue.add(CMD_READ_INFO_CUSTOMER_ID,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleCustomerIDResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);
@@ -206,7 +234,7 @@ void WebastoInfo::getSerialNumber(std::function<void(String, String)> callback)
     wbusQueue.add(CMD_READ_INFO_SERIAL_NUMBER,
                   [this, callback](String tx, String rx)
                   {
-                      this->handleSerialNumberResponse(tx, rx);
+                      this->handleCommandResponse(tx, rx);
                       if (callback != nullptr)
                       {
                           callback(tx, rx);

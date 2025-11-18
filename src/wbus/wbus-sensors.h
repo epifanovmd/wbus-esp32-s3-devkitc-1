@@ -32,6 +32,9 @@ public:
     void getSubsystemsStatus(bool loop = false, std::function<void(String, String)> callback = nullptr);
     void getAllSensorData(bool loop = false, std::function<void(String, String)> callback = nullptr);
 
+    // универсальная функция обработки, по tx выбирает нужный обработчик
+    void handleCommandResponse(String tx, String rx);
+
     void stopMonitoring();
 
     // Вывод данных

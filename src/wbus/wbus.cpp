@@ -1,24 +1,18 @@
 #include "wbus/wbus.h"
-
 #include "kline-receiver/kline-receiver.h"
-
 #include "common/tja1020/tja1020.h"
-
 #include "common/timeout/timeout.h"
-
 #include "wbus/wbus-sensors.h"
-
 #include "wbus/wbus-info.h"
-
+#include "wbus/wbus-queue.h"
 #include "wbus/wbus-errors.h"
-
+#include "wbus.constants.h"
 #include "server/socket-server.h"
-
 #include "server/api-server.h"
 
 WBus wBus;
 
-Timeout keepAliveTimeout(25000);
+Timeout keepAliveTimeout(10000);
 
 void WBus::init()
 {
@@ -66,7 +60,7 @@ void WBus::connect()
           connectionState = CONNECTED;
           Serial.println();
           Serial.println("✅ Подключение прошло успешно");
-          wbusQueue.setInterval(550);
+          wbusQueue.setInterval(200);
 
           webastoInfo.getAdditionalInfo();
           webastoSensors.getAllSensorData(true);
@@ -420,19 +414,23 @@ String WBus::getStateName()
   }
 }
 
-void WBus::updateStateFromSensors()
+void WBus::updateStateFromSensors(std::function<void()> callback)
 {
   webastoSensors.getStatusFlags();
-  webastoSensors.getOnOffFlags();
-  StatusFlags flags = webastoSensors.getStatusFlagsData();
-  OnOffFlags onOff = webastoSensors.getOnOffFlagsData();
+  webastoSensors.getOnOffFlags(false, [this, callback](String tx, String rx)
+                               {
+    StatusFlags flags = webastoSensors.getStatusFlagsData();
+    OnOffFlags onOff = webastoSensors.getOnOffFlagsData();
 
-  WebastoState newState = determineStateFromFlags(flags, onOff);
+    WebastoState newState = determineStateFromFlags(flags, onOff);
 
-  if (newState != currentState)
-  {
-    currentState = newState;
-  }
+    if (newState != currentState) {
+      currentState = newState;
+    }
+
+    if (callback != nullptr) {
+      callback();
+    } });
 }
 
 WebastoState WBus::determineStateFromFlags(const StatusFlags &flags, OnOffFlags &onOff)
@@ -532,19 +530,21 @@ void WBus::processKeepAlive()
       wakeUp();
     }
 
-    // Сначала обновляем состояние на основе текущих данных
-    updateStateFromSensors();
+    // Сначала обновляем состояние на основе текущих данных состояния Webasto
+    updateStateFromSensors(
+        [this]()
+        {
+          String keepAliveCommand = getKeepAliveCommandForCurrentState();
 
-    String keepAliveCommand = getKeepAliveCommandForCurrentState();
-
-    if (!keepAliveCommand.isEmpty())
-    {
-      wbusQueue.addPriority(keepAliveCommand, [this](String tx, String rx)
-                            {
-        if (rx.isEmpty()) {
-          Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());
-        } });
-    }
+          if (!keepAliveCommand.isEmpty())
+          {
+            wbusQueue.addPriority(keepAliveCommand, [this](String tx, String rx)
+                                  {
+            if (rx.isEmpty()) {
+              Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());
+            } });
+          }
+        });
   }
 }
 
@@ -577,7 +577,7 @@ void WBus::process()
   if (kLineReceiver.kLineReceivedData.isRxReceived())
   {
     socketServer.sendRx(kLineReceiver.kLineReceivedData.getRxData());
-    // kLineReceiver.kLineReceivedData.printRx();
+    kLineReceiver.kLineReceivedData.printRx();
 
     _lastRxTime = millis();
   }
@@ -585,7 +585,7 @@ void WBus::process()
   if (kLineReceiver.kLineReceivedData.isTxReceived())
   {
     socketServer.sendTx(kLineReceiver.kLineReceivedData.getTxData());
-    // kLineReceiver.kLineReceivedData.printTx();
+    kLineReceiver.kLineReceivedData.printTx();
   }
 
   socketServer.loop();
