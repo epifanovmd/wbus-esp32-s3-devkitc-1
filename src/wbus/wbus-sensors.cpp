@@ -161,19 +161,6 @@ void WebastoSensors::getSubsystemsStatus(bool loop, std::function<void(String, S
     } }, loop);
 }
 
-void WebastoSensors::getAllSensorData(bool loop, std::function<void(String, String)> callback)
-{
-  getOperationalInfo(loop, callback);
-  if (!loop)
-  {
-    getFuelSettings(loop, callback);
-  }
-  getOnOffFlags(loop, callback);
-  getStatusFlags(loop, callback);
-  getOperatingState(loop, callback);
-  getSubsystemsStatus(loop, callback);
-}
-
 void WebastoSensors::stopMonitoring()
 {
   wbusQueue.removeCommand(CMD_READ_SENSOR_OPERATIONAL);

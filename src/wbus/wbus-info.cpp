@@ -268,28 +268,6 @@ void WebastoInfo::getSerialNumber(std::function<void(String, String)> callback)
                   });
 }
 
-void WebastoInfo::getMainInfo()
-{
-    getWBusVersion();
-    getDeviceName();
-    getWBusCode();
-}
-
-void WebastoInfo::getAdditionalInfo()
-{
-    getDeviceID();
-    getControllerManufactureDate();
-    getHeaterManufactureDate();
-    getCustomerID();
-    getSerialNumber();
-}
-
-void WebastoInfo::getAllInfo()
-{
-    getMainInfo();
-    getAdditionalInfo();
-}
-
 void WebastoInfo::clear()
 {
     deviceInfo.clear();

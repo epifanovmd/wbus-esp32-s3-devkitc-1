@@ -30,7 +30,6 @@ public:
     void getStatusFlags(bool loop = false, std::function<void(String, String)> callback = nullptr);
     void getOperatingState(bool loop = false, std::function<void(String, String)> callback = nullptr);
     void getSubsystemsStatus(bool loop = false, std::function<void(String, String)> callback = nullptr);
-    void getAllSensorData(bool loop = false, std::function<void(String, String)> callback = nullptr);
 
     // универсальная функция обработки, по tx выбирает нужный обработчик
     bool handleCommandResponse(String tx, String rx);

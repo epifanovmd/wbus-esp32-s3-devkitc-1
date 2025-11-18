@@ -135,8 +135,12 @@ void WBus::connect()
 
   delay(100);
 
-  webastoInfo.getMainInfo();
+  // получаем основную информацию об устройстве
+  webastoInfo.getWBusVersion();
+  webastoInfo.getDeviceName();
+  webastoInfo.getWBusCode();
 
+  // запускаем диагностику
   wbusQueue.add(
       CMD_DIAGNOSTIC,
       [this](String tx, String rx)
@@ -145,10 +149,23 @@ void WBus::connect()
         {
           setConnectionState(CONNECTED);
 
+          // получаем доп. информацию об устройстве
+          webastoInfo.getDeviceID();
+          webastoInfo.getControllerManufactureDate();
+          webastoInfo.getHeaterManufactureDate();
+          webastoInfo.getCustomerID();
+          webastoInfo.getSerialNumber();
+
           wbusQueue.setInterval(200);
 
-          webastoInfo.getAdditionalInfo();
-          webastoSensors.getAllSensorData(true);
+          // переодично запрашиваем состояние устройства
+          webastoSensors.getOperationalInfo(true);
+          webastoSensors.getFuelSettings();
+          webastoSensors.getOnOffFlags(true);
+          webastoSensors.getStatusFlags(true);
+          webastoSensors.getOperatingState(true);
+          webastoSensors.getSubsystemsStatus(true);
+
           webastoErrors.check(true);
         }
         else

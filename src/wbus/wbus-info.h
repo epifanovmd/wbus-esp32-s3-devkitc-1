@@ -85,9 +85,6 @@ public:
     bool handleCommandResponse(String tx, String rx);
 
     // аггрегирующие функции
-    void getMainInfo();
-    void getAdditionalInfo();
-    void getAllInfo();
     void printInfo();
 
     void clear();
