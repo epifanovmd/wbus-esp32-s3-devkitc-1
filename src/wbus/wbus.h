@@ -38,6 +38,8 @@ private:
     bool autoReconnect = true;
     unsigned long _lastRxTime = 0;
 
+    void processKeepAlive();
+    void processCommands();
     void checkConnectionTimeout();
     void updateStateFromSensors();
     WebastoState determineStateFromFlags(const StatusFlags &flags, OnOffFlags &onOff);
@@ -49,9 +51,7 @@ public:
     void connect();
     void disconnect();
 
-    void processQueue();
-    void processKeepAlive();
-    void processReceiver();
+    void process();
 
     // Команды управления
     void shutdown();

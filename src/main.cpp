@@ -4,6 +4,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
+#include "server/socket-server.h"
+#include "server/api-server.h"
 
 const char *ap_ssid = "Webasto_WiFi";
 const char *ap_password = "Epifan123";
@@ -30,6 +32,10 @@ void setup()
     Serial.println("✅ Точка доступа запущена");
     Serial.println("IP адрес: " + WiFi.softAPIP().toString());
     Serial.println("MAC адрес: " + WiFi.softAPmacAddress());
+
+    // Запуск WebSocket и веб-сервера
+    socketServer.begin();
+    apiServer.begin();
   }
   else
   {
@@ -56,8 +62,7 @@ void loop()
   // Чтение и обработка пакетов W-Bus
   if (digitalRead(NSLP_PIN) == HIGH)
   {
-    wBus.processQueue();
-    wBus.processReceiver();
+    wBus.process();
   }
 
   delay(1);

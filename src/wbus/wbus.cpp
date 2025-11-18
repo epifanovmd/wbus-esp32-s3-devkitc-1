@@ -5,10 +5,12 @@
 #include "wbus/wbus-sensors.h"
 #include "wbus/wbus-info.h"
 #include "wbus/wbus-errors.h"
+#include "server/socket-server.h"
+#include "server/api-server.h"
 
 WBus wBus;
 
-Timeout keepAliveTimeout(20000);
+Timeout keepAliveTimeout(25000);
 
 void WBus::init()
 {
@@ -124,6 +126,7 @@ void WBus::startParkingHeat(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
+            currentState = WBUS_STATE_PARKING_HEAT;
             Serial.println();
             Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
           
@@ -144,6 +147,7 @@ void WBus::startVentilation(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
+            currentState = WBUS_STATE_VENTILATION;
             Serial.println();
             Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
     
@@ -164,6 +168,7 @@ void WBus::startSupplementalHeat(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
+            currentState = WBUS_STATE_SUPP_HEAT;
             Serial.println();
             Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
         } else {
@@ -182,8 +187,9 @@ void WBus::controlCirculationPump(bool enable)
   wbusQueue.add(command, [this, enable](bool success, String cmd, String response)
                 {
         if (success) {
+          currentState = WBUS_STATE_CIRC_PUMP;
           Serial.println();
-            Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
+          Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
         } else {
           Serial.println();
             Serial.println("❌ Ошибка управления циркуляционным насосом");
@@ -201,6 +207,7 @@ void WBus::startBoostMode(int minutes)
   wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
                 {
         if (success) {
+            currentState = WBUS_STATE_BOOST;
             Serial.println();
             Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
         } else {
@@ -422,6 +429,8 @@ String WBus::getStateName()
 void WBus::updateStateFromSensors()
 {
   // Используем данные из webastoSensors которые уже обновляются циклически
+  webastoSensors.getStatusFlags();
+  webastoSensors.getOnOffFlags();
   StatusFlags flags = webastoSensors.getStatusFlagsData();
   OnOffFlags onOff = webastoSensors.getOnOffFlagsData();
 
@@ -456,7 +465,7 @@ WebastoState WBus::determineStateFromFlags(const StatusFlags &flags, OnOffFlags 
   return WBUS_STATE_OFF;
 }
 
-void WBus::processQueue()
+void WBus::processCommands()
 {
   // Проверяем команды от пользователя
   if (Serial.available())
@@ -465,7 +474,15 @@ void WBus::processQueue()
     command.trim();
     command.toLowerCase();
 
-    if (command == "wake" || command == "w")
+    if (command == "start")
+    {
+      startParkingHeat();
+    }
+    else if (command == "stop")
+    {
+      shutdown();
+    }
+    else if (command == "wake" || command == "w")
     {
       wakeUpTJA1020();
     }
@@ -509,14 +526,14 @@ void WBus::processQueue()
       wbusQueue.addPriority(command);
     }
   }
-
-  wbusQueue.process();
 }
 
 void WBus::processKeepAlive()
 {
-  if (keepAliveTimeout.isReady())
+  if (keepAliveTimeout.isReady() && !getKeepAliveCommandForCurrentState().isEmpty())
   {
+    Serial.println();
+    Serial.print("Статус: " + getStateName());
     if (!isConnected())
     {
       wakeUp();
@@ -526,10 +543,11 @@ void WBus::processKeepAlive()
     updateStateFromSensors();
 
     String keepAliveCommand = getKeepAliveCommandForCurrentState();
+
     if (!keepAliveCommand.isEmpty())
     {
       wbusQueue.addPriority(keepAliveCommand, [this](bool success, String cmd, String response)
-                    {
+                            {
                 if (!success) {
                     Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());
                 } });
@@ -537,14 +555,27 @@ void WBus::processKeepAlive()
   }
 }
 
-void WBus::processReceiver()
+void WBus::process()
 {
   kLineReceiver.process();
+  processCommands();
+  processKeepAlive();
+
+  wbusQueue.process();
 
   if (kLineReceiver.kLineReceivedData.isRxReceived())
   {
+    socketServer.sendRx(kLineReceiver.kLineReceivedData.getRxData());
     _lastRxTime = millis();
   }
+
+  if (kLineReceiver.kLineReceivedData.isTxReceived())
+  {
+    socketServer.sendTx(kLineReceiver.kLineReceivedData.getTxData());
+  }
+
+  socketServer.loop();
+  apiServer.loop();
 
   // Проверяем таймаут соединения
   checkConnectionTimeout();
