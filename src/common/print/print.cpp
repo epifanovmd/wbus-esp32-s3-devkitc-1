@@ -6,6 +6,8 @@
 void printHelp()
 {
   Serial.println("\n📋 КОМАНДЫ УПРАВЛЕНИЯ:");
+  Serial.println("start        - запустить паркинг-нагрев");
+  Serial.println("stop         - остановить");
   Serial.println("wake/w       - пробуждение TJA1020");
   Serial.println("sleep/s      - спящий режим TJA1020");
   Serial.println("connect/con  - подключение к Webasto");

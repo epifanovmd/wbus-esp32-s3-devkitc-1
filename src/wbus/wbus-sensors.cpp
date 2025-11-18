@@ -1,5 +1,7 @@
 #include "wbus-sensors.h"
+
 #include "wbus-queue.h"
+
 #include "wbus.constants.h"
 
 WebastoSensors webastoSensors;
@@ -8,51 +10,51 @@ WebastoSensors webastoSensors;
 // ОБРАБОТЧИКИ ОТВЕТОВ (УПРОЩЕННЫЕ)
 // =============================================================================
 
-void WebastoSensors::handleOperationalInfoResponse(bool success, String cmd, String response)
+void WebastoSensors::handleOperationalInfoResponse(String tx, String rx)
 {
-  if (success)
+  if (!rx.isEmpty())
   {
-    operationalMeasurements = wBusSensorsDecoder.decodeOperationalInfo(response);
+    operationalMeasurements = wBusSensorsDecoder.decodeOperationalInfo(rx);
   }
 }
 
-void WebastoSensors::handleFuelSettingsResponse(bool success, String cmd, String response)
+void WebastoSensors::handleFuelSettingsResponse(String tx, String rx)
 {
-  if (success)
+  if (!rx.isEmpty())
   {
-    fuelSettings = wBusSensorsDecoder.decodeFuelSettings(response);
+    fuelSettings = wBusSensorsDecoder.decodeFuelSettings(rx);
   }
 }
 
-void WebastoSensors::handleOnOffFlagsResponse(bool success, String cmd, String response)
+void WebastoSensors::handleOnOffFlagsResponse(String tx, String rx)
 {
-  if (success)
+  if (!rx.isEmpty())
   {
-    onOffFlags = wBusSensorsDecoder.decodeOnOffFlags(response);
+    onOffFlags = wBusSensorsDecoder.decodeOnOffFlags(rx);
   }
 }
 
-void WebastoSensors::handleStatusFlagsResponse(bool success, String cmd, String response)
+void WebastoSensors::handleStatusFlagsResponse(String tx, String rx)
 {
-  if (success)
+  if (!rx.isEmpty())
   {
-    statusFlags = wBusSensorsDecoder.decodeStatusFlags(response);
+    statusFlags = wBusSensorsDecoder.decodeStatusFlags(rx);
   }
 }
 
-void WebastoSensors::handleOperatingStateResponse(bool success, String cmd, String response)
+void WebastoSensors::handleOperatingStateResponse(String tx, String rx)
 {
-  if (success)
+  if (!rx.isEmpty())
   {
-    operatingState = wBusSensorsDecoder.decodeOperatingState(response);
+    operatingState = wBusSensorsDecoder.decodeOperatingState(rx);
   }
 }
 
-void WebastoSensors::handleSubsystemsStatusResponse(bool success, String cmd, String response)
+void WebastoSensors::handleSubsystemsStatusResponse(String tx, String rx)
 {
-  if (success)
+  if (!rx.isEmpty())
   {
-    subsystemsStatus = wBusSensorsDecoder.decodeSubsystemsStatus(response);
+    subsystemsStatus = wBusSensorsDecoder.decodeSubsystemsStatus(rx);
   }
 }
 
@@ -60,53 +62,77 @@ void WebastoSensors::handleSubsystemsStatusResponse(bool success, String cmd, St
 // ПУБЛИЧНЫЕ МЕТОДЫ
 // =============================================================================
 
-void WebastoSensors::getOperationalInfo(bool loop)
+void WebastoSensors::getOperationalInfo(bool loop, std::function<void(String, String)> callback)
 {
-  wbusQueue.add(CMD_READ_SENSOR_OPERATIONAL, [this](bool success, String cmd, String response)
-                { this->handleOperationalInfoResponse(success, cmd, response); }, loop);
+  wbusQueue.add(CMD_READ_SENSOR_OPERATIONAL, [this, callback](String tx, String rx)
+                {
+      this -> handleOperationalInfoResponse(tx, rx);
+      if (callback != nullptr) {
+        callback(tx, rx);
+      } }, loop);
 }
 
-void WebastoSensors::getFuelSettings(bool loop)
+void WebastoSensors::getFuelSettings(bool loop, std::function<void(String, String)> callback)
 {
-  wbusQueue.add(CMD_READ_SENSOR_FUEL_SETTINGS, [this](bool success, String cmd, String response)
-                { this->handleFuelSettingsResponse(success, cmd, response); }, loop);
+  wbusQueue.add(CMD_READ_SENSOR_FUEL_SETTINGS, [this, callback](String tx, String rx)
+                {
+    this -> handleFuelSettingsResponse(tx, rx);
+    if (callback != nullptr) {
+      callback(tx, rx);
+    } }, loop);
 }
 
-void WebastoSensors::getOnOffFlags(bool loop)
+void WebastoSensors::getOnOffFlags(bool loop, std::function<void(String, String)> callback)
 {
-  wbusQueue.add(CMD_READ_SENSOR_ON_OFF_FLAGS, [this](bool success, String cmd, String response)
-                { this->handleOnOffFlagsResponse(success, cmd, response); }, loop);
+  wbusQueue.add(CMD_READ_SENSOR_ON_OFF_FLAGS, [this, callback](String tx, String rx)
+                {
+    this -> handleOnOffFlagsResponse(tx, rx);
+    if (callback != nullptr) {
+      callback(tx, rx);
+    } }, loop);
 }
 
-void WebastoSensors::getStatusFlags(bool loop)
+void WebastoSensors::getStatusFlags(bool loop, std::function<void(String, String)> callback)
 {
-  wbusQueue.add(CMD_READ_SENSOR_STATUS_FLAGS, [this](bool success, String cmd, String response)
-                { this->handleStatusFlagsResponse(success, cmd, response); }, loop);
+  wbusQueue.add(CMD_READ_SENSOR_STATUS_FLAGS, [this, callback](String tx, String rx)
+                {
+    this -> handleStatusFlagsResponse(tx, rx);
+    if (callback != nullptr) {
+      callback(tx, rx);
+    } }, loop);
 }
 
-void WebastoSensors::getOperatingState(bool loop)
+void WebastoSensors::getOperatingState(bool loop, std::function<void(String, String)> callback)
 {
-  wbusQueue.add(CMD_READ_SENSOR_OPERATING_STATE, [this](bool success, String cmd, String response)
-                { this->handleOperatingStateResponse(success, cmd, response); }, loop);
+  wbusQueue.add(CMD_READ_SENSOR_OPERATING_STATE, [this, callback](String tx, String rx)
+                {
+    this -> handleOperatingStateResponse(tx, rx);
+    if (callback != nullptr) {
+      callback(tx, rx);
+    } }, loop);
 }
 
-void WebastoSensors::getSubsystemsStatus(bool loop)
+void WebastoSensors::getSubsystemsStatus(bool loop, std::function<void(String, String)> callback)
 {
-  wbusQueue.add(CMD_READ_SENSOR_SUBSYSTEMS_STATUS, [this](bool success, String cmd, String response)
-                { this->handleSubsystemsStatusResponse(success, cmd, response); }, loop);
+  wbusQueue.add(CMD_READ_SENSOR_SUBSYSTEMS_STATUS, [this, callback](String tx, String rx)
+                {
+    this -> handleSubsystemsStatusResponse(tx, rx);
+    if (callback != nullptr) {
+      callback(tx, rx);
+    } }, loop);
 }
 
-void WebastoSensors::getAllSensorData(bool loop)
+void WebastoSensors::getAllSensorData(bool loop, std::function<void(String, String)> callback)
 {
-  getOperationalInfo(loop);
+  getOperationalInfo(loop, callback);
   if (!loop)
   {
-    getFuelSettings(loop);
+    getFuelSettings(loop, callback);
   }
-  getOnOffFlags(loop);
-  getStatusFlags(loop);
-  getOperatingState(loop);
-  getSubsystemsStatus(loop);
+  getOnOffFlags(loop, callback);
+  getStatusFlags(loop, callback);
+  getOperatingState(loop, callback);
+  getSubsystemsStatus(loop, callback);
 }
 
 void WebastoSensors::stopMonitoring()

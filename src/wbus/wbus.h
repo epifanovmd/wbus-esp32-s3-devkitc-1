@@ -34,16 +34,14 @@ class WBus
 private:
     WebastoState currentState = WBUS_STATE_OFF;
     ConnectionState connectionState = DISCONNECTED;
-    unsigned long lastConnectionAttempt = 0;
-    bool autoReconnect = true;
     unsigned long _lastRxTime = 0;
 
-    void processKeepAlive();
-    void processCommands();
-    void checkConnectionTimeout();
-    void updateStateFromSensors();
     WebastoState determineStateFromFlags(const StatusFlags &flags, OnOffFlags &onOff);
     String getKeepAliveCommandForCurrentState();
+    void processSerialCommands();
+    void processKeepAlive();
+    void updateStateFromSensors();
+    void checkConnection();
 
 public:
     void init();

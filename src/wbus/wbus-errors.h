@@ -9,12 +9,12 @@ class WebastoErrors
 private:
     ErrorCollection currentErrors;
 
-    void handleErrorResponse(bool status, String tx, String rx);
-    void printErrors();
+    void handleErrorResponse(String tx, String rx);
 
 public:
-    void check(bool loop = false);
+    void check(bool loop = false, std::function<void(String, String)> callback = nullptr);
     void clear();
+    void printErrors();
 
     void stopLoop();
     bool hasErrors() const { return currentErrors.hasErrors; }

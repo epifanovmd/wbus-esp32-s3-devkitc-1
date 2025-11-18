@@ -22,12 +22,12 @@ private:
     unsigned long _maxRetries = 10;
 
     void _sendCurrentCommand();
-    void _completeCurrentCommand(String response, bool success = true);
+    void _completeCurrentCommand(String response);
     void _handleRepeat();
 
 public:
-    bool add(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
-    bool addPriority(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
+    bool add(String command, std::function<void(String, String)> callback = nullptr, bool loop = false);
+    bool addPriority(String command, std::function<void(String, String)> callback = nullptr, bool loop = false);
     void setInterval(unsigned long interval);
     void setMaxRetries(unsigned long retries);
     void setTimeout(unsigned long timeout);
@@ -38,6 +38,7 @@ public:
     void process();
     void processNakResponse(const String response);
 
+    bool isEmpty() { return _queue.isEmpty(); }
     void printQueue();
 };
 

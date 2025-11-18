@@ -1,11 +1,19 @@
 #include "wbus/wbus.h"
+
 #include "kline-receiver/kline-receiver.h"
+
 #include "common/tja1020/tja1020.h"
+
 #include "common/timeout/timeout.h"
+
 #include "wbus/wbus-sensors.h"
+
 #include "wbus/wbus-info.h"
+
 #include "wbus/wbus-errors.h"
+
 #include "server/socket-server.h"
+
 #include "server/api-server.h"
 
 WBus wBus;
@@ -40,7 +48,6 @@ void WBus::connect()
   }
 
   connectionState = CONNECTING;
-  lastConnectionAttempt = millis();
 
   Serial.println();
   Serial.println("🔌 Подключение к Webasto...");
@@ -52,9 +59,9 @@ void WBus::connect()
 
   wbusQueue.add(
       CMD_DIAGNOSTIC,
-      [this](bool success, String cmd, String response)
+      [this](String tx, String rx)
       {
-        if (success)
+        if (!rx.isEmpty())
         {
           connectionState = CONNECTED;
           Serial.println();
@@ -82,19 +89,6 @@ void WBus::disconnect()
   Serial.println("🔌 Отключение от Webasto");
 }
 
-void WBus::checkConnectionTimeout()
-{
-  if (connectionState == CONNECTED && _lastRxTime > 0)
-  {
-    unsigned long timeSinceLastRx = millis() - _lastRxTime;
-
-    if (timeSinceLastRx > 5000)
-    { // 5 секунд без ответа
-      connectionState = CONNECTION_FAILED;
-    }
-  }
-}
-
 // =============================================================================
 // КОМАНДЫ УПРАВЛЕНИЯ
 // =============================================================================
@@ -104,15 +98,15 @@ void WBus::shutdown()
   if (!isConnected())
     wakeUp();
 
-  wbusQueue.add(CMD_SHUTDOWN, [this](bool success, String cmd, String response)
+  wbusQueue.add(CMD_SHUTDOWN, [this](String tx, String rx)
                 {
-        if (success) {
-            Serial.println();
-            Serial.println("🛑 Нагреватель выключен");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка выключения нагревателя");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("🛑 Нагреватель выключен");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка выключения нагревателя");
+    } });
 }
 
 void WBus::startParkingHeat(int minutes)
@@ -123,17 +117,17 @@ void WBus::startParkingHeat(int minutes)
   minutes = constrain(minutes, 1, 255);
   String command = createParkHeatCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
-        if (success) {
-            currentState = WBUS_STATE_PARKING_HEAT;
-            Serial.println();
-            Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
-          
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка запуска паркинг-нагрева");
-        } });
+    if (!rx.isEmpty()) {
+      currentState = WBUS_STATE_PARKING_HEAT;
+      Serial.println();
+      Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
+
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка запуска паркинг-нагрева");
+    } });
 }
 
 void WBus::startVentilation(int minutes)
@@ -144,17 +138,17 @@ void WBus::startVentilation(int minutes)
   minutes = constrain(minutes, 1, 255);
   String command = createVentilateCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
-        if (success) {
-            currentState = WBUS_STATE_VENTILATION;
-            Serial.println();
-            Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
-    
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка запуска вентиляции");
-        } });
+    if (!rx.isEmpty()) {
+      currentState = WBUS_STATE_VENTILATION;
+      Serial.println();
+      Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
+
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка запуска вентиляции");
+    } });
 }
 
 void WBus::startSupplementalHeat(int minutes)
@@ -165,16 +159,16 @@ void WBus::startSupplementalHeat(int minutes)
   minutes = constrain(minutes, 1, 255);
   String command = createSuppHeatCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
-        if (success) {
-            currentState = WBUS_STATE_SUPP_HEAT;
-            Serial.println();
-            Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка запуска дополнительного нагрева");
-        } });
+    if (!rx.isEmpty()) {
+      currentState = WBUS_STATE_SUPP_HEAT;
+      Serial.println();
+      Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка запуска дополнительного нагрева");
+    } });
 }
 
 void WBus::controlCirculationPump(bool enable)
@@ -184,16 +178,16 @@ void WBus::controlCirculationPump(bool enable)
 
   String command = createCircPumpCommand(enable);
 
-  wbusQueue.add(command, [this, enable](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, enable](String tx, String rx)
                 {
-        if (success) {
-          currentState = WBUS_STATE_CIRC_PUMP;
-          Serial.println();
-          Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка управления циркуляционным насосом");
-        } });
+    if (!rx.isEmpty()) {
+      currentState = WBUS_STATE_CIRC_PUMP;
+      Serial.println();
+      Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка управления циркуляционным насосом");
+    } });
 }
 
 void WBus::startBoostMode(int minutes)
@@ -204,16 +198,16 @@ void WBus::startBoostMode(int minutes)
   minutes = constrain(minutes, 1, 255);
   String command = createBoostCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, minutes](String tx, String rx)
                 {
-        if (success) {
-            currentState = WBUS_STATE_BOOST;
-            Serial.println();
-            Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка запуска Boost режима");
-        } });
+    if (!rx.isEmpty()) {
+      currentState = WBUS_STATE_BOOST;
+      Serial.println();
+      Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка запуска Boost режима");
+    } });
 }
 
 // =============================================================================
@@ -232,15 +226,15 @@ void WBus::testCombustionFan(int seconds, int powerPercent)
 
   String command = createTestCAFCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx)
                 {
-        if (success) {
-          Serial.println();
-            Serial.println("🌀 Тест вентилятора горения: " + String(seconds) + "сек, " + String(powerPercent) + "%");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка теста вентилятора горения");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("🌀 Тест вентилятора горения: " + String(seconds) + "сек, " + String(powerPercent) + "%");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка теста вентилятора горения");
+    } });
 }
 
 void WBus::testFuelPump(int seconds, int frequencyHz)
@@ -255,15 +249,15 @@ void WBus::testFuelPump(int seconds, int frequencyHz)
 
   String command = createTestFuelPumpCommand(seconds, frequencyHz);
 
-  wbusQueue.add(command, [this, seconds, frequencyHz](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, seconds, frequencyHz](String tx, String rx)
                 {
-        if (success) {
-          Serial.println();
-            Serial.println("⛽ Тест топливного насоса: " + String(seconds) + "сек, " + String(frequencyHz) + "Гц");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка теста топливного насоса");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("⛽ Тест топливного насоса: " + String(seconds) + "сек, " + String(frequencyHz) + "Гц");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка теста топливного насоса");
+    } });
 }
 
 void WBus::testGlowPlug(int seconds, int powerPercent)
@@ -278,15 +272,15 @@ void WBus::testGlowPlug(int seconds, int powerPercent)
 
   String command = createTestGlowPlugCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx)
                 {
-        if (success) {
-          Serial.println();
-            Serial.println("🔌 Тест свечи накаливания: " + String(seconds) + "сек, " + String(powerPercent) + "%");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка теста свечи накаливания");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("🔌 Тест свечи накаливания: " + String(seconds) + "сек, " + String(powerPercent) + "%");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка теста свечи накаливания");
+    } });
 }
 
 void WBus::testCirculationPump(int seconds, int powerPercent)
@@ -301,15 +295,15 @@ void WBus::testCirculationPump(int seconds, int powerPercent)
 
   String command = createTestCircPumpCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx)
                 {
-        if (success) {
-          Serial.println();
-            Serial.println("💧 Тест циркуляционного насоса: " + String(seconds) + "сек, " + String(powerPercent) + "%");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка теста циркуляционного насоса");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("💧 Тест циркуляционного насоса: " + String(seconds) + "сек, " + String(powerPercent) + "%");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка теста циркуляционного насоса");
+    } });
 }
 
 void WBus::testVehicleFan(int seconds)
@@ -323,15 +317,15 @@ void WBus::testVehicleFan(int seconds)
 
   String command = createTestVehicleFanCommand(seconds);
 
-  wbusQueue.add(command, [this, seconds](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, seconds](String tx, String rx)
                 {
-        if (success) {
-          Serial.println();
-            Serial.println("🌀 Тест реле вентилятора автомобиля: " + String(seconds) + "сек");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка теста реле вентилятора автомобиля");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("🌀 Тест реле вентилятора автомобиля: " + String(seconds) + "сек");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка теста реле вентилятора автомобиля");
+    } });
 }
 
 void WBus::testSolenoidValve(int seconds)
@@ -345,15 +339,15 @@ void WBus::testSolenoidValve(int seconds)
 
   String command = createTestSolenoidCommand(seconds);
 
-  wbusQueue.add(command, [this, seconds](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, seconds](String tx, String rx)
                 {
-        if (success) {
-          Serial.println();
-            Serial.println("🔘 Тест соленоидного клапана: " + String(seconds) + "сек");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка теста соленоидного клапана");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("🔘 Тест соленоидного клапана: " + String(seconds) + "сек");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка теста соленоидного клапана");
+    } });
 }
 
 void WBus::testFuelPreheating(int seconds, int powerPercent)
@@ -368,15 +362,15 @@ void WBus::testFuelPreheating(int seconds, int powerPercent)
 
   String command = createTestFuelPreheatCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](bool success, String cmd, String response)
+  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx)
                 {
-        if (success) {
-          Serial.println();
-            Serial.println("🔥 Тест подогрева топлива: " + String(seconds) + "сек, " + String(powerPercent) + "%");
-        } else {
-          Serial.println();
-            Serial.println("❌ Ошибка теста подогрева топлива");
-        } });
+    if (!rx.isEmpty()) {
+      Serial.println();
+      Serial.println("🔥 Тест подогрева топлива: " + String(seconds) + "сек, " + String(powerPercent) + "%");
+    } else {
+      Serial.println();
+      Serial.println("❌ Ошибка теста подогрева топлива");
+    } });
 }
 
 String WBus::getKeepAliveCommandForCurrentState()
@@ -428,7 +422,6 @@ String WBus::getStateName()
 
 void WBus::updateStateFromSensors()
 {
-  // Используем данные из webastoSensors которые уже обновляются циклически
   webastoSensors.getStatusFlags();
   webastoSensors.getOnOffFlags();
   StatusFlags flags = webastoSensors.getStatusFlagsData();
@@ -465,7 +458,7 @@ WebastoState WBus::determineStateFromFlags(const StatusFlags &flags, OnOffFlags 
   return WBUS_STATE_OFF;
 }
 
-void WBus::processCommands()
+void WBus::processSerialCommands()
 {
   // Проверяем команды от пользователя
   if (Serial.available())
@@ -508,7 +501,7 @@ void WBus::processCommands()
     }
     else if (command == "errors" || command == "err")
     {
-      webastoErrors.check();
+      webastoErrors.printErrors();
     }
     else if (command == "clear" || command == "clr")
     {
@@ -546,11 +539,27 @@ void WBus::processKeepAlive()
 
     if (!keepAliveCommand.isEmpty())
     {
-      wbusQueue.addPriority(keepAliveCommand, [this](bool success, String cmd, String response)
+      wbusQueue.addPriority(keepAliveCommand, [this](String tx, String rx)
                             {
-                if (!success) {
-                    Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());
-                } });
+        if (rx.isEmpty()) {
+          Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());
+        } });
+    }
+  }
+}
+
+void WBus::checkConnection()
+{
+  if (wbusQueue.isEmpty())
+  {
+    connectionState = DISCONNECTED;
+  }
+  else if (connectionState == CONNECTED)
+  {
+    // 5 секунд без ответа
+    if (_lastRxTime > 0 && millis() - _lastRxTime > 5000)
+    {
+      connectionState = CONNECTION_FAILED;
     }
   }
 }
@@ -558,7 +567,9 @@ void WBus::processKeepAlive()
 void WBus::process()
 {
   kLineReceiver.process();
-  processCommands();
+
+  checkConnection();
+  processSerialCommands();
   processKeepAlive();
 
   wbusQueue.process();
@@ -566,17 +577,17 @@ void WBus::process()
   if (kLineReceiver.kLineReceivedData.isRxReceived())
   {
     socketServer.sendRx(kLineReceiver.kLineReceivedData.getRxData());
+    // kLineReceiver.kLineReceivedData.printRx();
+
     _lastRxTime = millis();
   }
 
   if (kLineReceiver.kLineReceivedData.isTxReceived())
   {
     socketServer.sendTx(kLineReceiver.kLineReceivedData.getTxData());
+    // kLineReceiver.kLineReceivedData.printTx();
   }
 
   socketServer.loop();
   apiServer.loop();
-
-  // Проверяем таймаут соединения
-  checkConnectionTimeout();
 }

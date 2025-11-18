@@ -65,29 +65,31 @@ private:
     WebastoDeviceInfo deviceInfo;
 
     // Приватные методы для callback'ов
-    void handleWBusVersionResponse(bool status, String tx, String rx);
-    void handleDeviceNameResponse(bool status, String tx, String rx);
-    void handleWBusCodeResponse(bool status, String tx, String rx);
-    void handleDeviceIDResponse(bool status, String tx, String rx);
-    void handleHeaterManufactureDateResponse(bool status, String tx, String rx);
-    void handleControllerManufactureDateResponse(bool status, String tx, String rx);
-    void handleCustomerIDResponse(bool status, String tx, String rx);
-    void handleSerialNumberResponse(bool status, String tx, String rx);
+    void handleWBusVersionResponse(String tx, String rx);
+    void handleDeviceNameResponse(String tx, String rx);
+    void handleWBusCodeResponse(String tx, String rx);
+    void handleDeviceIDResponse(String tx, String rx);
+    void handleHeaterManufactureDateResponse(String tx, String rx);
+    void handleControllerManufactureDateResponse(String tx, String rx);
+    void handleCustomerIDResponse(String tx, String rx);
+    void handleSerialNumberResponse(String tx, String rx);
 
 public:
-    void getWBusVersion();
-    void getDeviceName();
-    void getWBusCode();
-    void getDeviceID();
-    void getHeaterManufactureDate();
-    void getControllerManufactureDate();
-    void getCustomerID();
-    void getSerialNumber();
+    void getWBusVersion(std::function<void(String, String)> callback = nullptr);
+    void getDeviceName(std::function<void(String, String)> callback = nullptr);
+    void getWBusCode(std::function<void(String, String)> callback = nullptr);
+    void getDeviceID(std::function<void(String, String)> callback = nullptr);
+    void getHeaterManufactureDate(std::function<void(String, String)> callback = nullptr);
+    void getControllerManufactureDate(std::function<void(String, String)> callback = nullptr);
+    void getCustomerID(std::function<void(String, String)> callback = nullptr);
+    void getSerialNumber(std::function<void(String, String)> callback = nullptr);
 
+    // аггрегирующие функции
     void getMainInfo();
     void getAdditionalInfo();
     void getAllInfo();
     void printInfo();
+
     WebastoDeviceInfo getDeviceInfo();
     bool hasDeviceInfo() { return deviceInfo.hasData(); }
 };

@@ -1,7 +1,11 @@
 #include "wbus-errors.h"
+
 #include "common/utils/utils.h"
+
 #include <functional>
+
 #include "wbus-queue.h"
+
 #include "wbus.constants.h"
 
 WebastoErrors webastoErrors;
@@ -56,32 +60,37 @@ void WebastoErrors::printErrors()
 // ОБРАБОТЧИК ОТВЕТА (ОБНОВЛЕННЫЙ)
 // =============================================================================
 
-void WebastoErrors::handleErrorResponse(bool status, String tx, String rx)
+void WebastoErrors::handleErrorResponse(String tx, String rx)
 {
-    if (!status)
+    if (!rx.isEmpty())
     {
-        return;
+        // Декодируем и заполняем структуру
+        currentErrors = webastoErrorsDecoder.decodeErrorPacket(rx);
     }
-
-    // Декодируем и заполняем структуру
-    currentErrors = webastoErrorsDecoder.decodeErrorPacket(rx);
 }
 
 // =============================================================================
 // ОСНОВНЫЕ МЕТОДЫ
 // =============================================================================
 
-void WebastoErrors::check(bool loop)
+void WebastoErrors::check(bool loop, std::function<void(String, String)> callback)
 {
-    wbusQueue.add(CMD_READ_ERRORS_LIST, [this](bool status, String tx, String rx)
-                  { this->handleErrorResponse(status, tx, rx); }, loop);
+    wbusQueue.add(CMD_READ_ERRORS_LIST, [this, callback](String tx, String rx)
+                  {
+    this -> handleErrorResponse(tx, rx);
+    if (callback != nullptr) {
+      callback(tx, rx);
+    } }, loop);
 }
 
 void WebastoErrors::clear()
 {
-    wbusQueue.add(CMD_CLEAR_ERRORS, [this](bool success, String tx, String rx)
+    wbusQueue.add(CMD_CLEAR_ERRORS, [this](String tx, String rx)
                   {
-                      this->currentErrors.clear();
+                      if (!rx.isEmpty())
+                      {
+                          this->currentErrors.clear();
+                      }
 
                       // Выводим подтверждение
                       // Serial.println();

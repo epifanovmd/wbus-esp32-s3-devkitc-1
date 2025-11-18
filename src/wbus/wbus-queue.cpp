@@ -8,7 +8,7 @@ Timeout timeoutTimer(2000, false);
 
 WBusQueue wbusQueue;
 
-bool WBusQueue::add(String command, std::function<void(bool, String, String)> callback, bool loop)
+bool WBusQueue::add(String command, std::function<void(String, String)> callback, bool loop)
 {
     WBusPacket packet = parseHexStringToPacket(command);
 
@@ -20,7 +20,7 @@ bool WBusQueue::add(String command, std::function<void(bool, String, String)> ca
     return _queue.add(command, callback, loop);
 }
 
-bool WBusQueue::addPriority(String command, std::function<void(bool, String, String)> callback, bool loop)
+bool WBusQueue::addPriority(String command, std::function<void(String, String)> callback, bool loop)
 {
     WBusPacket packet = parseHexStringToPacket(command);
 
@@ -139,11 +139,10 @@ void WBusQueue::processNakResponse(const String response)
     }
 }
 
-void WBusQueue::_completeCurrentCommand(String response, bool success)
+void WBusQueue::_completeCurrentCommand(String response)
 {
     if (errorsDecoder.isNakResponse(response))
     {
-        success = false;
         processNakResponse(response);
     }
 
@@ -151,14 +150,14 @@ void WBusQueue::_completeCurrentCommand(String response, bool success)
     _retries = 0;
     QueueItem queueItem = _queue.pop();
 
-    if (queueItem.loop && success)
+    if (queueItem.loop && !response.isEmpty())
     {
         _queue.add(queueItem.command, queueItem.callback, queueItem.loop);
     }
 
     if (queueItem.callback != nullptr)
     {
-        queueItem.callback(success, queueItem.command, response);
+        queueItem.callback(queueItem.command, response);
     }
 
     if (_queue.isEmpty())
@@ -175,7 +174,7 @@ void WBusQueue::_handleRepeat()
     Serial.print("❌ Попытка " + String(_retries));
     if (_retries >= _maxRetries)
     {
-        _completeCurrentCommand("", false);
+        _completeCurrentCommand("");
         clear();
     }
     else

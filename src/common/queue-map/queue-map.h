@@ -7,7 +7,7 @@
 struct QueueItem
 {
     String command;
-    std::function<void(bool success, String command, String response)> callback = nullptr;
+    std::function<void(String tx, String rx)> callback = nullptr;
     bool loop = false;
 };
 
@@ -20,10 +20,10 @@ private:
 
 public:
     // Добавить команду в конец очереди (с проверкой дубликатов)
-    bool add(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
+    bool add(String command, std::function<void(String, String)> callback = nullptr, bool loop = false);
 
     // Добавить команду в начало очереди (с проверкой дубликатов)
-    bool addPriority(String command, std::function<void(bool, String, String)> callback = nullptr, bool loop = false);
+    bool addPriority(String command, std::function<void(String, String)> callback = nullptr, bool loop = false);
 
     // Удалить команду из очереди по значению
     bool remove(String command);

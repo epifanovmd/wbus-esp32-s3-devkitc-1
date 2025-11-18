@@ -3,182 +3,214 @@
 WebastoInfo webastoInfo;
 
 // Методы обработки ответов
-void WebastoInfo::handleWBusVersionResponse(bool status, String tx, String rx)
+void WebastoInfo::handleWBusVersionResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedVersion version = wBusDecoder.decodeWBusVersion(rx);
-    if (version.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.wbusVersion = version.versionString;
-        deviceInfo.lastUpdate = millis();
+        DecodedVersion version = wBusDecoder.decodeWBusVersion(rx);
+        if (version.isValid)
+        {
+            deviceInfo.wbusVersion = version.versionString;
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
-void WebastoInfo::handleDeviceNameResponse(bool status, String tx, String rx)
+void WebastoInfo::handleDeviceNameResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedTextData name = wBusDecoder.decodeDeviceName(rx);
-    if (name.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.deviceName = name.text;
-        deviceInfo.lastUpdate = millis();
+        DecodedTextData name = wBusDecoder.decodeDeviceName(rx);
+        if (name.isValid)
+        {
+            deviceInfo.deviceName = name.text;
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
-void WebastoInfo::handleWBusCodeResponse(bool status, String tx, String rx)
+void WebastoInfo::handleWBusCodeResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedWBusCode code = wBusDecoder.decodeWBusCode(rx);
-    if (code.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.wbusCode = code.codeString;
-        deviceInfo.supportedFunctions = code.supportedFunctions;
-        deviceInfo.lastUpdate = millis();
+        DecodedWBusCode code = wBusDecoder.decodeWBusCode(rx);
+        if (code.isValid)
+        {
+            deviceInfo.wbusCode = code.codeString;
+            deviceInfo.supportedFunctions = code.supportedFunctions;
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
-void WebastoInfo::handleDeviceIDResponse(bool status, String tx, String rx)
+void WebastoInfo::handleDeviceIDResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedTextData id = wBusDecoder.decodeDeviceID(rx);
-    if (id.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.deviceID = id.text;
-        deviceInfo.lastUpdate = millis();
+        DecodedTextData id = wBusDecoder.decodeDeviceID(rx);
+        if (id.isValid)
+        {
+            deviceInfo.deviceID = id.text;
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
-void WebastoInfo::handleHeaterManufactureDateResponse(bool status, String tx, String rx)
+void WebastoInfo::handleHeaterManufactureDateResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedManufactureDate date = wBusDecoder.decodeHeaterManufactureDate(rx);
-    if (date.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.heaterManufactureDate = date.dateString;
-        deviceInfo.lastUpdate = millis();
+        DecodedManufactureDate date = wBusDecoder.decodeHeaterManufactureDate(rx);
+        if (date.isValid)
+        {
+            deviceInfo.heaterManufactureDate = date.dateString;
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
-void WebastoInfo::handleControllerManufactureDateResponse(bool status, String tx, String rx)
+void WebastoInfo::handleControllerManufactureDateResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedManufactureDate date = wBusDecoder.decodeControllerManufactureDate(rx);
-    if (date.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.controllerManufactureDate = date.dateString;
-        deviceInfo.lastUpdate = millis();
+        DecodedManufactureDate date = wBusDecoder.decodeControllerManufactureDate(rx);
+        if (date.isValid)
+        {
+            deviceInfo.controllerManufactureDate = date.dateString;
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
-void WebastoInfo::handleCustomerIDResponse(bool status, String tx, String rx)
+void WebastoInfo::handleCustomerIDResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedTextData customerID = wBusDecoder.decodeCustomerID(rx);
-    if (customerID.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.customerID = customerID.text;
-        deviceInfo.lastUpdate = millis();
+        DecodedTextData customerID = wBusDecoder.decodeCustomerID(rx);
+        if (customerID.isValid)
+        {
+            deviceInfo.customerID = customerID.text;
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
-void WebastoInfo::handleSerialNumberResponse(bool status, String tx, String rx)
+void WebastoInfo::handleSerialNumberResponse(String tx, String rx)
 {
-    if (!status)
-        return;
-
-    DecodedTextData serial = wBusDecoder.decodeSerialNumber(rx);
-    if (serial.isValid)
+    if (!rx.isEmpty())
     {
-        deviceInfo.serialNumber = serial.text;
-        // testStandCode можно добавить если нужно
-        deviceInfo.lastUpdate = millis();
+        DecodedTextData serial = wBusDecoder.decodeSerialNumber(rx);
+        if (serial.isValid)
+        {
+            deviceInfo.serialNumber = serial.text;
+            // testStandCode можно добавить если нужно
+            deviceInfo.lastUpdate = millis();
+        }
     }
 }
 
 // Публичные методы (остаются без изменений)
-void WebastoInfo::getWBusVersion()
+void WebastoInfo::getWBusVersion(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_WBUS_VERSION,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleWBusVersionResponse(status, tx, rx);
+                      this->handleWBusVersionResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 
-void WebastoInfo::getDeviceName()
+void WebastoInfo::getDeviceName(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_DEVICE_NAME,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleDeviceNameResponse(status, tx, rx);
+                      this->handleDeviceNameResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 
-void WebastoInfo::getWBusCode()
+void WebastoInfo::getWBusCode(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_WBUS_CODE,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleWBusCodeResponse(status, tx, rx);
+                      this->handleWBusCodeResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 
-void WebastoInfo::getDeviceID()
+void WebastoInfo::getDeviceID(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_DEVICE_ID,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleDeviceIDResponse(status, tx, rx);
+                      this->handleDeviceIDResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 
-void WebastoInfo::getHeaterManufactureDate()
+void WebastoInfo::getHeaterManufactureDate(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_HEATER_MFG_DATE,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleHeaterManufactureDateResponse(status, tx, rx);
+                      this->handleHeaterManufactureDateResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 
-void WebastoInfo::getControllerManufactureDate()
+void WebastoInfo::getControllerManufactureDate(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_CTRL_MFG_DATE,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleControllerManufactureDateResponse(status, tx, rx);
+                      this->handleControllerManufactureDateResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 
-void WebastoInfo::getCustomerID()
+void WebastoInfo::getCustomerID(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_CUSTOMER_ID,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleCustomerIDResponse(status, tx, rx);
+                      this->handleCustomerIDResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 
-void WebastoInfo::getSerialNumber()
+void WebastoInfo::getSerialNumber(std::function<void(String, String)> callback)
 {
     wbusQueue.add(CMD_READ_INFO_SERIAL_NUMBER,
-                  [this](bool status, String tx, String rx)
+                  [this, callback](String tx, String rx)
                   {
-                      this->handleSerialNumberResponse(status, tx, rx);
+                      this->handleSerialNumberResponse(tx, rx);
+                      if (callback != nullptr)
+                      {
+                          callback(tx, rx);
+                      }
                   });
 }
 

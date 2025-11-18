@@ -1,7 +1,7 @@
 #include "common/queue-map/queue-map.h"
 
 // Добавить команду в конец очереди с проверкой дубликатов
-bool QueueMap::add(String command, std::function<void(bool, String, String)> callback, bool loop)
+bool QueueMap::add(String command, std::function<void(String, String)> callback, bool loop)
 {
     if (_size >= QUEUE_SIZE)
     {
@@ -24,7 +24,7 @@ bool QueueMap::add(String command, std::function<void(bool, String, String)> cal
     return true;
 }
 
-bool QueueMap::addPriority(String command, std::function<void(bool, String, String)> callback, bool loop)
+bool QueueMap::addPriority(String command, std::function<void(String, String)> callback, bool loop)
 {
     if (_size >= QUEUE_SIZE)
     {

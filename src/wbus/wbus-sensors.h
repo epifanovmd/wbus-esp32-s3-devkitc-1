@@ -15,22 +15,22 @@ private:
     SubsystemsStatus subsystemsStatus;
 
     // Обработчики ответов
-    void handleOperationalInfoResponse(bool success, String cmd, String response);
-    void handleFuelSettingsResponse(bool success, String cmd, String response);
-    void handleOnOffFlagsResponse(bool success, String cmd, String response);
-    void handleStatusFlagsResponse(bool success, String cmd, String response);
-    void handleOperatingStateResponse(bool success, String cmd, String response);
-    void handleSubsystemsStatusResponse(bool success, String cmd, String response);
+    void handleOperationalInfoResponse(String tx, String rx);
+    void handleFuelSettingsResponse(String tx, String rx);
+    void handleOnOffFlagsResponse(String tx, String rx);
+    void handleStatusFlagsResponse(String tx, String rx);
+    void handleOperatingStateResponse(String tx, String rx);
+    void handleSubsystemsStatusResponse(String tx, String rx);
 
 public:
     // Запросы данных
-    void getOperationalInfo(bool loop = false);
-    void getFuelSettings(bool loop = false);
-    void getOnOffFlags(bool loop = false);
-    void getStatusFlags(bool loop = false);
-    void getOperatingState(bool loop = false);
-    void getSubsystemsStatus(bool loop = false);
-    void getAllSensorData(bool loop = false);
+    void getOperationalInfo(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    void getFuelSettings(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    void getOnOffFlags(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    void getStatusFlags(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    void getOperatingState(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    void getSubsystemsStatus(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    void getAllSensorData(bool loop = false, std::function<void(String, String)> callback = nullptr);
 
     void stopMonitoring();
 

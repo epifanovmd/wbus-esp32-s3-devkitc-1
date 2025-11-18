@@ -36,12 +36,10 @@ void KLineReceiver::process()
         if (kLineReceivedData.isReceivingRx)
         {
           kLineReceivedData.completeRxReception();
-          // kLineReceivedData.printRx();
         }
         if (kLineReceivedData.isReceivingTx)
         {
           kLineReceivedData.completeTxReception();
-          // kLineReceivedData.printTx();
         }
         // Автоматический сброс после завершения
         kLineReceivedData.bytesToRead = 0;
