@@ -74,7 +74,8 @@ public:
     void testFuelPreheating(int seconds = 25, int powerPercent = 50);
 
     // Статусы
-    String getStateName();
+    String getStateName(WebastoState state);
+    String getCurrentStateName();
     WebastoState getState() { return currentState; }
     ConnectionState getConnectionState() { return connectionState; }
     bool isConnected() { return connectionState == CONNECTED; }

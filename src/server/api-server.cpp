@@ -1,19 +1,153 @@
 #include "api-server.h"
+#include <ArduinoJson.h>
+#include "wbus/wbus.h"
+#include "wbus/wbus-info.h"
+#include "wbus/wbus-sensors.h"
+#include "wbus/wbus-errors.h"
 
 ApiServer apiServer;
 
+#define FS LittleFS
+
 ApiServer::ApiServer() : server(80) {}
+
+void ApiServer::serveStaticFile(String path, String contentType)
+{
+    if (LittleFS.exists(path)) {
+        File file = LittleFS.open(path, "r");
+        if (file) {
+            server.streamFile(file, contentType);
+            file.close();
+            Serial.println("✅ Обслужен файл: " + path);
+        } else {
+            server.send(500, "text/plain", "Error opening file");
+            Serial.println("❌ Ошибка открытия файла: " + path);
+        }
+    } else {
+        // Fallback - отдаем HTML из кода если файл не найден
+        Serial.println("⚠️  Файл не найден, используется резервный HTML: " + path);
+    }
+}
 
 void ApiServer::begin()
 {
-    server.on("/", [this]()
-              { handleRoot(); });
+        // Инициализация SPIFFS для хранения HTML файлов
+    if (!LittleFS.begin(true)) {
+        Serial.println("❌ Ошибка инициализации LittleFS");
+        // Можно продолжить с HTML в коде
+    } else {
+        Serial.println("✅ LittleFS инициализирован");
+        
+        // Проверяем файлы
+        File root = LittleFS.open("/");
+        File file = root.openNextFile();
+        while (file) {
+            Serial.println("📄 Файл: " + String(file.name()) + " | Размер: " + String(file.size()));
+            file = root.openNextFile();
+        }
+    }
+    
+    Serial.println("✅ SPIFFS инициализирован");
 
-    server.onNotFound([this]()
-                      { handleNotFound(); });
+        Serial.println("📁 Содержимое LittleFS:");
+    File root = FS.open("/");
+    if (!root) {
+        Serial.println("   ❌ Не удалось открыть корневую директорию");
+        return;
+    }
+    
+    if (!root.isDirectory()) {
+        Serial.println("   ❌ Корень не является директорией");
+        return;
+    }
+    
+    File file = root.openNextFile();
+    while (file) {
+        Serial.println("   📄 " + String(file.name()) + " | Размер: " + String(file.size()) + " байт");
+        file = root.openNextFile();
+    }
+    root.close();
 
+    // Основные endpoint-ы
+    server.on("/", HTTP_GET, [this]() { serveHTML(); });
+    
+    // Новые endpoint-ы для данных
+    server.on("/api/system/state", HTTP_GET, [this]() { handleGetSystemState(); });
+    server.on("/api/device/info", HTTP_GET, [this]() { handleGetDeviceInfo(); });
+    server.on("/api/sensors/data", HTTP_GET, [this]() { handleGetSensorsData(); });
+    server.on("/api/errors", HTTP_GET, [this]() { handleGetErrors(); });
+    server.on("/api/all", HTTP_GET, [this]() { handleGetAllData(); });
+    server.on("/api/system/state", HTTP_GET, [this]() { handleGetSystemState(); });
+    server.on("/api/device/info", HTTP_GET, [this]() { handleGetDeviceInfo(); });
+    server.on("/api/sensors/data", HTTP_GET, [this]() { handleGetSensorsData(); });
+    server.on("/api/errors", HTTP_GET, [this]() { handleGetErrors(); });
+    server.on("/api/all", HTTP_GET, [this]() { handleGetAllData(); });
+
+    // Новые endpoint-ы для управления
+    server.on("/api/control/connect", HTTP_POST, [this]() { handleConnect(); });
+    server.on("/api/control/disconnect", HTTP_POST, [this]() { handleDisconnect(); });
+    server.on("/api/control/start_parking", HTTP_POST, [this]() { handleStartParkingHeat(); });
+    server.on("/api/control/stop", HTTP_POST, [this]() { handleStopHeater(); });
+    server.on("/api/control/toggle_logging", HTTP_POST, [this]() { handleToggleLogging(); });
+
+    // Endpoint-ы для тестирования компонентов
+    server.on("/api/test/combustion_fan", HTTP_POST, [this]() {
+        int seconds = server.arg("seconds").toInt();
+        int power = server.arg("power").toInt();
+        wBus.testCombustionFan(seconds, power);
+        server.send(200, "application/json", "{\"status\":\"test_started\"}");
+    });
+    
+    // Добавьте аналогичные endpoint-ы для других тестов...
+
+    server.onNotFound([this]() { handleNotFound(); });
     server.begin();
     Serial.println("HTTP server started on port 80");
+    Serial.println("Available endpoints:");
+    Serial.println("  GET /api/system/state - System connection and heater state");
+    Serial.println("  GET /api/device/info  - Device information");
+    Serial.println("  GET /api/sensors/data - Sensors data");
+    Serial.println("  GET /api/errors       - Error information");
+    Serial.println("  GET /api/all          - All data combined");
+}
+
+void ApiServer::serveHTML()
+{
+    serveStaticFile("/index.html", "text/html");
+}
+
+void ApiServer::handleConnect()
+{
+    wBus.connect();
+    server.send(200, "application/json", "{\"status\":\"connecting\"}");
+}
+
+void ApiServer::handleDisconnect()
+{
+    wBus.disconnect();
+    server.send(200, "application/json", "{\"status\":\"disconnecting\"}");
+}
+
+void ApiServer::handleStartParkingHeat()
+{
+    wBus.startParkingHeat();
+    server.send(200, "application/json", "{\"status\":\"started\"}");
+}
+
+void ApiServer::handleStopHeater()
+{
+    wBus.shutdown();
+    server.send(200, "application/json", "{\"status\":\"stopped\"}");
+}
+
+void ApiServer::handleToggleLogging()
+{
+    if (wBus.isLogging()) {
+        wBus.stopLogging();
+    } else {
+        wBus.startLogging();
+    }
+    server.send(200, "application/json", "{\"status\":\"toggled\"}");
 }
 
 void ApiServer::loop()
@@ -21,516 +155,256 @@ void ApiServer::loop()
     server.handleClient();
 }
 
-void ApiServer::handleRoot()
+// 1. Endpoint для состояния системы
+void ApiServer::handleGetSystemState()
 {
-    server.send(200, "text/html", getHTMLPage());
+    DynamicJsonDocument doc(1024);
+    
+    // Состояние подключения
+    String connStates[] = {"DISCONNECTED", "CONNECTING", "CONNECTED", "CONNECTION_FAILED"};
+    doc["connection_state"] = connStates[wBus.getConnectionState()];
+    doc["connection_state_code"] = wBus.getConnectionState();
+    
+    // Состояние нагревателя
+    doc["heater_state"] = wBus.getCurrentStateName();
+    doc["heater_state_code"] = wBus.getState();
+    
+    // Дополнительная информация
+    doc["is_connected"] = wBus.isConnected();
+    doc["is_logging"] = wBus.isLogging();
+    doc["last_rx_time"] = millis(); // Можно добавить реальное время последнего ответа
+    
+    String response;
+    serializeJson(doc, response);
+    
+    server.send(200, "application/json", response);
+}
+
+// 2. Endpoint для информации об устройстве
+void ApiServer::handleGetDeviceInfo()
+{
+    WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+    
+    DynamicJsonDocument doc(2048);
+    
+    doc["type"] = "device_info";
+    doc["has_data"] = info.hasData();
+    doc["last_update"] = info.lastUpdate;
+    
+    // Основная информация
+    doc["wbus_version"] = info.wbusVersion;
+    doc["device_name"] = info.deviceName;
+    doc["device_id"] = info.deviceID;
+    doc["serial_number"] = info.serialNumber;
+    doc["test_stand_code"] = info.testStandCode;
+    
+    // Даты производства
+    doc["controller_manufacture_date"] = info.controllerManufactureDate;
+    doc["heater_manufacture_date"] = info.heaterManufactureDate;
+    
+    // Коды и идентификаторы
+    doc["customer_id"] = info.customerID;
+    doc["additional_code"] = info.additionalCode;
+    doc["wbus_code"] = info.wbusCode;
+    doc["supported_functions"] = info.supportedFunctions;
+    
+    String response;
+    serializeJson(doc, response);
+    
+    server.send(200, "application/json", response);
+}
+
+// 3. Endpoint для данных сенсоров
+void ApiServer::handleGetSensorsData()
+{
+    DynamicJsonDocument doc(4096);
+    
+    // Операционные измерения
+    OperationalMeasurements op = webastoSensors.getCurrentMeasurements();
+    JsonObject operational = doc.createNestedObject("operational_measurements");
+    operational["temperature"] = op.temperature;
+    operational["voltage"] = op.voltage;
+    operational["heating_power"] = op.heatingPower;
+    operational["flame_resistance"] = op.flameResistance;
+    operational["flame_detected"] = op.flameDetected;
+    
+    // Настройки топлива
+    FuelSettings fuel = webastoSensors.getFuelSettingsData();
+    JsonObject fuelSettings = doc.createNestedObject("fuel_settings");
+    fuelSettings["fuel_type"] = fuel.fuelType;
+    fuelSettings["fuel_type_name"] = fuel.fuelTypeName;
+    fuelSettings["max_heating_time"] = fuel.maxHeatingTime;
+    fuelSettings["ventilation_factor"] = fuel.ventilationFactor;
+    
+    // Флаги вкл/выкл
+    OnOffFlags onOff = webastoSensors.getOnOffFlagsData();
+    JsonObject onOffFlags = doc.createNestedObject("on_off_flags");
+    onOffFlags["combustion_air_fan"] = onOff.combustionAirFan;
+    onOffFlags["glow_plug"] = onOff.glowPlug;
+    onOffFlags["fuel_pump"] = onOff.fuelPump;
+    onOffFlags["circulation_pump"] = onOff.circulationPump;
+    onOffFlags["vehicle_fan_relay"] = onOff.vehicleFanRelay;
+    onOffFlags["nozzle_stock_heating"] = onOff.nozzleStockHeating;
+    onOffFlags["flame_indicator"] = onOff.flameIndicator;
+    onOffFlags["active_components"] = onOff.activeComponents;
+    
+    // Статусные флаги
+    StatusFlags status = webastoSensors.getStatusFlagsData();
+    JsonObject statusFlags = doc.createNestedObject("status_flags");
+    statusFlags["main_switch"] = status.mainSwitch;
+    statusFlags["supplemental_heat_request"] = status.supplementalHeatRequest;
+    statusFlags["parking_heat_request"] = status.parkingHeatRequest;
+    statusFlags["ventilation_request"] = status.ventilationRequest;
+    statusFlags["summer_mode"] = status.summerMode;
+    statusFlags["external_control"] = status.externalControl;
+    statusFlags["generator_signal"] = status.generatorSignal;
+    statusFlags["boost_mode"] = status.boostMode;
+    statusFlags["auxiliary_drive"] = status.auxiliaryDrive;
+    statusFlags["ignition_signal"] = status.ignitionSignal;
+    statusFlags["status_summary"] = status.statusSummary;
+    statusFlags["operation_mode"] = status.operationMode;
+    
+    // Состояние работы
+    OperatingState opState = webastoSensors.getOperatingStateData();
+    JsonObject operatingState = doc.createNestedObject("operating_state");
+    operatingState["state_code"] = opState.stateCode;
+    operatingState["state_number"] = opState.stateNumber;
+    operatingState["device_state_flags"] = opState.deviceStateFlags;
+    operatingState["state_name"] = opState.stateName;
+    operatingState["state_description"] = opState.stateDescription;
+    operatingState["device_state_info"] = opState.deviceStateInfo;
+    
+    // Статус подсистем
+    SubsystemsStatus subsystems = webastoSensors.getSubsystemsStatusData();
+    JsonObject subsystemsStatus = doc.createNestedObject("subsystems_status");
+    subsystemsStatus["glow_plug_power"] = subsystems.glowPlugPower;
+    subsystemsStatus["glow_plug_power_percent"] = subsystems.glowPlugPowerPercent;
+    subsystemsStatus["fuel_pump_frequency"] = subsystems.fuelPumpFrequency;
+    subsystemsStatus["fuel_pump_frequency_hz"] = subsystems.fuelPumpFrequencyHz;
+    subsystemsStatus["combustion_fan_power"] = subsystems.combustionFanPower;
+    subsystemsStatus["combustion_fan_power_percent"] = subsystems.combustionFanPowerPercent;
+    subsystemsStatus["circulation_pump_power"] = subsystems.circulationPumpPower;
+    subsystemsStatus["circulation_pump_power_percent"] = subsystems.circulationPumpPowerPercent;
+    subsystemsStatus["unknown_byte_3"] = subsystems.unknownByte3;
+    subsystemsStatus["status_summary"] = subsystems.statusSummary;
+    
+    String response;
+    serializeJson(doc, response);
+    
+    server.send(200, "application/json", response);
+}
+
+// 4. Endpoint для ошибок
+void ApiServer::handleGetErrors()
+{
+    ErrorCollection errors = webastoErrors.getErrors();
+    
+    DynamicJsonDocument doc(4096);
+    
+    doc["has_errors"] = errors.hasErrors;
+    doc["error_count"] = errors.errorCount;
+    doc["last_update"] = errors.lastUpdate;
+    
+    JsonArray errorArray = doc.createNestedArray("errors");
+    
+    for (const WebastoError& error : errors.errors) {
+        JsonObject errorObj = errorArray.createNestedObject();
+        errorObj["code"] = error.code;
+        errorObj["hex_code"] = error.hexCode;
+        errorObj["description"] = error.description;
+        errorObj["counter"] = error.counter;
+        errorObj["is_active"] = error.isActive;
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    
+    server.send(200, "application/json", response);
+}
+
+// 5. Endpoint для всех данных сразу
+void ApiServer::handleGetAllData()
+{
+    DynamicJsonDocument doc(8192);
+    
+    // Системное состояние
+    String connStates[] = {"DISCONNECTED", "CONNECTING", "CONNECTED", "CONNECTION_FAILED"};
+    JsonObject systemState = doc.createNestedObject("system_state");
+    systemState["connection_state"] = connStates[wBus.getConnectionState()];
+    systemState["connection_state_code"] = wBus.getConnectionState();
+    systemState["heater_state"] = wBus.getCurrentStateName();
+    systemState["heater_state_code"] = wBus.getState();
+    systemState["is_connected"] = wBus.isConnected();
+    systemState["is_logging"] = wBus.isLogging();
+    
+    // Информация об устройстве
+    WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+    JsonObject deviceInfo = doc.createNestedObject("device_info");
+    deviceInfo["has_data"] = info.hasData();
+    deviceInfo["last_update"] = info.lastUpdate;
+    deviceInfo["wbus_version"] = info.wbusVersion;
+    deviceInfo["device_name"] = info.deviceName;
+    deviceInfo["device_id"] = info.deviceID;
+    deviceInfo["serial_number"] = info.serialNumber;
+    deviceInfo["controller_manufacture_date"] = info.controllerManufactureDate;
+    deviceInfo["heater_manufacture_date"] = info.heaterManufactureDate;
+    deviceInfo["customer_id"] = info.customerID;
+    deviceInfo["wbus_code"] = info.wbusCode;
+    deviceInfo["supported_functions"] = info.supportedFunctions;
+    
+    // Данные сенсоров (упрощенная версия для экономии места)
+    JsonObject sensors = doc.createNestedObject("sensors_data");
+    
+    OperationalMeasurements op = webastoSensors.getCurrentMeasurements();
+    JsonObject operational = sensors.createNestedObject("operational");
+    operational["temperature"] = op.temperature;
+    operational["voltage"] = op.voltage;
+    operational["heating_power"] = op.heatingPower;
+    
+    StatusFlags status = webastoSensors.getStatusFlagsData();
+    JsonObject statusFlags = sensors.createNestedObject("status");
+    statusFlags["operation_mode"] = status.operationMode;
+    statusFlags["main_switch"] = status.mainSwitch;
+    
+    OperatingState opState = webastoSensors.getOperatingStateData();
+    JsonObject operatingState = sensors.createNestedObject("operating_state");
+    operatingState["state_name"] = opState.stateName;
+    operatingState["state_code"] = opState.stateCode;
+    
+    // Ошибки
+    ErrorCollection errors = webastoErrors.getErrors();
+    JsonObject errorInfo = doc.createNestedObject("errors");
+    errorInfo["has_errors"] = errors.hasErrors;
+    errorInfo["error_count"] = errors.errorCount;
+    
+    JsonArray errorArray = errorInfo.createNestedArray("error_list");
+    for (const WebastoError& error : errors.errors) {
+        JsonObject errorObj = errorArray.createNestedObject();
+        errorObj["code"] = error.code;
+        errorObj["description"] = error.description;
+        errorObj["counter"] = error.counter;
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    
+    server.send(200, "application/json", response);
 }
 
 void ApiServer::handleNotFound()
 {
-    server.send(404, "text/plain", "File Not Found");
-}
-
-String ApiServer::getHTMLPage()
-{
-    String html = R"rawliteral(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webasto W-Bus Monitor</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header h1 {
-            font-size: 24px;
-            font-weight: 300;
-        }
-        
-        .controls {
-            background: #34495e;
-            padding: 15px 30px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .control-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        button {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-        
-        button:hover {
-            background: #2980b9;
-        }
-        
-        button.clear {
-            background: #e74c3c;
-        }
-        
-        button.clear:hover {
-            background: #c0392b;
-        }
-        
-        input, select {
-            padding: 8px 12px;
-            border: 1px solid #bdc3c7;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        .stats {
-            background: #ecf0f1;
-            padding: 10px 30px;
-            display: flex;
-            gap: 30px;
-            font-size: 14px;
-            color: #2c3e50;
-        }
-        
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .log-container {
-            display: flex;
-            height: 600px;
-        }
-        
-        .log-list {
-            flex: 1;
-            overflow-y: auto;
-            border-right: 1px solid #ecf0f1;
-        }
-        
-        .log-details {
-            flex: 1;
-            padding: 20px;
-            background: #f8f9fa;
-            overflow-y: auto;
-        }
-        
-        .log-entry {
-            padding: 12px 15px;
-            border-bottom: 1px solid #ecf0f1;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .log-entry:hover {
-            background: #f8f9fa;
-        }
-        
-        .log-entry.rx {
-            border-left: 4px solid #27ae60;
-        }
-        
-        .log-entry.tx {
-            border-left: 4px solid #e67e22;
-        }
-        
-        .log-entry.info {
-            border-left: 4px solid #3498db;
-        }
-        
-        .log-entry.error {
-            border-left: 4px solid #e74c3c;
-        }
-        
-        .log-time {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 5px;
-        }
-        
-        .log-data {
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            word-break: break-all;
-        }
-        
-        .log-type {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-right: 8px;
-        }
-        
-        .type-rx { background: #d5f4e6; color: #27ae60; }
-        .type-tx { background: #fdebd0; color: #e67e22; }
-        .type-info { background: #d6eaf8; color: #3498db; }
-        .type-error { background: #fadbd8; color: #e74c3c; }
-        
-        .selected {
-            background: #e3f2fd !important;
-        }
-        
-        .details-content {
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
-            background: white;
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #bdc3c7;
-        }
-        
-        .search-highlight {
-            background: yellow;
-            padding: 2px;
-        }
-        
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #e74c3c;
-        }
-        
-        .status-dot.connected {
-            background: #27ae60;
-        }
-        
-        @media (max-width: 768px) {
-            .log-container {
-                flex-direction: column;
-                height: 800px;
-            }
-            
-            .log-list {
-                border-right: none;
-                border-bottom: 1px solid #ecf0f1;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🚗 Webasto W-Bus Protocol Monitor</h1>
-            <div class="connection-status">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Disconnected</span>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <button onclick="clearLogs()">Clear Logs</button>
-                <button onclick="exportLogs()">Export Logs</button>
-            </div>
-            
-            <div class="control-group">
-                <input type="text" id="searchInput" placeholder="Search in logs..." onkeyup="filterLogs()">
-                <select id="typeFilter" onchange="filterLogs()">
-                    <option value="all">All Types</option>
-                    <option value="rx">RX Only</option>
-                    <option value="tx">TX Only</option>
-                    <option value="info">Info Only</option>
-                    <option value="error">Errors Only</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="autoScroll" checked> Auto-scroll
-                </label>
-                <label>
-                    <input type="checkbox" id="showHex" checked> Show HEX
-                </label>
-            </div>
-        </div>
-        
-        <div class="stats">
-            <div class="stat-item">
-                <span>RX:</span>
-                <span id="rxCount">0</span>
-            </div>
-            <div class="stat-item">
-                <span>TX:</span>
-                <span id="txCount">0</span>
-            </div>
-            <div class="stat-item">
-                <span>Total:</span>
-                <span id="totalCount">0</span>
-            </div>
-            <div class="stat-item">
-                <span>Connected:</span>
-                <span id="connectedTime">0s</span>
-            </div>
-        </div>
-        
-        <div class="log-container">
-            <div class="log-list" id="logList"></div>
-            <div class="log-details">
-                <h3>Details</h3>
-                <div id="logDetails" class="details-content">
-                    Select a log entry to view details...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        class WebastoMonitor {
-            constructor() {
-                this.ws = null;
-                this.logs = [];
-                this.stats = { rx: 0, tx: 0, total: 0 };
-                this.connectedAt = null;
-                this.selectedLog = null;
-                this.searchTerm = '';
-                this.typeFilter = 'all';
-                
-                this.initWebSocket();
-                this.startStatsTimer();
-            }
-            
-            initWebSocket() {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${protocol}//${window.location.hostname}:81`;
-                
-                this.ws = new WebSocket(wsUrl);
-                
-                this.ws.onopen = () => {
-                    this.updateConnectionStatus(true);
-                    console.log('WebSocket connected');
-                };
-                
-                this.ws.onclose = () => {
-                    this.updateConnectionStatus(false);
-                    console.log('WebSocket disconnected');
-                    // Попытка переподключения через 3 секунды
-                    setTimeout(() => this.initWebSocket(), 3000);
-                };
-                
-                this.ws.onmessage = (event) => {
-                    this.handleMessage(JSON.parse(event.data));
-                };
-                
-                this.ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                };
-            }
-            
-            handleMessage(data) {
-                if (data.type === 'history') {
-                    this.logs = data.data.reverse();
-                    this.updateDisplay();
-                } else if (data.type === 'clear') {
-                    this.logs = [];
-                    this.stats = { rx: 0, tx: 0, total: 0 };
-                    this.updateDisplay();
-                } else {
-                    this.addLog(data);
-                }
-            }
-            
-            addLog(log) {
-                this.logs.unshift(log);
-                
-                // Обновляем статистику
-                if (log.type === 'rx') this.stats.rx++;
-                if (log.type === 'tx') this.stats.tx++;
-                this.stats.total++;
-                
-                this.updateDisplay();
-                
-                // Авто-скролл
-                if (document.getElementById('autoScroll').checked) {
-                    const logList = document.getElementById('logList');
-                    logList.scrollTop = 0;
-                }
-            }
-            
-            updateDisplay() {
-                this.updateStats();
-                this.renderLogs();
-            }
-            
-            updateStats() {
-                document.getElementById('rxCount').textContent = this.stats.rx;
-                document.getElementById('txCount').textContent = this.stats.tx;
-                document.getElementById('totalCount').textContent = this.stats.total;
-                
-                if (this.connectedAt) {
-                    const seconds = Math.floor((Date.now() - this.connectedAt) / 1000);
-                    document.getElementById('connectedTime').textContent = `${seconds}s`;
-                }
-            }
-            
-            renderLogs() {
-                const logList = document.getElementById('logList');
-                const filteredLogs = this.getFilteredLogs();
-                
-                logList.innerHTML = filteredLogs.map((log, index) => {
-                    const isSelected = this.selectedLog === index ? 'selected' : '';
-                    const displayData = this.formatData(log.data);
-                    
-                    return `
-                        <div class="log-entry ${log.type} ${isSelected}" onclick="monitor.selectLog(${index})">
-                            <div class="log-time">
-                                <span class="log-type type-${log.type}">${log.type.toUpperCase()}</span>
-                                ${log.timestamp}
-                            </div>
-                            <div class="log-data">${displayData}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
-            
-            getFilteredLogs() {
-                return this.logs.filter(log => {
-                    const typeMatch = this.typeFilter === 'all' || log.type === this.typeFilter;
-                    const searchMatch = !this.searchTerm || 
-                                      log.data.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                                      log.timestamp.includes(this.searchTerm);
-                    return typeMatch && searchMatch;
-                });
-            }
-            
-            formatData(data) {
-                if (!document.getElementById('showHex').checked) {
-                    return data;
-                }
-                
-                // Форматирование HEX данных для лучшего отображения
-                return data.split(' ').map(byte => {
-                    return `<span class="hex-byte">${byte}</span>`;
-                }).join(' ');
-            }
-            
-            selectLog(index) {
-                this.selectedLog = index;
-                const log = this.getFilteredLogs()[index];
-                
-                if (log) {
-                    document.getElementById('logDetails').textContent = 
-                        `Timestamp: ${log.timestamp}\n` +
-                        `Type: ${log.type}\n` +
-                        `Direction: ${log.direction || 'N/A'}\n` +
-                        `Data: ${log.data}\n\n` +
-                        `Raw: ${JSON.stringify(log, null, 2)}`;
-                }
-                
-                this.renderLogs();
-            }
-            
-            filterLogs() {
-                this.searchTerm = document.getElementById('searchInput').value;
-                this.typeFilter = document.getElementById('typeFilter').value;
-                this.selectedLog = null;
-                this.renderLogs();
-            }
-            
-            clearLogs() {
-                this.ws.send(JSON.stringify({ command: 'clear' }));
-            }
-            
-            exportLogs() {
-                const data = this.logs.map(log => 
-                    `${log.timestamp} [${log.type}] ${log.data}`
-                ).join('\n');
-                
-                const blob = new Blob([data], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `webasto-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-            
-            updateConnectionStatus(connected) {
-                const dot = document.getElementById('statusDot');
-                const text = document.getElementById('statusText');
-                
-                if (connected) {
-                    dot.className = 'status-dot connected';
-                    text.textContent = 'Connected';
-                    this.connectedAt = Date.now();
-                } else {
-                    dot.className = 'status-dot';
-                    text.textContent = 'Disconnected';
-                }
-            }
-            
-            startStatsTimer() {
-                setInterval(() => this.updateStats(), 1000);
-            }
-        }
-        
-        // Инициализация монитора
-        const monitor = new WebastoMonitor();
-        
-        // Глобальные функции для кнопок
-        function clearLogs() {
-            monitor.clearLogs();
-        }
-        
-        function exportLogs() {
-            monitor.exportLogs();
-        }
-        
-        function filterLogs() {
-            monitor.filterLogs();
-        }
-    </script>
-</body>
-</html>
-)rawliteral";
-
-    return html;
+    String message = "File Not Found\n\n";
+    message += "URI: ";
+    message += server.uri();
+    message += "\nMethod: ";
+    message += (server.method() == HTTP_GET) ? "GET" : "POST";
+    message += "\nArguments: ";
+    message += server.args();
+    message += "\n";
+    
+    for (uint8_t i = 0; i < server.args(); i++) {
+        message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+    }
+    
+    server.send(404, "text/plain", message);
 }

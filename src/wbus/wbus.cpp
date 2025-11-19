@@ -22,40 +22,36 @@ void WBus::setConnectionState(ConnectionState newState)
   ConnectionState oldState = connectionState;
   connectionState = newState;
 
-  // Логируем изменение состояния
   String stateNames[] = {"DISCONNECTED", "CONNECTING", "CONNECTED", "CONNECTION_FAILED"};
-  Serial.println();
-  Serial.println("🔌 Состояние подключения: " + stateNames[oldState] + " → " + stateNames[newState]);
 
-  // Отправляем уведомление через WebSocket
-  String statusMessage = "Connection: " + stateNames[newState];
-  socketServer.sendSystemStatus(statusMessage);
+  // Отправляем полную структуру состояния подключения
+  DynamicJsonDocument doc(512);
+  doc["type"] = "connection_state";
+  doc["state"] = stateNames[newState];
+  doc["previous_state"] = stateNames[oldState];
+
+  String json;
+  serializeJson(doc, json);
+  socketServer.sendInfo(json);
 
   // Дополнительные действия при изменении состояния
   switch (newState)
   {
   case CONNECTING:
     neopixelWrite(RGB_PIN, 255 / 4, 165 / 4, 0);
-    Serial.println();
-    Serial.println("🔌 Подключение к Webasto...");
     break;
   case CONNECTION_FAILED:
     neopixelWrite(RGB_PIN, 255 / 4, 0, 0);
-    socketServer.sendError("❌ Ошибка подключения к Webasto");
     break;
-
   case CONNECTED:
     neopixelWrite(RGB_PIN, 0, 255 / 4, 0);
-    socketServer.sendInfo("✅ Успешно подключено к Webasto");
     break;
-
   case DISCONNECTED:
     neopixelWrite(RGB_PIN, 0, 0, 0);
     webastoInfo.clear();
     webastoSensors.clear();
     webastoErrors.clear();
     _logging = false;
-    socketServer.sendInfo("🔌 Отключено от Webasto");
     break;
   }
 }
@@ -65,38 +61,19 @@ void WBus::setState(WebastoState newState)
   if (currentState == newState)
     return;
 
+  WebastoState oldState = currentState;
   currentState = newState;
 
-  // Отправляем уведомление через WebSocket
-  socketServer.sendSystemStatus("Heater: " + getStateName());
+  // Отправляем полную структуру состояния нагревателя
+  DynamicJsonDocument doc(512);
+  doc["type"] = "heater_state";
+  doc["state"] = getStateName(currentState);
+  doc["state_code"] = newState;
+  doc["previous_state"] = getStateName(oldState);
 
-  // Дополнительные действия при изменении состояния
-  switch (newState)
-  {
-  case WBUS_STATE_PARKING_HEAT:
-    socketServer.sendInfo("🔥 Паркинг-нагрев активен");
-    break;
-
-  case WBUS_STATE_VENTILATION:
-    socketServer.sendInfo("💨 Вентиляция активна");
-    break;
-
-  case WBUS_STATE_SUPP_HEAT:
-    socketServer.sendInfo("🔥 Дополнительный нагрев активен");
-    break;
-
-  case WBUS_STATE_BOOST:
-    socketServer.sendInfo("⚡ Boost режим активен");
-    break;
-
-  case WBUS_STATE_OFF:
-    socketServer.sendInfo("🔴 Нагреватель выключен");
-    break;
-
-  case WBUS_STATE_READY:
-    socketServer.sendInfo("🟢 Нагреватель готов к работе");
-    break;
-  }
+  String json;
+  serializeJson(doc, json);
+  socketServer.sendInfo(json);
 }
 
 void WBus::init()
@@ -132,15 +109,59 @@ void WBus::connect()
   setConnectionState(CONNECTING);
 
   wakeUp();
-
   delay(100);
 
-  // получаем основную информацию об устройстве
-  webastoInfo.getWBusVersion();
-  webastoInfo.getDeviceName();
-  webastoInfo.getWBusCode();
+  // Получаем основную информацию об устройстве с колбэками для WebSocket
+  webastoInfo.getWBusVersion([this](String tx, String rx)
+                             {
+    if (!rx.isEmpty()) {
+      webastoInfo.handleCommandResponse(tx, rx);
+      WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+      
+      DynamicJsonDocument doc(1024);
+      doc["type"] = "device_info";
+      doc["command"] = "wbus_version";
+      doc["wbus_version"] = info.wbusVersion;
+      
+      String json;
+      serializeJson(doc, json);
+      socketServer.sendInfo(json);
+    } });
 
-  // запускаем диагностику
+  webastoInfo.getDeviceName([this](String tx, String rx)
+                            {
+    if (!rx.isEmpty()) {
+      webastoInfo.handleCommandResponse(tx, rx);
+      WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+      
+      DynamicJsonDocument doc(1024);
+      doc["type"] = "device_info";
+      doc["command"] = "device_name";
+      doc["device_name"] = info.deviceName;
+      
+      String json;
+      serializeJson(doc, json);
+      socketServer.sendInfo(json);
+    } });
+
+  webastoInfo.getWBusCode([this](String tx, String rx)
+                          {
+    if (!rx.isEmpty()) {
+      webastoInfo.handleCommandResponse(tx, rx);
+      WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+      
+      DynamicJsonDocument doc(1024);
+      doc["type"] = "device_info";
+      doc["command"] = "wbus_code";
+      doc["wbus_code"] = info.wbusCode;
+      doc["supported_functions"] = info.supportedFunctions;
+      
+      String json;
+      serializeJson(doc, json);
+      socketServer.sendInfo(json);
+    } });
+
+  // Запускаем диагностику
   wbusQueue.add(
       CMD_DIAGNOSTIC,
       [this](String tx, String rx)
@@ -149,30 +170,256 @@ void WBus::connect()
         {
           setConnectionState(CONNECTED);
 
-          // получаем доп. информацию об устройстве
-          webastoInfo.getDeviceID();
-          webastoInfo.getControllerManufactureDate();
-          webastoInfo.getHeaterManufactureDate();
-          webastoInfo.getCustomerID();
-          webastoInfo.getSerialNumber();
+          // Получаем дополнительную информацию с колбэками
+          webastoInfo.getDeviceID([this](String tx, String rx)
+                                  {
+            if (!rx.isEmpty()) {
+              webastoInfo.handleCommandResponse(tx, rx);
+              WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "device_info";
+              doc["command"] = "device_id";
+              doc["device_id"] = info.deviceID;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoInfo.getControllerManufactureDate([this](String tx, String rx)
+                                                   {
+            if (!rx.isEmpty()) {
+              webastoInfo.handleCommandResponse(tx, rx);
+              WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "device_info";
+              doc["command"] = "controller_mfg_date";
+              doc["controller_mfg_date"] = info.controllerManufactureDate;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoInfo.getHeaterManufactureDate([this](String tx, String rx)
+                                               {
+            if (!rx.isEmpty()) {
+              webastoInfo.handleCommandResponse(tx, rx);
+              WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "device_info";
+              doc["command"] = "heater_mfg_date";
+              doc["heater_mfg_date"] = info.heaterManufactureDate;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoInfo.getCustomerID([this](String tx, String rx)
+                                    {
+            if (!rx.isEmpty()) {
+              webastoInfo.handleCommandResponse(tx, rx);
+              WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "device_info";
+              doc["command"] = "customer_id";
+              doc["customer_id"] = info.customerID;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoInfo.getSerialNumber([this](String tx, String rx)
+                                      {
+            if (!rx.isEmpty()) {
+              webastoInfo.handleCommandResponse(tx, rx);
+              WebastoDeviceInfo info = webastoInfo.getDeviceInfo();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "device_info";
+              doc["command"] = "serial_number";
+              doc["serial_number"] = info.serialNumber;
+              doc["test_stand_code"] = info.testStandCode;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
 
           wbusQueue.setInterval(200);
 
-          // переодично запрашиваем состояние устройства
-          webastoSensors.getOperationalInfo(true);
-          webastoSensors.getFuelSettings();
-          webastoSensors.getOnOffFlags(true);
-          webastoSensors.getStatusFlags(true);
-          webastoSensors.getOperatingState(true);
-          webastoSensors.getSubsystemsStatus(true);
+          // Периодически запрашиваем состояние устройства с колбэками
+          webastoSensors.getOperationalInfo(true, [this](String tx, String rx)
+                                            {
+            if (!rx.isEmpty()) {
+              webastoSensors.handleCommandResponse(tx, rx);
+              OperationalMeasurements measurements = webastoSensors.getCurrentMeasurements();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "sensor_data";
+              doc["command"] = "operational_info";
+              doc["temperature"] = measurements.temperature;
+              doc["voltage"] = measurements.voltage;
+              doc["heating_power"] = measurements.heatingPower;
+              doc["flame_resistance"] = measurements.flameResistance;
+              doc["flame_detected"] = measurements.flameDetected;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
 
-          webastoErrors.check(true);
+          webastoSensors.getFuelSettings(false, [this](String tx, String rx)
+                                         {
+            if (!rx.isEmpty()) {
+              webastoSensors.handleCommandResponse(tx, rx);
+              FuelSettings fuel = webastoSensors.getFuelSettingsData();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "sensor_data";
+              doc["command"] = "fuel_settings";
+              doc["fuel_type"] = fuel.fuelType;
+              doc["fuel_type_name"] = fuel.fuelTypeName;
+              doc["max_heating_time"] = fuel.maxHeatingTime;
+              doc["ventilation_factor"] = fuel.ventilationFactor;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoSensors.getOnOffFlags(true, [this](String tx, String rx)
+                                       {
+            if (!rx.isEmpty()) {
+              webastoSensors.handleCommandResponse(tx, rx);
+              OnOffFlags onOff = webastoSensors.getOnOffFlagsData();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "sensor_data";
+              doc["command"] = "on_off_flags";
+              doc["combustion_air_fan"] = onOff.combustionAirFan;
+              doc["glow_plug"] = onOff.glowPlug;
+              doc["fuel_pump"] = onOff.fuelPump;
+              doc["circulation_pump"] = onOff.circulationPump;
+              doc["vehicle_fan_relay"] = onOff.vehicleFanRelay;
+              doc["nozzle_stock_heating"] = onOff.nozzleStockHeating;
+              doc["flame_indicator"] = onOff.flameIndicator;
+              doc["active_components"] = onOff.activeComponents;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoSensors.getStatusFlags(true, [this](String tx, String rx)
+                                        {
+            if (!rx.isEmpty()) {
+              webastoSensors.handleCommandResponse(tx, rx);
+              StatusFlags status = webastoSensors.getStatusFlagsData();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "sensor_data";
+              doc["command"] = "status_flags";
+              doc["main_switch"] = status.mainSwitch;
+              doc["supplemental_heat_request"] = status.supplementalHeatRequest;
+              doc["parking_heat_request"] = status.parkingHeatRequest;
+              doc["ventilation_request"] = status.ventilationRequest;
+              doc["summer_mode"] = status.summerMode;
+              doc["external_control"] = status.externalControl;
+              doc["generator_signal"] = status.generatorSignal;
+              doc["boost_mode"] = status.boostMode;
+              doc["auxiliary_drive"] = status.auxiliaryDrive;
+              doc["ignition_signal"] = status.ignitionSignal;
+              doc["status_summary"] = status.statusSummary;
+              doc["operation_mode"] = status.operationMode;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoSensors.getOperatingState(true, [this](String tx, String rx)
+                                           {
+            if (!rx.isEmpty()) {
+              webastoSensors.handleCommandResponse(tx, rx);
+              OperatingState state = webastoSensors.getOperatingStateData();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "sensor_data";
+              doc["command"] = "operating_state";
+              doc["state_code"] = state.stateCode;
+              doc["state_number"] = state.stateNumber;
+              doc["device_state_flags"] = state.deviceStateFlags;
+              doc["state_name"] = state.stateName;
+              doc["state_description"] = state.stateDescription;
+              doc["device_state_info"] = state.deviceStateInfo;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoSensors.getSubsystemsStatus(true, [this](String tx, String rx)
+                                             {
+            if (!rx.isEmpty()) {
+              webastoSensors.handleCommandResponse(tx, rx);
+              SubsystemsStatus subsystems = webastoSensors.getSubsystemsStatusData();
+              
+              DynamicJsonDocument doc(1024);
+              doc["type"] = "sensor_data";
+              doc["command"] = "subsystems_status";
+              doc["glow_plug_power"] = subsystems.glowPlugPower;
+              doc["glow_plug_power_percent"] = subsystems.glowPlugPowerPercent;
+              doc["fuel_pump_frequency"] = subsystems.fuelPumpFrequency;
+              doc["fuel_pump_frequency_hz"] = subsystems.fuelPumpFrequencyHz;
+              doc["combustion_fan_power"] = subsystems.combustionFanPower;
+              doc["combustion_fan_power_percent"] = subsystems.combustionFanPowerPercent;
+              doc["circulation_pump_power"] = subsystems.circulationPumpPower;
+              doc["circulation_pump_power_percent"] = subsystems.circulationPumpPowerPercent;
+              doc["unknown_byte_3"] = subsystems.unknownByte3;
+              doc["status_summary"] = subsystems.statusSummary;
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
+
+          webastoErrors.check(true, [this](String tx, String rx)
+                              {
+            if (!rx.isEmpty()) {
+              webastoErrors.handleCommandResponse(tx, rx);
+              ErrorCollection errors = webastoErrors.getErrors();
+              
+              DynamicJsonDocument doc(2048);
+              doc["type"] = "error_data";
+              doc["command"] = "read_errors";
+              doc["has_errors"] = errors.hasErrors;
+              doc["error_count"] = errors.errorCount;
+              
+              JsonArray errorArray = doc.createNestedArray("errors");
+              for (const WebastoError& error : errors.errors) {
+                JsonObject errorObj = errorArray.createNestedObject();
+                errorObj["code"] = error.code;
+                errorObj["hex_code"] = error.hexCode;
+                errorObj["description"] = error.description;
+                errorObj["counter"] = error.counter;
+                errorObj["is_active"] = error.isActive;
+              }
+              
+              String json;
+              serializeJson(doc, json);
+              socketServer.sendInfo(json);
+            } });
         }
         else
         {
           setConnectionState(CONNECTION_FAILED);
-          Serial.println();
-          Serial.println("❌ Не удалось подключиться!");
         }
       });
 }
@@ -494,7 +741,7 @@ String WBus::getKeepAliveCommandForCurrentState()
   }
 }
 
-String WBus::getStateName()
+String WBus::getStateName(WebastoState state)
 {
   switch (currentState)
   {
@@ -515,6 +762,10 @@ String WBus::getStateName()
   default:
     return "❓ Неизвестно";
   }
+}
+
+String WBus::getCurrentStateName() {
+  return getStateName(currentState);
 }
 
 void WBus::updateStateFromSensors(std::function<void()> callback)
@@ -638,7 +889,7 @@ void WBus::processKeepAlive()
   if (keepAliveTimeout.isReady() && !getKeepAliveCommandForCurrentState().isEmpty())
   {
     Serial.println();
-    Serial.print("Статус: " + getStateName());
+    Serial.print("Статус: " + getStateName(currentState));
     if (!isConnected())
     {
       wakeUp();
@@ -655,7 +906,7 @@ void WBus::processKeepAlive()
             wbusQueue.addPriority(keepAliveCommand, [this](String tx, String rx)
                                   {
             if (rx.isEmpty()) {
-              Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName());
+              Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName(currentState));
             } });
           }
         });
@@ -678,8 +929,8 @@ void WBus::checkConnection()
   }
   else if (connectionState == CONNECTED)
   {
-    // 5 секунд без ответа - считаем что соединение разорвано
-    if (_lastRxTime > 0 && millis() - _lastRxTime > 5000)
+    // 2 секунды без ответа - считаем что соединение разорвано
+    if (_lastRxTime > 0 && millis() - _lastRxTime > 2000)
     {
       setConnectionState(CONNECTION_FAILED);
     }
