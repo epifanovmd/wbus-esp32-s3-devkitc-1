@@ -17,9 +17,6 @@ private:
     void setupTestEndpoints();
     void printAvailableEndpoints();
 
-    // Методы обслуживания файлов
-    void serveFallbackHTML();
-
     // Handlers для тестирования компонентов
     void handleTestCombustionFan();
     void handleTestFuelPump();

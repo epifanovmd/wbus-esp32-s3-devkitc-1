@@ -134,7 +134,7 @@ void WBus::connect(std::function<void(String tx, String rx)> callback)
           webastoInfo.getControllerManufactureDate();
           webastoInfo.getHeaterManufactureDate();
           webastoInfo.getCustomerID();
-          webastoInfo.getSerialNumber([](String tx, String rx, DecodedTextData *serial)
+          webastoInfo.getSerialNumber(false, [](String tx, String rx, DecodedTextData *serial)
                                       {
           DynamicJsonDocument doc(512);
 
@@ -758,7 +758,4 @@ void WBus::process()
       kLineReceiver.kLineReceivedData.printTx();
     }
   }
-
-  socketServer.loop();
-  apiServer.loop();
 }

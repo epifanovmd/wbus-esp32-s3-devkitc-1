@@ -84,5 +84,8 @@ void loop()
     wBus.process();
   }
 
+    socketServer.loop();
+    apiServer.loop();
+
   delay(1);
 }

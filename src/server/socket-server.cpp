@@ -37,6 +37,8 @@ void SocketServer::begin()
                     }
                 }
                 break;
+                default: 
+                Serial.print(type);
         } });
 
     Serial.println("WebSocket Server started on port 81");
