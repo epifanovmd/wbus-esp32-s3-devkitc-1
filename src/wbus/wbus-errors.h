@@ -9,19 +9,19 @@ class WebastoErrors
 private:
     ErrorCollection currentErrors;
 
-    void handleErrorResponse(String tx, String rx);
-
 public:
-    void check(bool loop = false, std::function<void(String, String)> callback = nullptr);
+    ErrorCollection* handleErrorResponse(String rx);
+
+    void check(bool loop = false, std::function<void(String, String, ErrorCollection*)> callback = nullptr);
     void reset();
     void clear();
 
-    // универсальная функция обработки, по tx выбирает нужный обработчик
-    bool handleCommandResponse(String tx, String rx);
+    // Функция формирования JSON без классификации
+    String createJsonErrors(const ErrorCollection& errors);
+    String createJsonErrors(); // Перегруженная версия с текущими ошибками
 
     void printErrors();
     void stopLoop();
-    bool hasErrors() const { return currentErrors.hasErrors; }
     int errorCount() const { return currentErrors.errorCount; }
     ErrorCollection getErrors() const { return currentErrors; }
 };

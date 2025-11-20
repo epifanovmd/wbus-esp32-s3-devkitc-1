@@ -56,8 +56,6 @@ void SocketServer::sendRx(const String &data)
     DynamicJsonDocument doc(1024);
     doc["type"] = "rx";
     doc["data"] = data;
-    doc["timestamp"] = getTimestamp();
-    doc["direction"] = "in";
 
     String json;
     serializeJson(doc, json);
@@ -72,8 +70,6 @@ void SocketServer::sendTx(const String &data)
     DynamicJsonDocument doc(1024);
     doc["type"] = "tx";
     doc["data"] = data;
-    doc["timestamp"] = getTimestamp();
-    doc["direction"] = "out";
 
     String json;
     serializeJson(doc, json);
@@ -88,86 +84,44 @@ void SocketServer::sendInfo(const String &message)
     DynamicJsonDocument doc(512);
     doc["type"] = "info";
     doc["message"] = message;
-    doc["timestamp"] = getTimestamp();
 
     String json;
     serializeJson(doc, json);
     webSocket.broadcastTXT(json);
 }
 
-void SocketServer::sendError(const String &message)
+void SocketServer::send(const String &type, const String &data)
 {
     if (!enabled)
         return;
 
     DynamicJsonDocument doc(512);
-    doc["type"] = "error";
-    doc["message"] = message;
-    doc["timestamp"] = getTimestamp();
+
+    doc["type"] = type;
+    doc["data"] = serialized(data);
 
     String json;
     serializeJson(doc, json);
     webSocket.broadcastTXT(json);
 }
 
-void SocketServer::sendSensorData(const String &sensorName, const String &value)
+void SocketServer::sendSystemStatus(const String &type, const String &currentState, const String &prevState)
 {
     if (!enabled)
         return;
 
     DynamicJsonDocument doc(512);
-    doc["type"] = "sensor";
-    doc["sensor"] = sensorName;
-    doc["value"] = value;
-    doc["timestamp"] = getTimestamp();
+
+    JsonObject data = doc.createNestedObject("data");
+
+    doc["type"] = type;
+
+    data["state"] = currentState;
+    data["prev_state"] = prevState;
 
     String json;
     serializeJson(doc, json);
     webSocket.broadcastTXT(json);
-}
-
-void SocketServer::sendErrorData(const String &errorCode, const String &description)
-{
-    if (!enabled)
-        return;
-
-    DynamicJsonDocument doc(512);
-    doc["type"] = "error_data";
-    doc["code"] = errorCode;
-    doc["description"] = description;
-    doc["timestamp"] = getTimestamp();
-
-    String json;
-    serializeJson(doc, json);
-    webSocket.broadcastTXT(json);
-}
-
-void SocketServer::sendSystemStatus(const String &status)
-{
-    if (!enabled)
-        return;
-
-    DynamicJsonDocument doc(512);
-    doc["type"] = "status";
-    doc["status"] = status;
-    doc["timestamp"] = getTimestamp();
-
-    String json;
-    serializeJson(doc, json);
-    webSocket.broadcastTXT(json);
-}
-
-String SocketServer::getTimestamp()
-{
-    unsigned long ms = millis();
-    unsigned long seconds = ms / 1000;
-    unsigned long minutes = seconds / 60;
-    unsigned long hours = minutes / 60;
-
-    char timestamp[20];
-    snprintf(timestamp, sizeof(timestamp), "%02lu:%02lu:%02lu.%03lu",
-             hours % 24, minutes % 60, seconds % 60, ms % 1000);
-    return String(timestamp);
 }
 
 void SocketServer::enable()

@@ -376,34 +376,6 @@ OperatingState WBusSensorsDecoder::decodeOperatingState(const String &response)
 // ДЕКОДИРОВАНИЕ СТАТУСА ПОДСИСТЕМ
 // =============================================================================
 
-String WBusSensorsDecoder::buildSubsystemsSummaryString(const SubsystemsStatus &status)
-{
-    String summary = "";
-
-    if (status.glowPlugPowerPercent > 0)
-    {
-        summary += "Свеча:" + String(status.glowPlugPowerPercent, 0) + "%, ";
-    }
-    if (status.fuelPumpFrequencyHz > 0)
-    {
-        summary += "ТН:" + String(status.fuelPumpFrequencyHz, 1) + "Гц, ";
-    }
-    if (status.combustionFanPowerPercent > 0)
-    {
-        summary += "Вент:" + String(status.combustionFanPowerPercent, 0) + "%, ";
-    }
-    if (status.circulationPumpPowerPercent > 0)
-    {
-        summary += "ЦН:" + String(status.circulationPumpPowerPercent, 0) + "%, ";
-    }
-
-    if (summary.length() > 0)
-    {
-        return summary.substring(0, summary.length() - 2);
-    }
-    return "все системы выключены";
-}
-
 SubsystemsStatus WBusSensorsDecoder::decodeSubsystemsStatus(const String &response)
 {
     SubsystemsStatus result = {0};
@@ -430,8 +402,6 @@ SubsystemsStatus WBusSensorsDecoder::decodeSubsystemsStatus(const String &respon
         result.fuelPumpFrequencyHz = result.fuelPumpFrequency / 2.0;
         result.combustionFanPowerPercent = result.combustionFanPower / 2.0;
         result.circulationPumpPowerPercent = result.circulationPumpPower / 2.0;
-
-        result.statusSummary = buildSubsystemsSummaryString(result);
     }
 
     return result;

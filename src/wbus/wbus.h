@@ -6,8 +6,13 @@
 #include "common/print/print.h"
 #include "common/utils/utils.h"
 #include "wbus-sensors.h"
+#include "wbus-info.h"
+#include "wbus-errors.h"
 
 #define RGB_PIN RGB_BUILTIN
+
+extern String WebastoStateNames[];
+extern String ConnectionStateNames[];
 
 enum WebastoState
 {
@@ -39,7 +44,7 @@ private:
     unsigned long _lastRxTime = 0;
     bool _logging = false;
 
-    WebastoState determineStateFromFlags(const StatusFlags &flags, OnOffFlags &onOff);
+    WebastoState determineStateFromFlags(const StatusFlags *flags, OnOffFlags *onOff);
     String getKeepAliveCommandForCurrentState();
     void processSerialCommands();
     void processKeepAlive();

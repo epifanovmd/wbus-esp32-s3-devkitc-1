@@ -3,8 +3,93 @@
 #include <functional>
 #include "wbus-queue.h"
 #include "wbus.constants.h"
+#include <ArduinoJson.h>
 
 WebastoErrors webastoErrors;
+
+ErrorCollection *WebastoErrors::handleErrorResponse(String rx)
+{
+    if (!rx.isEmpty())
+    {
+        // Декодируем и заполняем структуру
+        currentErrors = webastoErrorsDecoder.decodeErrorPacket(rx);
+
+        return &currentErrors;
+    }
+
+    return nullptr;
+}
+
+void WebastoErrors::check(bool loop, std::function<void(String, String, ErrorCollection *errors)> callback)
+{
+    wbusQueue.add(CMD_READ_ERRORS_LIST, [this, callback](String tx, String rx)
+                  {
+    ErrorCollection* errors = this -> handleErrorResponse(rx);
+    if (callback != nullptr) {
+      callback(tx, rx, errors);
+    } }, loop);
+}
+
+void WebastoErrors::reset()
+{
+    wbusQueue.add(CMD_CLEAR_ERRORS, [this](String tx, String rx)
+                  {
+                      if (!rx.isEmpty())
+                      {
+                          this->currentErrors.clear();
+                      }
+
+                      // Выводим подтверждение
+                      // Serial.println();
+                      // Serial.println("✅ Ошибки очищены");
+                      // Serial.println();
+                  });
+}
+
+void WebastoErrors::clear()
+{
+    currentErrors.clear();
+}
+
+void WebastoErrors::stopLoop()
+{
+    wbusQueue.removeCommand(CMD_READ_ERRORS_LIST);
+    Serial.println("⏹️ Циклическая проверка ошибок остановлена");
+}
+
+// =============================================================================
+// ФУНКЦИЯ ФОРМИРОВАНИЯ JSON БЕЗ КЛАССИФИКАЦИИ
+// =============================================================================
+
+String WebastoErrors::createJsonErrors(const ErrorCollection &data)
+{
+    DynamicJsonDocument doc(4096);
+
+    doc["count"] = data.errorCount;
+
+    JsonArray errorArray = doc.createNestedArray("errors");
+
+    if (!data.isEmpty())
+    {
+        for (const WebastoError &error : data.errors)
+        {
+            JsonObject errorObj = errorArray.createNestedObject();
+            errorObj["code"] = error.code;
+            errorObj["hex_code"] = error.hexCode;
+            errorObj["description"] = error.description;
+            errorObj["counter"] = error.counter;
+        }
+    }
+
+    String json;
+    serializeJson(doc, json);
+    return json;
+}
+
+String WebastoErrors::createJsonErrors()
+{
+    return createJsonErrors(currentErrors);
+}
 
 // =============================================================================
 // ФУНКЦИЯ ВЫВОДА ОШИБОК (ПЕРЕНЕСЕНА СЮДА)
@@ -50,74 +135,4 @@ void WebastoErrors::printErrors()
 
     Serial.println("═══════════════════════════════════════════════════════════");
     Serial.println();
-}
-
-// =============================================================================
-// ОБРАБОТЧИК ОТВЕТА (ОБНОВЛЕННЫЙ)
-// =============================================================================
-
-void WebastoErrors::handleErrorResponse(String tx, String rx)
-{
-    if (!rx.isEmpty())
-    {
-        // Декодируем и заполняем структуру
-        currentErrors = webastoErrorsDecoder.decodeErrorPacket(rx);
-    }
-}
-
-bool WebastoErrors::handleCommandResponse(String tx, String rx)
-{
-    if (rx.isEmpty())
-        return false; // Не обрабатываем пустые ответы
-
-    if (tx == CMD_READ_ERRORS_LIST)
-    {
-        handleErrorResponse(tx, rx);
-        return true;
-    }
-    // else
-    //     Serial.println("❌ Для этой команды нет обработчика: " + tx);
-
-    return false;
-}
-
-// =============================================================================
-// ОСНОВНЫЕ МЕТОДЫ
-// =============================================================================
-
-void WebastoErrors::check(bool loop, std::function<void(String, String)> callback)
-{
-    wbusQueue.add(CMD_READ_ERRORS_LIST, [this, callback](String tx, String rx)
-                  {
-    this -> handleCommandResponse(tx, rx);
-    if (callback != nullptr) {
-      callback(tx, rx);
-    } }, loop);
-}
-
-void WebastoErrors::reset()
-{
-    wbusQueue.add(CMD_CLEAR_ERRORS, [this](String tx, String rx)
-                  {
-                      if (!rx.isEmpty())
-                      {
-                          this->currentErrors.clear();
-                      }
-
-                      // Выводим подтверждение
-                      // Serial.println();
-                      // Serial.println("✅ Ошибки очищены");
-                      // Serial.println();
-                  });
-}
-
-void WebastoErrors::clear()
-{
-    currentErrors.clear();
-}
-
-void WebastoErrors::stopLoop()
-{
-    wbusQueue.removeCommand(CMD_READ_ERRORS_LIST);
-    Serial.println("⏹️ Циклическая проверка ошибок остановлена");
 }

@@ -11,11 +11,10 @@ struct WebastoError
     uint8_t code;
     String description;
     uint8_t counter;
-    bool isActive;
     String hexCode;
 
     WebastoError(uint8_t errorCode = 0, uint8_t errorCounter = 0)
-        : code(errorCode), counter(errorCounter), isActive(true)
+        : code(errorCode), counter(errorCounter)
     {
         hexCode = "0x";
         if (code < 0x10)
@@ -28,21 +27,17 @@ struct WebastoError
 struct ErrorCollection
 {
     std::vector<WebastoError> errors;
-    bool hasErrors = false;
     int errorCount = 0;
-    String lastUpdate = "";
 
     void clear()
     {
         errors.clear();
-        hasErrors = false;
         errorCount = 0;
     }
 
     void addError(const WebastoError &error)
     {
         errors.push_back(error);
-        hasErrors = true;
         errorCount = errors.size();
     }
 

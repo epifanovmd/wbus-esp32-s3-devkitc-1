@@ -8,162 +8,146 @@ WebastoSensors webastoSensors;
 // ОБРАБОТЧИКИ ОТВЕТОВ (УПРОЩЕННЫЕ)
 // =============================================================================
 
-void WebastoSensors::handleOperationalInfoResponse(String tx, String rx)
+OperationalMeasurements *WebastoSensors::handleOperationalInfoResponse(String rx)
 {
   if (!rx.isEmpty())
   {
     operationalMeasurements = wBusSensorsDecoder.decodeOperationalInfo(rx);
+
+    return &operationalMeasurements;
   }
+
+  return nullptr;
 }
 
-void WebastoSensors::handleFuelSettingsResponse(String tx, String rx)
+FuelSettings *WebastoSensors::handleFuelSettingsResponse(String rx)
 {
   if (!rx.isEmpty())
   {
     fuelSettings = wBusSensorsDecoder.decodeFuelSettings(rx);
+
+    return &fuelSettings;
   }
+
+  return nullptr;
 }
 
-void WebastoSensors::handleOnOffFlagsResponse(String tx, String rx)
+OnOffFlags *WebastoSensors::handleOnOffFlagsResponse(String rx)
 {
   if (!rx.isEmpty())
   {
     onOffFlags = wBusSensorsDecoder.decodeOnOffFlags(rx);
+
+    return &onOffFlags;
   }
+
+  return nullptr;
 }
 
-void WebastoSensors::handleStatusFlagsResponse(String tx, String rx)
+StatusFlags *WebastoSensors::handleStatusFlagsResponse(String rx)
 {
   if (!rx.isEmpty())
   {
     statusFlags = wBusSensorsDecoder.decodeStatusFlags(rx);
+
+    return &statusFlags;
   }
+
+  return nullptr;
 }
 
-void WebastoSensors::handleOperatingStateResponse(String tx, String rx)
+OperatingState *WebastoSensors::handleOperatingStateResponse(String rx)
 {
   if (!rx.isEmpty())
   {
     operatingState = wBusSensorsDecoder.decodeOperatingState(rx);
+
+    return &operatingState;
   }
+
+  return nullptr;
 }
 
-void WebastoSensors::handleSubsystemsStatusResponse(String tx, String rx)
+SubsystemsStatus *WebastoSensors::handleSubsystemsStatusResponse(String rx)
 {
   if (!rx.isEmpty())
   {
     subsystemsStatus = wBusSensorsDecoder.decodeSubsystemsStatus(rx);
-  }
-}
 
-bool WebastoSensors::handleCommandResponse(String tx, String rx)
-{
-  if (rx.isEmpty())
-    return false; // Не обрабатываем пустые ответы
+    return &subsystemsStatus;
+  }
 
-  if (tx == CMD_READ_SENSOR_OPERATIONAL)
-  {
-    handleOperationalInfoResponse(tx, rx);
-    return true;
-  }
-  else if (tx == CMD_READ_SENSOR_FUEL_SETTINGS)
-  {
-    handleFuelSettingsResponse(tx, rx);
-    return true;
-  }
-  else if (tx == CMD_READ_SENSOR_ON_OFF_FLAGS)
-  {
-    handleOnOffFlagsResponse(tx, rx);
-    return true;
-  }
-  else if (tx == CMD_READ_SENSOR_STATUS_FLAGS)
-  {
-    handleStatusFlagsResponse(tx, rx);
-    return true;
-  }
-  else if (tx == CMD_READ_SENSOR_OPERATING_STATE)
-  {
-    handleOperatingStateResponse(tx, rx);
-    return true;
-  }
-  else if (tx == CMD_READ_SENSOR_SUBSYSTEMS_STATUS)
-  {
-    handleSubsystemsStatusResponse(tx, rx);
-    return true;
-  }
-  // else
-  //   Serial.println("❌ Для этой команды нет обрабочика: " + tx);
-
-  return false;
+  return nullptr;
 }
 
 // =============================================================================
 // ПУБЛИЧНЫЕ МЕТОДЫ
 // =============================================================================
 
-void WebastoSensors::getOperationalInfo(bool loop, std::function<void(String, String)> callback)
+void WebastoSensors::getOperationalInfo(bool loop, std::function<void(String, String, OperationalMeasurements *)> callback)
 {
   wbusQueue.add(CMD_READ_SENSOR_OPERATIONAL, [this, callback](String tx, String rx)
                 {
-      this -> handleCommandResponse(tx, rx);
+      OperationalMeasurements* data = this -> handleOperationalInfoResponse(rx);
       if (callback != nullptr) {
-        callback(tx, rx);
+        callback(tx, rx, data);
       } }, loop);
 }
 
-void WebastoSensors::getFuelSettings(bool loop, std::function<void(String, String)> callback)
+void WebastoSensors::getFuelSettings(bool loop, std::function<void(String, String, FuelSettings *)> callback)
 {
   wbusQueue.add(CMD_READ_SENSOR_FUEL_SETTINGS, [this, callback](String tx, String rx)
                 {
-    this -> handleCommandResponse(tx, rx);
+    FuelSettings* data = this -> handleFuelSettingsResponse(rx);
     if (callback != nullptr) {
-      callback(tx, rx);
+      callback(tx, rx, data);
     } }, loop);
 }
 
-void WebastoSensors::getOnOffFlags(bool loop, std::function<void(String, String)> callback)
+void WebastoSensors::getOnOffFlags(bool loop, std::function<void(String, String, OnOffFlags *)> callback)
 {
   wbusQueue.add(CMD_READ_SENSOR_ON_OFF_FLAGS, [this, callback](String tx, String rx)
                 {
-    this -> handleCommandResponse(tx, rx);
+    OnOffFlags* data = this -> handleOnOffFlagsResponse(rx);
     if (callback != nullptr) {
-      callback(tx, rx);
+      callback(tx, rx, data);
     } }, loop);
 }
 
-void WebastoSensors::getStatusFlags(bool loop, std::function<void(String, String)> callback)
+void WebastoSensors::getStatusFlags(bool loop, std::function<void(String, String, StatusFlags *)> callback)
 {
   wbusQueue.add(CMD_READ_SENSOR_STATUS_FLAGS, [this, callback](String tx, String rx)
                 {
-    this -> handleCommandResponse(tx, rx);
+    StatusFlags* data = this -> handleStatusFlagsResponse(rx);
     if (callback != nullptr) {
-      callback(tx, rx);
+      callback(tx, rx, data);
     } }, loop);
 }
 
-void WebastoSensors::getOperatingState(bool loop, std::function<void(String, String)> callback)
+void WebastoSensors::getOperatingState(bool loop, std::function<void(String, String, OperatingState *)> callback)
 {
   wbusQueue.add(CMD_READ_SENSOR_OPERATING_STATE, [this, callback](String tx, String rx)
                 {
-    this -> handleCommandResponse(tx, rx);
+    OperatingState* data = this -> handleOperatingStateResponse(rx);
     if (callback != nullptr) {
-      callback(tx, rx);
+      callback(tx, rx, data);
     } }, loop);
 }
 
-void WebastoSensors::getSubsystemsStatus(bool loop, std::function<void(String, String)> callback)
+void WebastoSensors::getSubsystemsStatus(bool loop, std::function<void(String, String, SubsystemsStatus *)> callback)
 {
   wbusQueue.add(CMD_READ_SENSOR_SUBSYSTEMS_STATUS, [this, callback](String tx, String rx)
                 {
-    this -> handleCommandResponse(tx, rx);
+    SubsystemsStatus* data = this -> handleSubsystemsStatusResponse(rx);
     if (callback != nullptr) {
-      callback(tx, rx);
+      callback(tx, rx, data);
     } }, loop);
 }
 
 void WebastoSensors::stopMonitoring()
 {
   wbusQueue.removeCommand(CMD_READ_SENSOR_OPERATIONAL);
+  wbusQueue.removeCommand(CMD_READ_SENSOR_FUEL_SETTINGS);
   wbusQueue.removeCommand(CMD_READ_SENSOR_ON_OFF_FLAGS);
   wbusQueue.removeCommand(CMD_READ_SENSOR_STATUS_FLAGS);
   wbusQueue.removeCommand(CMD_READ_SENSOR_OPERATING_STATE);
@@ -178,6 +162,160 @@ void WebastoSensors::clear()
   statusFlags = StatusFlags{};
   operatingState = OperatingState{};
   subsystemsStatus = SubsystemsStatus{};
+}
+
+// =============================================================================
+// ФУНКЦИИ ФОРМИРОВАНИЯ JSON
+// =============================================================================
+
+String WebastoSensors::createJsonOperationalInfo(const OperationalMeasurements &data)
+{
+  // "operational_measurements"
+  DynamicJsonDocument doc(1024);
+
+  doc["temperature"] = data.temperature;
+  doc["voltage"] = data.voltage;
+  doc["heating_power"] = data.heatingPower;
+  doc["flame_resistance"] = data.flameResistance;
+  doc["flame_detected"] = data.flameDetected;
+
+  String json;
+  serializeJson(doc, json);
+  return json;
+}
+
+String WebastoSensors::createJsonOperationalInfo()
+{
+  return createJsonOperationalInfo(operationalMeasurements);
+}
+
+String WebastoSensors::createJsonFuelSettings(const FuelSettings &data)
+{
+  // "fuel_settings"
+  DynamicJsonDocument doc(1024);
+
+  doc["fuel_type"] = data.fuelType;
+  doc["fuel_type_name"] = data.fuelTypeName;
+  doc["max_heating_time"] = data.maxHeatingTime;
+  doc["ventilation_factor"] = data.ventilationFactor;
+
+  String json;
+  serializeJson(doc, json);
+  return json;
+}
+
+String WebastoSensors::createJsonFuelSettings()
+{
+  return createJsonFuelSettings(fuelSettings);
+}
+
+String WebastoSensors::createJsonOnOffFlags(const OnOffFlags &data)
+{
+  // "on_off_flags"
+  DynamicJsonDocument doc(1024);
+
+  doc["combustion_air_fan"] = data.combustionAirFan;
+  doc["glow_plug"] = data.glowPlug;
+  doc["fuel_pump"] = data.fuelPump;
+  doc["circulation_pump"] = data.circulationPump;
+  doc["vehicle_fan_relay"] = data.vehicleFanRelay;
+  doc["nozzle_stock_heating"] = data.nozzleStockHeating;
+  doc["flame_indicator"] = data.flameIndicator;
+  doc["active_components"] = data.activeComponents;
+
+  String json;
+  serializeJson(doc, json);
+  return json;
+}
+
+String WebastoSensors::createJsonOnOffFlags()
+{
+  return createJsonOnOffFlags(onOffFlags);
+}
+
+String WebastoSensors::createJsonStatusFlags(const StatusFlags &data)
+{
+  // "status_flags"
+  DynamicJsonDocument doc(2048);
+
+  // Основные флаги
+  doc["main_switch"] = data.mainSwitch;
+  doc["supplemental_heat_request"] = data.supplementalHeatRequest;
+  doc["parking_heat_request"] = data.parkingHeatRequest;
+  doc["ventilation_request"] = data.ventilationRequest;
+  doc["summer_mode"] = data.summerMode;
+  doc["external_control"] = data.externalControl;
+  doc["generator_signal"] = data.generatorSignal;
+  doc["boost_mode"] = data.boostMode;
+  doc["auxiliary_drive"] = data.auxiliaryDrive;
+  doc["ignition_signal"] = data.ignitionSignal;
+
+  // Сводная информация
+  doc["status_summary"] = data.statusSummary;
+  doc["operation_mode"] = data.operationMode;
+
+  String json;
+  serializeJson(doc, json);
+  return json;
+}
+
+String WebastoSensors::createJsonStatusFlags()
+{
+  return createJsonStatusFlags(statusFlags);
+}
+
+String WebastoSensors::createJsonOperatingState(const OperatingState &data)
+{
+  // "operating_state"
+  DynamicJsonDocument doc(2048);
+
+  doc["state_code"] = data.stateCode;
+  doc["state_number"] = data.stateNumber;
+  doc["device_state_flags"] = data.deviceStateFlags;
+  doc["state_name"] = data.stateName;
+  doc["state_description"] = data.stateDescription;
+  doc["device_state_info"] = data.deviceStateInfo;
+
+  // Дополнительная информация в HEX формате
+  doc["state_code_hex"] = "0x" + String(operatingState.stateCode, HEX);
+  doc["device_state_flags_hex"] = "0x" + String(operatingState.deviceStateFlags, HEX);
+
+  String json;
+  serializeJson(doc, json);
+  return json;
+}
+
+String WebastoSensors::createJsonOperatingState()
+{
+  return createJsonOperatingState(operatingState);
+}
+
+String WebastoSensors::createJsonSubsystemsStatus(const SubsystemsStatus &data)
+{
+  // "subsystems_status"
+  DynamicJsonDocument doc(2048);
+
+  // Сырые данные
+  doc["glow_plug_power"] = data.glowPlugPower;
+  doc["fuel_pump_frequency"] = data.fuelPumpFrequency;
+  doc["combustion_fan_power"] = data.combustionFanPower;
+  doc["circulation_pump_power"] = data.circulationPumpPower;
+  doc["unknown_byte_3"] = data.unknownByte3;
+
+  // Вычисленные значения
+  doc["glow_plug_power_percent"] = data.glowPlugPowerPercent;
+  doc["fuel_pump_frequency_hz"] = data.fuelPumpFrequencyHz;
+  doc["combustion_fan_power_percent"] = data.combustionFanPowerPercent;
+  doc["circulation_pump_power_percent"] = data.circulationPumpPowerPercent;
+
+  String json;
+  serializeJson(doc, json);
+  return json;
+}
+
+String WebastoSensors::createJsonSubsystemsStatus()
+{
+  return createJsonSubsystemsStatus(subsystemsStatus);
 }
 
 // =============================================================================
@@ -250,7 +388,6 @@ void WebastoSensors::printSensorData()
 
   Serial.println();
   Serial.println("⚙️  СТАТУС ПОДСИСТЕМ:");
-  Serial.println("   Сводка:             " + subsystemsStatus.statusSummary);
   Serial.println("   📊 Детальные параметры:");
   Serial.printf("      Свеча накаливания:  %5.1f %%\n", subsystemsStatus.glowPlugPowerPercent);
   Serial.printf("      Топливный насос:    %5.1f Гц\n", subsystemsStatus.fuelPumpFrequencyHz);

@@ -82,8 +82,6 @@ struct SubsystemsStatus
     float fuelPumpFrequencyHz;         // Частота ТН в Гц
     float combustionFanPowerPercent;   // Мощность вентилятора в %
     float circulationPumpPowerPercent; // Мощность циркуляционного насоса в %
-
-    String statusSummary; // Сводка статуса
 };
 
 class WBusSensorsDecoder
@@ -100,7 +98,6 @@ private:
     // Вспомогательные методы
     String determineVentilationDescription(uint8_t ventFactor);
     bool validatePacketStructure(const String &response, uint8_t expectedCommand, uint8_t expectedIndex, int minLength);
-    String buildSubsystemsSummaryString(const SubsystemsStatus &status);
 
 public:
     OperationalMeasurements decodeOperationalInfo(const String &response);

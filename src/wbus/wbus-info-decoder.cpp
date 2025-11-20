@@ -67,7 +67,10 @@ DecodedTextData WBusDecoder::decodeDeviceName(const String& response) {
     
     String nameData = extractDataFromResponse(response, "d10b");
     if (nameData.length() > 0) {
-        result.text = hexToString(nameData);
+        String text = hexToString(nameData);
+        text.trim();
+
+        result.text = text;
         result.isValid = true;
     }
     

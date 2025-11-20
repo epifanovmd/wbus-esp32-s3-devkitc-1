@@ -1,4 +1,3 @@
-// api-server.h
 #ifndef API_SERVER_H
 #define API_SERVER_H
 
@@ -10,31 +9,52 @@ class ApiServer
 {
 private:
     WebServer server;
-    
-    // Методы для обслуживания статических файлов
-    void serveHTML();
-    void serveHTMLFromCode();
-    void serveStaticFile(String path, String contentType);
+
+    // Методы инициализации
+    void initializeFileSystem();
+    void listFilesystemContents();
+    void setupEndpoints();
+    void setupTestEndpoints();
+    void printAvailableEndpoints();
+
+    // Методы обслуживания файлов
+    void serveFallbackHTML();
+
+    // Handlers для тестирования компонентов
+    void handleTestCombustionFan();
+    void handleTestFuelPump();
+    void handleTestGlowPlug();
+    void handleTestCirculationPump();
+    void handleTestVehicleFan();
+    void handleTestSolenoidValve();
+    void handleTestFuelPreheating();
 
 public:
     ApiServer();
     void begin();
     void loop();
 
-private:
+    // Основные методы
+    void serveHTML();
+    void serveStaticFile(String path, String contentType);
+
+    // Handlers для управления режимами
+    void handleConnect();
+    void handleDisconnect();
+    void handleStartParkingHeat();
+    void handleStartVentilation();
+    void handleStartSupplementalHeat();
+    void handleStartBoostMode();
+    void handleControlCirculationPump();
+    void handleStopHeater();
+    void handleToggleLogging();
+
+    // Handlers для данных
     void handleGetSystemState();
     void handleGetDeviceInfo();
     void handleGetSensorsData();
     void handleGetErrors();
     void handleGetAllData();
-    
-    // Endpoint-ы управления
-    void handleConnect();
-    void handleDisconnect();
-    void handleStartParkingHeat();
-    void handleStopHeater();
-    void handleToggleLogging();
-
     void handleNotFound();
 };
 
