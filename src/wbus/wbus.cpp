@@ -134,17 +134,75 @@ void WBus::connect(std::function<void(String tx, String rx)> callback)
           webastoInfo.getControllerManufactureDate();
           webastoInfo.getHeaterManufactureDate();
           webastoInfo.getCustomerID();
-          webastoInfo.getSerialNumber();
+          webastoInfo.getSerialNumber([](String tx, String rx, DecodedTextData *serial)
+                                      {
+          DynamicJsonDocument doc(512);
+
+          doc["wbus_version"] = webastoInfo.getWBusVersionData();
+          doc["device_name"] = webastoInfo.getDeviceNameData();;
+          doc["device_id"] = webastoInfo.getDeviceIDData();
+          doc["serial_number"] = webastoInfo.getSerialNumberData();
+          doc["controller_manufacture_date"] = webastoInfo.getControllerManufactureDateData();
+          doc["heater_manufacture_date"] = webastoInfo.getHeaterManufactureDateData();
+          doc["customer_id"] = webastoInfo.getCustomerIDData();;
+          doc["wbus_code"] = webastoInfo.getWBusCodeData();;
+          doc["supported_functions"] = webastoInfo.getSupportedFunctionsData();
+
+          String json;
+          serializeJson(doc, json);
+          socketServer.send("device_info", json); });
 
           wbusQueue.setInterval(200);
 
           // Запускаем периодический опрос сенсоров
-          webastoSensors.getOperationalInfo(true);
-          webastoSensors.getOnOffFlags(true);
-          webastoSensors.getStatusFlags(true);
-          webastoSensors.getOperatingState(true);
-          webastoSensors.getSubsystemsStatus(true);
-          webastoErrors.check(true);
+          webastoSensors.getOperationalInfo(true, [this](String tx, String rx, OperationalMeasurements *measurements)
+                                            {
+          if (measurements != nullptr) {
+            String json = webastoSensors.createJsonOperationalInfo( * measurements);
+            socketServer.send("operational_measurements", json);
+          } });
+
+          webastoSensors.getFuelSettings(false, [this](String tx, String rx, FuelSettings *fuel)
+                                         {
+          if (fuel != nullptr) {
+            String json = webastoSensors.createJsonFuelSettings( * fuel);
+            socketServer.send("fuel_settings", json);
+          } });
+
+          webastoSensors.getOnOffFlags(true, [this](String tx, String rx, OnOffFlags *onOff)
+                                       {
+          if (onOff != nullptr) {
+            String json = webastoSensors.createJsonOnOffFlags( * onOff);
+            socketServer.send("on_off_flags", json);
+          } });
+
+          webastoSensors.getStatusFlags(true, [this](String tx, String rx, StatusFlags *status)
+                                        {
+          if (status != nullptr) {
+            String json = webastoSensors.createJsonStatusFlags( * status);
+            socketServer.send("status_flags", json);
+          } });
+
+          webastoSensors.getOperatingState(true, [this](String tx, String rx, OperatingState *state)
+                                           {
+          if (state != nullptr) {
+            String json = webastoSensors.createJsonOperatingState( * state);
+            socketServer.send("operating_state", json);
+          } });
+
+          webastoSensors.getSubsystemsStatus(true, [this](String tx, String rx, SubsystemsStatus *subsystems)
+                                             {
+          if (subsystems != nullptr) {
+            String json = webastoSensors.createJsonSubsystemsStatus( * subsystems);
+            socketServer.send("subsystems_status", json);
+          } });
+
+          webastoErrors.check(true, [this](String tx, String rx, ErrorCollection *errors)
+                              {
+          if (errors != nullptr) {
+            String json = webastoErrors.createJsonErrors( * errors);
+            socketServer.send("errors", json);
+          } });
 
           Serial.println();
           Serial.println("✅ Подключение к Webasto установлено");
