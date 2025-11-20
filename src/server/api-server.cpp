@@ -365,6 +365,30 @@ void ApiServer::serveHTML()
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
 
+        function handleRawWebSocketMessage(rawData) {
+            try {
+                // Пытаемся обработать как простые команды
+                if (rawData.includes('"type":"rx"')) {
+                    const match = rawData.match(/"data":"([^"]+)"/);
+                    if (match) {
+                        addToLog('rx', match[1]);
+                    }
+                } else if (rawData.includes('"type":"tx"')) {
+                    const match = rawData.match(/"data":"([^"]+)"/);
+                    if (match) {
+                        addToLog('tx', match[1]);
+                    }
+                } else if (rawData.includes('"type":"info"')) {
+                    const match = rawData.match(/"message":"([^"]+)"/);
+                    if (match) {
+                        showNotification(match[1]);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка обработки сырого сообщения:', error, rawData);
+            }
+        }
+
         function connectWebSocket() {
             try {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -380,10 +404,22 @@ void ApiServer::serveHTML()
                 
                 socket.onmessage = function(event) {
                     try {
-                        const data = JSON.parse(event.data);
+                        // Парсим JSON только если пришла строка
+                        let data;
+                        if (typeof event.data === 'string') {
+                            data = JSON.parse(event.data);
+                        } else {
+                            // Если уже объект (в некоторых браузерах)
+                            data = event.data;
+                        }
                         handleWebSocketMessage(data);
                     } catch (error) {
-                        console.error('Ошибка парсинга WebSocket сообщения:', error);
+                        console.error('Ошибка парсинга WebSocket сообщения:', error, 'Данные:', event.data);
+                        
+                        // Пытаемся обработать как простую строку
+                        if (typeof event.data === 'string') {
+                            handleRawWebSocketMessage(event.data);
+                        }
                     }
                 };
                 
@@ -412,38 +448,48 @@ void ApiServer::serveHTML()
         }
 
         function handleWebSocketMessage(data) {
-            switch(data.type) {
-                case 'operational_measurements':
-                    updateOperationalData(JSON.parse(data.data));
-                    break;
-                case 'status_flags':
-                    updateStatusFlags(JSON.parse(data.data));
-                    break;
-                case 'on_off_flags':
-                    updateOnOffFlags(JSON.parse(data.data));
-                    break;
-                case 'operating_state':
-                    updateOperatingState(JSON.parse(data.data));
-                    break;
-                case 'subsystems_status':
-                    updateSubsystemsStatus(JSON.parse(data.data));
-                    break;
-                case 'errors':
-                    updateErrors(JSON.parse(data.data));
-                    break;
-                case 'system_status':
-                    updateSystemStatus(data.data);
-                    break;
-                case 'tx':
-                case 'rx':
-                    // Логирование коммуникации (опционально)
-                    break;
-                case 'connection_state':
-                    updateConnectionState(data.data);
-                    break;
-                case 'state':
-                    updateHeaterState(data.data);
-                    break;
+            try {
+                // data уже объект, не нужно парсить JSON
+                switch(data.type) {
+                    case 'operational_measurements':
+                        updateOperationalData(data.data); // data.data уже объект
+                        break;
+                    case 'status_flags':
+                        updateStatusFlags(data.data); // data.data уже объект
+                        break;
+                    case 'on_off_flags':
+                        updateOnOffFlags(data.data); // data.data уже объект
+                        break;
+                    case 'operating_state':
+                        updateOperatingState(data.data); // data.data уже объект
+                        break;
+                    case 'subsystems_status':
+                        updateSubsystemsStatus(data.data); // data.data уже объект
+                        break;
+                    case 'errors':
+                        updateErrors(data.data); // data.data уже объект
+                        break;
+                    case 'system_status':
+                        updateSystemStatus(data.data);
+                        break;
+                    case 'tx':
+                    case 'rx':
+                        // Для tx/rx data.data это строка
+                        addToLog(data.type, data.data);
+                        break;
+                    case 'connection_state':
+                        updateConnectionState(data.data);
+                        break;
+                    case 'state':
+                        updateHeaterState(data.data);
+                        break;
+                    case 'info':
+                        // Для info сообщений
+                        showNotification(data.message || data.data);
+                        break;
+                }
+            } catch (error) {
+                console.error('Ошибка обработки WebSocket сообщения:', error, data);
             }
         }
 
