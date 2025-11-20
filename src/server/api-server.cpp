@@ -20,7 +20,8 @@ void ApiServer::begin()
     setupEndpoints();
 
     server.begin();
-    Serial.println("✅ HTTP server started on port 80");
+    Serial.println();
+    Serial.print("✅ HTTP server started on port 80");
     printAvailableEndpoints();
 }
 
@@ -32,13 +33,15 @@ void ApiServer::initializeFileSystem()
         return;
     }
 
-    Serial.println("✅ LittleFS инициализирован");
+    Serial.println();
+    Serial.print("✅ LittleFS инициализирован");
     listFilesystemContents();
 }
 
 void ApiServer::listFilesystemContents()
 {
-    Serial.println("📁 Содержимое LittleFS:");
+    Serial.println();
+    Serial.print("📁 Содержимое LittleFS:");
     File root = FS.open("/");
     if (!root)
     {
@@ -56,6 +59,7 @@ void ApiServer::listFilesystemContents()
     File file = root.openNextFile();
     int fileCount = 0;
 
+    Serial.println();
     while (file)
     {
         fileCount++;
@@ -156,12 +160,14 @@ void ApiServer::serveStaticFile(String path, String contentType)
         {
             server.streamFile(file, contentType);
             file.close();
-            Serial.println("✅ Обслужен файл: " + path);
+            Serial.println();
+            Serial.print("✅ Обслужен файл: " + path);
         }
         else
         {
             server.send(500, "application/json", "{\"error\":\"file_open_error\"}");
-            Serial.println("❌ Ошибка открытия файла: " + path);
+            Serial.println();
+            Serial.print("❌ Ошибка открытия файла: " + path);
         }
     }
     else
