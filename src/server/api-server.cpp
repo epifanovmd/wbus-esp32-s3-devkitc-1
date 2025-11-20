@@ -9,172 +9,166 @@ ApiServer apiServer;
 
 #define FS LittleFS
 
-ApiServer::ApiServer(): server(80) {}
+ApiServer::ApiServer() : server(80) {}
 
-void ApiServer::begin() {
-  // Инициализация файловой системы
-  initializeFileSystem();
+void ApiServer::begin()
+{
+    // Инициализация файловой системы
+    initializeFileSystem();
 
-  // Настройка endpoint-ов
-  setupEndpoints();
+    // Настройка endpoint-ов
+    setupEndpoints();
 
-  server.begin();
-  Serial.println("✅ HTTP server started on port 80");
-  printAvailableEndpoints();
+    server.begin();
+    Serial.println("✅ HTTP server started on port 80");
+    printAvailableEndpoints();
 }
 
-void ApiServer::initializeFileSystem() {
-  if (!LittleFS.begin(true)) {
-    Serial.println("❌ Ошибка инициализации LittleFS");
-    return;
-  }
-
-  Serial.println("✅ LittleFS инициализирован");
-  listFilesystemContents();
-}
-
-void ApiServer::listFilesystemContents() {
-  Serial.println("📁 Содержимое LittleFS:");
-  File root = FS.open("/");
-  if (!root) {
-    Serial.println("   ❌ Не удалось открыть корневую директорию");
-    return;
-  }
-
-  if (!root.isDirectory()) {
-    Serial.println("   ❌ Корень не является директорией");
-    root.close();
-    return;
-  }
-
-  File file = root.openNextFile();
-  int fileCount = 0;
-
-  while (file) {
-    fileCount++;
-    Serial.println("   📄 " + String(file.name()) + " | Размер: " + String(file.size()) + " байт");
-    file = root.openNextFile();
-  }
-  root.close();
-
-  if (fileCount == 0) {
-    Serial.println("   ℹ️  Файловая система пуста");
-  }
-}
-
-void ApiServer::setupEndpoints() {
-  // Статические файлы
-  server.on("/", HTTP_GET, [this]() {
-    serveHTML();
-  });
-  server.on("/fallback", HTTP_GET, [this]() {
-    serveFallbackHTML();
-  });
-
-  // API endpoint-ы для данных
-  server.on("/api/system/state", HTTP_GET, [this]() {
-    handleGetSystemState();
-  });
-  server.on("/api/device/info", HTTP_GET, [this]() {
-    handleGetDeviceInfo();
-  });
-  server.on("/api/sensors/data", HTTP_GET, [this]() {
-    handleGetSensorsData();
-  });
-  server.on("/api/errors", HTTP_GET, [this]() {
-    handleGetErrors();
-  });
-  server.on("/api/all", HTTP_GET, [this]() {
-    handleGetAllData();
-  });
-
-  // API endpoint-ы для управления режимами
-  server.on("/api/control/connect", HTTP_POST, [this]() {
-    handleConnect();
-  });
-  server.on("/api/control/disconnect", HTTP_POST, [this]() {
-    handleDisconnect();
-  });
-  server.on("/api/control/start_parking", HTTP_POST, [this]() {
-    handleStartParkingHeat();
-  });
-  server.on("/api/control/start_ventilation", HTTP_POST, [this]() {
-    handleStartVentilation();
-  });
-  server.on("/api/control/start_supplemental", HTTP_POST, [this]() {
-    handleStartSupplementalHeat();
-  });
-  server.on("/api/control/start_boost", HTTP_POST, [this]() {
-    handleStartBoostMode();
-  });
-  server.on("/api/control/circulation_pump", HTTP_POST, [this]() {
-    handleControlCirculationPump();
-  });
-  server.on("/api/control/stop", HTTP_POST, [this]() {
-    handleStopHeater();
-  });
-  server.on("/api/control/toggle_logging", HTTP_POST, [this]() {
-    handleToggleLogging();
-  });
-
-  // Endpoint-ы для тестирования компонентов
-  setupTestEndpoints();
-
-  server.onNotFound([this]() {
-    handleNotFound();
-  });
-}
-
-void ApiServer::setupTestEndpoints() {
-  // Тесты компонентов
-  server.on("/api/test/combustion_fan", HTTP_POST, [this]() {
-    handleTestCombustionFan();
-  });
-
-  server.on("/api/test/fuel_pump", HTTP_POST, [this]() {
-    handleTestFuelPump();
-  });
-
-  server.on("/api/test/glow_plug", HTTP_POST, [this]() {
-    handleTestGlowPlug();
-  });
-
-  server.on("/api/test/circulation_pump", HTTP_POST, [this]() {
-    handleTestCirculationPump();
-  });
-
-  server.on("/api/test/vehicle_fan", HTTP_POST, [this]() {
-    handleTestVehicleFan();
-  });
-
-  server.on("/api/test/solenoid_valve", HTTP_POST, [this]() {
-    handleTestSolenoidValve();
-  });
-
-  server.on("/api/test/fuel_preheating", HTTP_POST, [this]() {
-    handleTestFuelPreheating();
-  });
-}
-
-void ApiServer::serveHTML() {
-  serveStaticFile("/index.html", "text/html");
-}
-
-void ApiServer::serveStaticFile(String path, String contentType) {
-  if (LittleFS.exists(path)) {
-    File file = LittleFS.open(path, "r");
-    if (file) {
-      server.streamFile(file, contentType);
-      file.close();
-      Serial.println("✅ Обслужен файл: " + path);
-    } else {
-      server.send(500, "application/json", "{\"error\":\"file_open_error\"}");
-      Serial.println("❌ Ошибка открытия файла: " + path);
+void ApiServer::initializeFileSystem()
+{
+    if (!LittleFS.begin(true))
+    {
+        Serial.println("❌ Ошибка инициализации LittleFS");
+        return;
     }
-  } else {
-    serveFallbackHTML();
-    Serial.println("⚠️  Файл не найден: " + path);
-  }
+
+    Serial.println("✅ LittleFS инициализирован");
+    listFilesystemContents();
+}
+
+void ApiServer::listFilesystemContents()
+{
+    Serial.println("📁 Содержимое LittleFS:");
+    File root = FS.open("/");
+    if (!root)
+    {
+        Serial.println("   ❌ Не удалось открыть корневую директорию");
+        return;
+    }
+
+    if (!root.isDirectory())
+    {
+        Serial.println("   ❌ Корень не является директорией");
+        root.close();
+        return;
+    }
+
+    File file = root.openNextFile();
+    int fileCount = 0;
+
+    while (file)
+    {
+        fileCount++;
+        Serial.println("   📄 " + String(file.name()) + " | Размер: " + String(file.size()) + " байт");
+        file = root.openNextFile();
+    }
+    root.close();
+
+    if (fileCount == 0)
+    {
+        Serial.println("   ℹ️  Файловая система пуста");
+    }
+}
+
+void ApiServer::setupEndpoints()
+{
+    // Статические файлы
+    server.on("/", HTTP_GET, [this]()
+              { serveHTML(); });
+    server.on("/fallback", HTTP_GET, [this]()
+              { serveFallbackHTML(); });
+
+    // API endpoint-ы для данных
+    server.on("/api/system/state", HTTP_GET, [this]()
+              { handleGetSystemState(); });
+    server.on("/api/device/info", HTTP_GET, [this]()
+              { handleGetDeviceInfo(); });
+    server.on("/api/sensors/data", HTTP_GET, [this]()
+              { handleGetSensorsData(); });
+    server.on("/api/errors", HTTP_GET, [this]()
+              { handleGetErrors(); });
+    server.on("/api/all", HTTP_GET, [this]()
+              { handleGetAllData(); });
+
+    // API endpoint-ы для управления режимами
+    server.on("/api/control/connect", HTTP_POST, [this]()
+              { handleConnect(); });
+    server.on("/api/control/disconnect", HTTP_POST, [this]()
+              { handleDisconnect(); });
+    server.on("/api/control/start_parking", HTTP_POST, [this]()
+              { handleStartParkingHeat(); });
+    server.on("/api/control/start_ventilation", HTTP_POST, [this]()
+              { handleStartVentilation(); });
+    server.on("/api/control/start_supplemental", HTTP_POST, [this]()
+              { handleStartSupplementalHeat(); });
+    server.on("/api/control/start_boost", HTTP_POST, [this]()
+              { handleStartBoostMode(); });
+    server.on("/api/control/circulation_pump", HTTP_POST, [this]()
+              { handleControlCirculationPump(); });
+    server.on("/api/control/stop", HTTP_POST, [this]()
+              { handleStopHeater(); });
+    server.on("/api/control/toggle_logging", HTTP_POST, [this]()
+              { handleToggleLogging(); });
+
+    // Endpoint-ы для тестирования компонентов
+    setupTestEndpoints();
+
+    server.onNotFound([this]()
+                      { handleNotFound(); });
+}
+
+void ApiServer::setupTestEndpoints()
+{
+    // Тесты компонентов
+    server.on("/api/test/combustion_fan", HTTP_POST, [this]()
+              { handleTestCombustionFan(); });
+
+    server.on("/api/test/fuel_pump", HTTP_POST, [this]()
+              { handleTestFuelPump(); });
+
+    server.on("/api/test/glow_plug", HTTP_POST, [this]()
+              { handleTestGlowPlug(); });
+
+    server.on("/api/test/circulation_pump", HTTP_POST, [this]()
+              { handleTestCirculationPump(); });
+
+    server.on("/api/test/vehicle_fan", HTTP_POST, [this]()
+              { handleTestVehicleFan(); });
+
+    server.on("/api/test/solenoid_valve", HTTP_POST, [this]()
+              { handleTestSolenoidValve(); });
+
+    server.on("/api/test/fuel_preheating", HTTP_POST, [this]()
+              { handleTestFuelPreheating(); });
+}
+
+void ApiServer::serveHTML()
+{
+    serveStaticFile("/index.html", "text/html");
+}
+
+void ApiServer::serveStaticFile(String path, String contentType)
+{
+    if (LittleFS.exists(path))
+    {
+        File file = LittleFS.open(path, "r");
+        if (file)
+        {
+            server.streamFile(file, contentType);
+            file.close();
+            Serial.println("✅ Обслужен файл: " + path);
+        }
+        else
+        {
+            server.send(500, "application/json", "{\"error\":\"file_open_error\"}");
+            Serial.println("❌ Ошибка открытия файла: " + path);
+        }
+    }
+    else
+    {
+        serveFallbackHTML();
+        Serial.println("⚠️  Файл не найден: " + path);
+    }
 }
 
 void ApiServer::serveFallbackHTML()
@@ -329,317 +323,710 @@ void ApiServer::serveFallbackHTML()
     server.send(200, "text/html", html);
 }
 
-void ApiServer::loop() {
-  server.handleClient();
+void ApiServer::loop()
+{
+    server.handleClient();
 }
 
 // =============================================================================
 // HANDLERS ДЛЯ УПРАВЛЕНИЯ РЕЖИМАМИ
 // =============================================================================
 
-void ApiServer::handleConnect() {
-  wBus.connect();
-  server.send(200, "application/json", "{\"status\":\"connecting\",\"message\":\"Инициировано подключение к Webasto\"}");
+void ApiServer::handleConnect()
+{
+    wBus.connect([this](String tx, String rx)
+                 {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized("{}");
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Успешное подключение к Webasto";
+    } else {
+      doc["error"] = "Ошибка подключения к Webasto";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleDisconnect() {
-  wBus.disconnect();
-  server.send(200, "application/json", "{\"status\":\"disconnecting\",\"message\":\"Инициировано отключение от Webasto\"}");
+void ApiServer::handleDisconnect()
+{
+    wBus.disconnect();
+
+    DynamicJsonDocument doc(512);
+
+    doc["success"] = true; // disconnect всегда успешен
+    doc["params"] = serialized("{}");
+    doc["message"] = "Отключение от Webasto выполнено";
+
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
 
-void ApiServer::handleStartParkingHeat() {
-  int minutes = server.arg("minutes").toInt();
-  if (minutes <= 0) minutes = 60; // Значение по умолчанию
-  
-  wBus.startParkingHeat(minutes);
-  server.send(200, "application/json", 
-    "{\"status\":\"started\",\"mode\":\"parking_heat\",\"message\":\"Паркинг-нагрев запущен\",\"duration_minutes\":" + String(minutes) + "}");
+void ApiServer::handleStartParkingHeat()
+{
+    int minutes = server.arg("minutes").toInt();
+    if (minutes <= 0)
+        minutes = 60;
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["minutes"] = minutes;
+    paramsDoc["mode"] = "parking_heat";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.startParkingHeat(minutes, [this, paramsStr](String tx, String rx)
+                          {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Паркинг-нагрев успешно запущен";
+    } else {
+      doc["error"] = "Ошибка запуска паркинг-нагрева";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleStartVentilation() {
-  int minutes = server.arg("minutes").toInt();
-  if (minutes <= 0) minutes = 60; // Значение по умолчанию
-  
-  wBus.startVentilation(minutes);
-  server.send(200, "application/json", 
-    "{\"status\":\"started\",\"mode\":\"ventilation\",\"message\":\"Вентиляция запущена\",\"duration_minutes\":" + String(minutes) + "}");
+void ApiServer::handleStartVentilation()
+{
+    int minutes = server.arg("minutes").toInt();
+    if (minutes <= 0)
+        minutes = 60;
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["minutes"] = minutes;
+    paramsDoc["mode"] = "ventilation";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.startVentilation(minutes, [this, paramsStr](String tx, String rx)
+                          {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Вентиляция успешно запущена";
+    } else {
+      doc["error"] = "Ошибка запуска вентиляции";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleStartSupplementalHeat() {
-  int minutes = server.arg("minutes").toInt();
-  if (minutes <= 0) minutes = 60; // Значение по умолчанию
-  
-  wBus.startSupplementalHeat(minutes);
-  server.send(200, "application/json", 
-    "{\"status\":\"started\",\"mode\":\"supplemental_heat\",\"message\":\"Дополнительный нагрев запущен\",\"duration_minutes\":" + String(minutes) + "}");
+void ApiServer::handleStartSupplementalHeat()
+{
+    int minutes = server.arg("minutes").toInt();
+    if (minutes <= 0)
+        minutes = 60;
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["minutes"] = minutes;
+    paramsDoc["mode"] = "supplemental_heat";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.startSupplementalHeat(minutes, [this, paramsStr](String tx, String rx)
+                               {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Дополнительный нагрев успешно запущен";
+    } else {
+      doc["error"] = "Ошибка запуска дополнительного нагрева";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleStartBoostMode() {
-  int minutes = server.arg("minutes").toInt();
-  if (minutes <= 0) minutes = 60; // Значение по умолчанию
-  
-  wBus.startBoostMode(minutes);
-  server.send(200, "application/json", 
-    "{\"status\":\"started\",\"mode\":\"boost\",\"message\":\"Boost режим запущен\",\"duration_minutes\":" + String(minutes) + "}");
+void ApiServer::handleStartBoostMode()
+{
+    int minutes = server.arg("minutes").toInt();
+    if (minutes <= 0)
+        minutes = 60;
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["minutes"] = minutes;
+    paramsDoc["mode"] = "boost";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.startBoostMode(minutes, [this, paramsStr](String tx, String rx)
+                        {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Boost режим успешно запущен";
+    } else {
+      doc["error"] = "Ошибка запуска Boost режима";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleControlCirculationPump() {
-  String enableStr = server.arg("enable");
-  bool enable = (enableStr == "true" || enableStr == "1");
-  
-  wBus.controlCirculationPump(enable);
-  
-  String statusMessage = enable ? "включен" : "выключен";
-  String enabledStr = enable ? "true" : "false";
-  
-  String response = "{\"status\":\"success\",\"message\":\"Циркуляционный насос " + statusMessage + "\",\"enabled\":" + enabledStr + "}";
-  
-  server.send(200, "application/json", response);
+void ApiServer::handleControlCirculationPump()
+{
+    String enableStr = server.arg("enable");
+    bool enable = (enableStr == "true" || enableStr == "1");
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["enable"] = enable;
+    paramsDoc["mode"] = "circulation_pump_control";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.controlCirculationPump(enable, [this, paramsStr](String tx, String rx)
+                                {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      String status = doc["params"]["enable"] ? "включен" : "выключен";
+      doc["message"] = "Циркуляционный насос " + status;
+    } else {
+      doc["error"] = "Ошибка управления циркуляционным насосом";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleStopHeater() {
-  wBus.shutdown();
-  server.send(200, "application/json", "{\"status\":\"stopped\",\"message\":\"Нагреватель остановлен\"}");
+void ApiServer::handleStopHeater()
+{
+    wBus.shutdown([this](String tx, String rx)
+                  {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized("{\"mode\":\"shutdown\"}");
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Нагреватель успешно остановлен";
+    } else {
+      doc["error"] = "Ошибка остановки нагревателя";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleToggleLogging() {
-  if (wBus.isLogging()) {
-    wBus.stopLogging();
-    server.send(200, "application/json", "{\"status\":\"logging_disabled\",\"message\":\"Логирование отключено\"}");
-  } else {
-    wBus.startLogging();
-    server.send(200, "application/json", "{\"status\":\"logging_enabled\",\"message\":\"Логирование включено\"}");
-  }
+void ApiServer::handleToggleLogging()
+{
+    if (wBus.isLogging())
+    {
+        wBus.stopLogging();
+        server.send(200, "application/json", "{\"status\":\"logging_disabled\",\"message\":\"Логирование отключено\"}");
+    }
+    else
+    {
+        wBus.startLogging();
+        server.send(200, "application/json", "{\"status\":\"logging_enabled\",\"message\":\"Логирование включено\"}");
+    }
 }
 
 // =============================================================================
 // HANDLERS ДЛЯ ТЕСТИРОВАНИЯ КОМПОНЕНТОВ
 // =============================================================================
 
-void ApiServer::handleTestCombustionFan() {
-  int seconds = server.arg("seconds").toInt();
-  int power = server.arg("power").toInt();
+void ApiServer::handleTestCombustionFan()
+{
+    int seconds = server.arg("seconds").toInt();
+    int power = server.arg("power").toInt();
 
-  if (seconds > 0 && power >= 0 && power <= 100) {
-    wBus.testCombustionFan(seconds, power);
-    server.send(200, "application/json", 
-      "{\"status\":\"test_started\",\"component\":\"combustion_fan\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"invalid_parameters\",\"message\":\"seconds must be positive, power 0-100\"}");
-  }
+    if (seconds <= 0 || power < 0 || power > 100)
+    {
+        DynamicJsonDocument doc(512);
+        doc["success"] = false;
+        doc["params"] = serialized("{}");
+        doc["error"] = "invalid_parameters";
+        doc["message"] = "seconds must be positive, power 0-100";
+
+        String response;
+        serializeJson(doc, response);
+        server.send(400, "application/json", response);
+        return;
+    }
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["seconds"] = seconds;
+    paramsDoc["power"] = power;
+    paramsDoc["component"] = "combustion_fan";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.testCombustionFan(seconds, power, [this, paramsStr](String tx, String rx)
+                           {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Тест вентилятора горения запущен";
+    } else {
+      doc["error"] = "Ошибка теста вентилятора горения";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleTestFuelPump() {
-  int seconds = server.arg("seconds").toInt();
-  int frequency = server.arg("frequency").toInt();
+void ApiServer::handleTestFuelPump()
+{
+    int seconds = server.arg("seconds").toInt();
+    int frequency = server.arg("frequency").toInt();
 
-  if (seconds > 0 && frequency > 0) {
-    wBus.testFuelPump(seconds, frequency);
-    server.send(200, "application/json", 
-      "{\"status\":\"test_started\",\"component\":\"fuel_pump\",\"seconds\":" + String(seconds) + ",\"frequency\":" + String(frequency) + "}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"invalid_parameters\",\"message\":\"seconds and frequency must be positive\"}");
-  }
+    if (seconds <= 0 || frequency <= 0)
+    {
+        DynamicJsonDocument doc(512);
+        doc["success"] = false;
+        doc["params"] = serialized("{}");
+        doc["error"] = "invalid_parameters";
+        doc["message"] = "seconds and frequency must be positive";
+
+        String response;
+        serializeJson(doc, response);
+        server.send(400, "application/json", response);
+        return;
+    }
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["seconds"] = seconds;
+    paramsDoc["frequency"] = frequency;
+    paramsDoc["component"] = "fuel_pump";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.testFuelPump(seconds, frequency, [this, paramsStr](String tx, String rx)
+                      {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Тест топливного насоса запущен";
+    } else {
+      doc["error"] = "Ошибка теста топливного насоса";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleTestGlowPlug() {
-  int seconds = server.arg("seconds").toInt();
-  int power = server.arg("power").toInt();
+void ApiServer::handleTestGlowPlug()
+{
+    int seconds = server.arg("seconds").toInt();
+    int power = server.arg("power").toInt();
 
-  if (seconds > 0 && power >= 0 && power <= 100) {
-    wBus.testGlowPlug(seconds, power);
-    server.send(200, "application/json", 
-      "{\"status\":\"test_started\",\"component\":\"glow_plug\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"invalid_parameters\",\"message\":\"seconds must be positive, power 0-100\"}");
-  }
+    if (seconds <= 0 || power < 0 || power > 100)
+    {
+        DynamicJsonDocument doc(512);
+        doc["success"] = false;
+        doc["params"] = serialized("{}");
+        doc["error"] = "invalid_parameters";
+        doc["message"] = "seconds must be positive, power 0-100";
+
+        String response;
+        serializeJson(doc, response);
+        server.send(400, "application/json", response);
+        return;
+    }
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["seconds"] = seconds;
+    paramsDoc["power"] = power;
+    paramsDoc["component"] = "glow_plug";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.testGlowPlug(seconds, power, [this, paramsStr](String tx, String rx)
+                      {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Тест свечи накала запущен";
+    } else {
+      doc["error"] = "Ошибка теста свечи накала";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleTestCirculationPump() {
-  int seconds = server.arg("seconds").toInt();
-  int power = server.arg("power").toInt();
+void ApiServer::handleTestCirculationPump()
+{
+    int seconds = server.arg("seconds").toInt();
+    int power = server.arg("power").toInt();
 
-  if (seconds > 0 && power >= 0 && power <= 100) {
-    wBus.testCirculationPump(seconds, power);
-    server.send(200, "application/json", 
-      "{\"status\":\"test_started\",\"component\":\"circulation_pump\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"invalid_parameters\",\"message\":\"seconds must be positive, power 0-100\"}");
-  }
+    if (seconds <= 0 || power < 0 || power > 100)
+    {
+        DynamicJsonDocument doc(512);
+        doc["success"] = false;
+        doc["params"] = serialized("{}");
+        doc["error"] = "invalid_parameters";
+        doc["message"] = "seconds must be positive, power 0-100";
+
+        String response;
+        serializeJson(doc, response);
+        server.send(400, "application/json", response);
+        return;
+    }
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["seconds"] = seconds;
+    paramsDoc["power"] = power;
+    paramsDoc["component"] = "circulation_pump";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.testCirculationPump(seconds, power, [this, paramsStr](String tx, String rx)
+                             {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Тест циркуляционного насоса запущен";
+    } else {
+      doc["error"] = "Ошибка теста циркуляционного насоса";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleTestVehicleFan() {
-  int seconds = server.arg("seconds").toInt();
+void ApiServer::handleTestVehicleFan()
+{
+    int seconds = server.arg("seconds").toInt();
 
-  if (seconds > 0) {
-    wBus.testVehicleFan(seconds);
-    server.send(200, "application/json", 
-      "{\"status\":\"test_started\",\"component\":\"vehicle_fan\",\"seconds\":" + String(seconds) + "}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"invalid_parameters\",\"message\":\"seconds must be positive\"}");
-  }
+    if (seconds <= 0)
+    {
+        DynamicJsonDocument doc(512);
+        doc["success"] = false;
+        doc["params"] = serialized("{}");
+        doc["error"] = "invalid_parameters";
+        doc["message"] = "seconds must be positive";
+
+        String response;
+        serializeJson(doc, response);
+        server.send(400, "application/json", response);
+        return;
+    }
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["seconds"] = seconds;
+    paramsDoc["component"] = "vehicle_fan";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.testVehicleFan(seconds, [this, paramsStr](String tx, String rx)
+                        {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Тест вентилятора автомобиля запущен";
+    } else {
+      doc["error"] = "Ошибка теста вентилятора автомобиля";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleTestSolenoidValve() {
-  int seconds = server.arg("seconds").toInt();
+void ApiServer::handleTestSolenoidValve()
+{
+    int seconds = server.arg("seconds").toInt();
 
-  if (seconds > 0) {
-    wBus.testSolenoidValve(seconds);
-    server.send(200, "application/json", 
-      "{\"status\":\"test_started\",\"component\":\"solenoid_valve\",\"seconds\":" + String(seconds) + "}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"invalid_parameters\",\"message\":\"seconds must be positive\"}");
-  }
+    if (seconds <= 0)
+    {
+        DynamicJsonDocument doc(512);
+        doc["success"] = false;
+        doc["params"] = serialized("{}");
+        doc["error"] = "invalid_parameters";
+        doc["message"] = "seconds must be positive";
+
+        String response;
+        serializeJson(doc, response);
+        server.send(400, "application/json", response);
+        return;
+    }
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["seconds"] = seconds;
+    paramsDoc["component"] = "solenoid_valve";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.testSolenoidValve(seconds, [this, paramsStr](String tx, String rx)
+                           {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Тест соленоидного клапана запущен";
+    } else {
+      doc["error"] = "Ошибка теста соленоидного клапана";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
-void ApiServer::handleTestFuelPreheating() {
-  int seconds = server.arg("seconds").toInt();
-  int power = server.arg("power").toInt();
+void ApiServer::handleTestFuelPreheating()
+{
+    int seconds = server.arg("seconds").toInt();
+    int power = server.arg("power").toInt();
 
-  if (seconds > 0 && power >= 0 && power <= 100) {
-    wBus.testFuelPreheating(seconds, power);
-    server.send(200, "application/json", 
-      "{\"status\":\"test_started\",\"component\":\"fuel_preheating\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
-  } else {
-    server.send(400, "application/json", "{\"error\":\"invalid_parameters\",\"message\":\"seconds must be positive, power 0-100\"}");
-  }
+    if (seconds <= 0 || power < 0 || power > 100)
+    {
+        DynamicJsonDocument doc(512);
+        doc["success"] = false;
+        doc["params"] = serialized("{}");
+        doc["error"] = "invalid_parameters";
+        doc["message"] = "seconds must be positive, power 0-100";
+
+        String response;
+        serializeJson(doc, response);
+        server.send(400, "application/json", response);
+        return;
+    }
+
+    DynamicJsonDocument paramsDoc(128);
+    paramsDoc["seconds"] = seconds;
+    paramsDoc["power"] = power;
+    paramsDoc["component"] = "fuel_preheating";
+
+    String paramsStr;
+    serializeJson(paramsDoc, paramsStr);
+
+    wBus.testFuelPreheating(seconds, power, [this, paramsStr](String tx, String rx)
+                            {
+    DynamicJsonDocument doc(512);
+    
+    doc["success"] = !rx.isEmpty();
+    doc["params"] = serialized(paramsStr);
+    
+    if (!rx.isEmpty()) {
+      doc["message"] = "Тест подогрева топлива запущен";
+    } else {
+      doc["error"] = "Ошибка теста подогрева топлива";
+      doc["message"] = "Не получен ответ от устройства";
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response); });
 }
 
 // =============================================================================
 // HANDLERS ДЛЯ ДАННЫХ (остаются без изменений)
 // =============================================================================
 
-void ApiServer::handleGetSystemState() {
-  DynamicJsonDocument doc(1024);
+void ApiServer::handleGetSystemState()
+{
+    DynamicJsonDocument doc(1024);
 
-  doc["connection_state"] = ConnectionStateNames[wBus.getConnectionState()];
-  doc["heater_state"] = WebastoStateNames[wBus.getState()];
-  doc["is_connected"] = wBus.isConnected();
-  doc["is_logging"] = wBus.isLogging();
+    doc["connection_state"] = ConnectionStateNames[wBus.getConnectionState()];
+    doc["heater_state"] = WebastoStateNames[wBus.getState()];
+    doc["is_connected"] = wBus.isConnected();
+    doc["is_logging"] = wBus.isLogging();
 
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
 
-void ApiServer::handleGetDeviceInfo() {
-  // Создаем JSON с информацией об устройстве
-  DynamicJsonDocument doc(4096);
+void ApiServer::handleGetDeviceInfo()
+{
+    // Создаем JSON с информацией об устройстве
+    DynamicJsonDocument doc(4096);
 
-  // Заполняем данными из WebastoInfo
-  doc["wbus_version"] = webastoInfo.getWBusVersionData();
-  doc["device_name"] = webastoInfo.getDeviceNameData();
-  doc["device_id"] = webastoInfo.getDeviceIDData();
-  doc["serial_number"] = webastoInfo.getSerialNumberData();
-  doc["controller_manufacture_date"] = webastoInfo.getControllerManufactureDateData();
-  doc["heater_manufacture_date"] = webastoInfo.getHeaterManufactureDateData();
-  doc["customer_id"] = webastoInfo.getCustomerIDData();
-  doc["wbus_code"] = webastoInfo.getWBusCodeData();
-  doc["supported_functions"] = webastoInfo.getSupportedFunctionsData();
+    // Заполняем данными из WebastoInfo
+    doc["wbus_version"] = webastoInfo.getWBusVersionData();
+    doc["device_name"] = webastoInfo.getDeviceNameData();
+    doc["device_id"] = webastoInfo.getDeviceIDData();
+    doc["serial_number"] = webastoInfo.getSerialNumberData();
+    doc["controller_manufacture_date"] = webastoInfo.getControllerManufactureDateData();
+    doc["heater_manufacture_date"] = webastoInfo.getHeaterManufactureDateData();
+    doc["customer_id"] = webastoInfo.getCustomerIDData();
+    doc["wbus_code"] = webastoInfo.getWBusCodeData();
+    doc["supported_functions"] = webastoInfo.getSupportedFunctionsData();
 
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
 
-void ApiServer::handleGetSensorsData() {
-  DynamicJsonDocument doc(4096);
+void ApiServer::handleGetSensorsData()
+{
+    DynamicJsonDocument doc(4096);
 
-  doc["operational_measurements"] = serialized(webastoSensors.createJsonOperationalInfo());
-  doc["fuel_settings"] = serialized(webastoSensors.createJsonFuelSettings());
-  doc["on_off_flags"] = serialized(webastoSensors.createJsonOnOffFlags());
-  doc["status_flags"] = serialized(webastoSensors.createJsonStatusFlags());
-  doc["operating_state"] = serialized(webastoSensors.createJsonOperatingState());
-  doc["subsystems_status"] = serialized(webastoSensors.createJsonSubsystemsStatus());
+    doc["operational_measurements"] = serialized(webastoSensors.createJsonOperationalInfo());
+    doc["fuel_settings"] = serialized(webastoSensors.createJsonFuelSettings());
+    doc["on_off_flags"] = serialized(webastoSensors.createJsonOnOffFlags());
+    doc["status_flags"] = serialized(webastoSensors.createJsonStatusFlags());
+    doc["operating_state"] = serialized(webastoSensors.createJsonOperatingState());
+    doc["subsystems_status"] = serialized(webastoSensors.createJsonSubsystemsStatus());
 
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
 
-void ApiServer::handleGetErrors() {
-  // Используем готовую JSON функцию из WebastoErrors
-  String jsonResponse = webastoErrors.createJsonErrors();
-  server.send(200, "application/json", jsonResponse);
+void ApiServer::handleGetErrors()
+{
+    // Используем готовую JSON функцию из WebastoErrors
+    String jsonResponse = webastoErrors.createJsonErrors();
+    server.send(200, "application/json", jsonResponse);
 }
 
-void ApiServer::handleGetAllData() {
-  DynamicJsonDocument doc(8192);
+void ApiServer::handleGetAllData()
+{
+    DynamicJsonDocument doc(8192);
 
-  // Системное состояние
-  JsonObject systemState = doc.createNestedObject("system_state");
-  systemState["connection_state"] = ConnectionStateNames[wBus.getConnectionState()];
-  systemState["heater_state"] = wBus.getCurrentStateName();
-  systemState["is_connected"] = wBus.isConnected();
-  systemState["is_logging"] = wBus.isLogging();
+    // Системное состояние
+    JsonObject systemState = doc.createNestedObject("system_state");
+    systemState["connection_state"] = ConnectionStateNames[wBus.getConnectionState()];
+    systemState["heater_state"] = wBus.getCurrentStateName();
+    systemState["is_connected"] = wBus.isConnected();
+    systemState["is_logging"] = wBus.isLogging();
 
-  // Информация об устройстве
-  JsonObject deviceInfo = doc.createNestedObject("device_info");
-  deviceInfo["wbus_version"] = webastoInfo.getWBusVersionData();
-  deviceInfo["device_name"] = webastoInfo.getDeviceNameData();
-  deviceInfo["device_id"] = webastoInfo.getDeviceIDData();
-  deviceInfo["serial_number"] = webastoInfo.getSerialNumberData();
-  deviceInfo["controller_manufacture_date"] = webastoInfo.getControllerManufactureDateData();
-  deviceInfo["heater_manufacture_date"] = webastoInfo.getHeaterManufactureDateData();
-  deviceInfo["customer_id"] = webastoInfo.getCustomerIDData();
-  deviceInfo["wbus_code"] = webastoInfo.getWBusCodeData();
-  deviceInfo["supported_functions"] = webastoInfo.getSupportedFunctionsData();
+    // Информация об устройстве
+    JsonObject deviceInfo = doc.createNestedObject("device_info");
+    deviceInfo["wbus_version"] = webastoInfo.getWBusVersionData();
+    deviceInfo["device_name"] = webastoInfo.getDeviceNameData();
+    deviceInfo["device_id"] = webastoInfo.getDeviceIDData();
+    deviceInfo["serial_number"] = webastoInfo.getSerialNumberData();
+    deviceInfo["controller_manufacture_date"] = webastoInfo.getControllerManufactureDateData();
+    deviceInfo["heater_manufacture_date"] = webastoInfo.getHeaterManufactureDateData();
+    deviceInfo["customer_id"] = webastoInfo.getCustomerIDData();
+    deviceInfo["wbus_code"] = webastoInfo.getWBusCodeData();
+    deviceInfo["supported_functions"] = webastoInfo.getSupportedFunctionsData();
 
-  // Данные сенсоров
-  JsonObject sensors = doc.createNestedObject("sensors");
-  sensors["operational_measurements"] = serialized(webastoSensors.createJsonOperationalInfo());
-  sensors["fuel_settings"] = serialized(webastoSensors.createJsonFuelSettings());
-  sensors["on_off_flags"] = serialized(webastoSensors.createJsonOnOffFlags());
-  sensors["status_flags"] = serialized(webastoSensors.createJsonStatusFlags());
-  sensors["operating_state"] = serialized(webastoSensors.createJsonOperatingState());
-  sensors["subsystems_status"] = serialized(webastoSensors.createJsonSubsystemsStatus());
+    // Данные сенсоров
+    JsonObject sensors = doc.createNestedObject("sensors");
+    sensors["operational_measurements"] = serialized(webastoSensors.createJsonOperationalInfo());
+    sensors["fuel_settings"] = serialized(webastoSensors.createJsonFuelSettings());
+    sensors["on_off_flags"] = serialized(webastoSensors.createJsonOnOffFlags());
+    sensors["status_flags"] = serialized(webastoSensors.createJsonStatusFlags());
+    sensors["operating_state"] = serialized(webastoSensors.createJsonOperatingState());
+    sensors["subsystems_status"] = serialized(webastoSensors.createJsonSubsystemsStatus());
 
-  // Ошибки
-  doc["errors"] = serialized(webastoErrors.createJsonErrors());
+    // Ошибки
+    doc["errors"] = serialized(webastoErrors.createJsonErrors());
 
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
 
-void ApiServer::handleNotFound() {
-  DynamicJsonDocument doc(512);
-  doc["error"] = "not_found";
-  doc["uri"] = server.uri();
-  doc["method"] = (server.method() == HTTP_GET) ? "GET" : "POST";
-  doc["available_endpoints"] = "/api/system/state, /api/device/info, /api/sensors/data, /api/errors, /api/all";
+void ApiServer::handleNotFound()
+{
+    DynamicJsonDocument doc(512);
+    doc["error"] = "not_found";
+    doc["uri"] = server.uri();
+    doc["method"] = (server.method() == HTTP_GET) ? "GET" : "POST";
+    doc["available_endpoints"] = "/api/system/state, /api/device/info, /api/sensors/data, /api/errors, /api/all";
 
-  String response;
-  serializeJson(doc, response);
-  server.send(404, "application/json", response);
+    String response;
+    serializeJson(doc, response);
+    server.send(404, "application/json", response);
 }
 
-void ApiServer::printAvailableEndpoints() {
-  Serial.println("📋 Available API endpoints:");
-  Serial.println("  GET  /api/system/state        - System connection and heater state");
-  Serial.println("  GET  /api/device/info         - Webasto device information");
-  Serial.println("  GET  /api/sensors/data        - Complete sensors data");
-  Serial.println("  GET  /api/errors              - Webasto error codes");
-  Serial.println("  GET  /api/all                 - Combined all data");
-  
-  Serial.println("  POST /api/control/connect     - Connect to Webasto");
-  Serial.println("  POST /api/control/disconnect  - Disconnect from Webasto");
-  Serial.println("  POST /api/control/start_parking - Start parking heat (default 60min)");
-  Serial.println("  POST /api/control/start_ventilation - Start ventilation (default 60min)");
-  Serial.println("  POST /api/control/start_supplemental - Start supplemental heat (default 60min)");
-  Serial.println("  POST /api/control/start_boost - Start boost mode (default 60min)");
-  Serial.println("  POST /api/control/circulation_pump - Control circulation pump (enable=true/false)");
-  Serial.println("  POST /api/control/stop        - Stop heater");
-  Serial.println("  POST /api/control/toggle_logging - Toggle WebSocket logging");
-  
-  Serial.println("  POST /api/test/combustion_fan - Test combustion fan (seconds, power)");
-  Serial.println("  POST /api/test/fuel_pump      - Test fuel pump (seconds, frequency)");
-  Serial.println("  POST /api/test/glow_plug      - Test glow plug (seconds, power)");
-  Serial.println("  POST /api/test/circulation_pump - Test circulation pump (seconds, power)");
-  Serial.println("  POST /api/test/vehicle_fan    - Test vehicle fan (seconds)");
-  Serial.println("  POST /api/test/solenoid_valve - Test solenoid valve (seconds)");
-  Serial.println("  POST /api/test/fuel_preheating - Test fuel preheating (seconds, power)");
-  
-  Serial.println("");
-  Serial.println("🌐 Web interface available at: http://" + WiFi.softAPIP().toString());
+void ApiServer::printAvailableEndpoints()
+{
+    Serial.println("📋 Available API endpoints:");
+    Serial.println("  GET  /api/system/state        - System connection and heater state");
+    Serial.println("  GET  /api/device/info         - Webasto device information");
+    Serial.println("  GET  /api/sensors/data        - Complete sensors data");
+    Serial.println("  GET  /api/errors              - Webasto error codes");
+    Serial.println("  GET  /api/all                 - Combined all data");
+
+    Serial.println("  POST /api/control/connect     - Connect to Webasto");
+    Serial.println("  POST /api/control/disconnect  - Disconnect from Webasto");
+    Serial.println("  POST /api/control/start_parking - Start parking heat (default 60min)");
+    Serial.println("  POST /api/control/start_ventilation - Start ventilation (default 60min)");
+    Serial.println("  POST /api/control/start_supplemental - Start supplemental heat (default 60min)");
+    Serial.println("  POST /api/control/start_boost - Start boost mode (default 60min)");
+    Serial.println("  POST /api/control/circulation_pump - Control circulation pump (enable=true/false)");
+    Serial.println("  POST /api/control/stop        - Stop heater");
+    Serial.println("  POST /api/control/toggle_logging - Toggle WebSocket logging");
+
+    Serial.println("  POST /api/test/combustion_fan - Test combustion fan (seconds, power)");
+    Serial.println("  POST /api/test/fuel_pump      - Test fuel pump (seconds, frequency)");
+    Serial.println("  POST /api/test/glow_plug      - Test glow plug (seconds, power)");
+    Serial.println("  POST /api/test/circulation_pump - Test circulation pump (seconds, power)");
+    Serial.println("  POST /api/test/vehicle_fan    - Test vehicle fan (seconds)");
+    Serial.println("  POST /api/test/solenoid_valve - Test solenoid valve (seconds)");
+    Serial.println("  POST /api/test/fuel_preheating - Test fuel preheating (seconds, power)");
+
+    Serial.println("");
+    Serial.println("🌐 Web interface available at: http://" + WiFi.softAPIP().toString());
 }

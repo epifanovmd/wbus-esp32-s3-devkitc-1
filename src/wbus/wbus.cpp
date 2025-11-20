@@ -12,7 +12,7 @@
 
 WBus wBus;
 
-Timeout keepAliveTimeout(25000);
+Timeout keepAliveTimeout(15000);
 
 String WebastoStateNames[] = {
     "WBUS_STATE_OFF",          // Выключен
@@ -33,7 +33,8 @@ String ConnectionStateNames[] = {
     "CONNECTED",
     "CONNECTION_FAILED"};
 
-void WBus::setConnectionState(ConnectionState newState) {
+void WBus::setConnectionState(ConnectionState newState)
+{
   if (connectionState == newState)
     return;
 
@@ -41,9 +42,12 @@ void WBus::setConnectionState(ConnectionState newState) {
   connectionState = newState;
 
   socketServer.sendSystemStatus("connection_state", ConnectionStateNames[newState], ConnectionStateNames[oldState]);
+  Serial.println();
+  Serial.print(ConnectionStateNames[oldState] + " –> " + ConnectionStateNames[newState]);
 
   // Дополнительные действия при изменении состояния
-  switch (newState) {
+  switch (newState)
+  {
   case CONNECTING:
     neopixelWrite(RGB_PIN, 255 / 4, 165 / 4, 0);
     break;
@@ -63,7 +67,8 @@ void WBus::setConnectionState(ConnectionState newState) {
   }
 }
 
-void WBus::setState(WebastoState newState) {
+void WBus::setState(WebastoState newState)
+{
   if (currentState == newState)
     return;
 
@@ -71,9 +76,12 @@ void WBus::setState(WebastoState newState) {
   currentState = newState;
 
   socketServer.sendSystemStatus("state", WebastoStateNames[newState], WebastoStateNames[oldState]);
+  Serial.println();
+  Serial.print(WebastoStateNames[oldState] + " –> " + WebastoStateNames[newState]);
 }
 
-void WBus::init() {
+void WBus::init()
+{
   initTJA1020();
   wakeUpTJA1020();
   neopixelWrite(RGB_PIN, 0, 0, 0);
@@ -82,7 +90,8 @@ void WBus::init() {
   _logging = false;
 }
 
-void WBus::wakeUp() {
+void WBus::wakeUp()
+{
   // BREAK set - удерживаем линию в LOW 50ms
   KLineSerial.write(0x00);
   delay(50);
@@ -92,10 +101,14 @@ void WBus::wakeUp() {
   delay(50);
 }
 
-void WBus::connect() {
-  if (connectionState == CONNECTING) {
+void WBus::connect(std::function<void(String tx, String rx)> callback)
+{
+  if (connectionState == CONNECTING)
+  {
     Serial.println();
     Serial.println("⚠️  Подключение уже выполняется...");
+    if (callback)
+      callback("", "");
     return;
   }
 
@@ -104,115 +117,70 @@ void WBus::connect() {
   wakeUp();
   delay(100);
 
-  // Получаем основную информацию об устройстве с колбэками для WebSocket
+  // Получаем основную информацию об устройстве
   webastoInfo.getWBusVersion();
   webastoInfo.getDeviceName();
   webastoInfo.getWBusCode();
 
   // Запускаем диагностику
   wbusQueue.add(
-    CMD_DIAGNOSTIC,
-    [this](String tx, String rx) {
-      if (!rx.isEmpty()) {
-        setConnectionState(CONNECTED);
+      CMD_DIAGNOSTIC,
+      [this, callback](String tx, String rx)
+      {
+        if (!rx.isEmpty())
+        {
+          // Получаем дополнительную информацию
+          webastoInfo.getDeviceID();
+          webastoInfo.getControllerManufactureDate();
+          webastoInfo.getHeaterManufactureDate();
+          webastoInfo.getCustomerID();
+          webastoInfo.getSerialNumber();
 
-        // Получаем дополнительную информацию с колбэками
-        webastoInfo.getDeviceID();
-        webastoInfo.getControllerManufactureDate();
-        webastoInfo.getHeaterManufactureDate();
-        webastoInfo.getCustomerID();
-        webastoInfo.getSerialNumber([](String tx, String rx, DecodedTextData * serial) {
-          DynamicJsonDocument doc(512);
+          wbusQueue.setInterval(200);
 
-          doc["wbus_version"] = webastoInfo.getWBusVersionData();
-          doc["device_name"] = webastoInfo.getDeviceNameData();;
-          doc["device_id"] = webastoInfo.getDeviceIDData();
-          doc["serial_number"] = webastoInfo.getSerialNumberData();
-          doc["controller_manufacture_date"] = webastoInfo.getControllerManufactureDateData();
-          doc["heater_manufacture_date"] = webastoInfo.getHeaterManufactureDateData();
-          doc["customer_id"] = webastoInfo.getCustomerIDData();;
-          doc["wbus_code"] = webastoInfo.getWBusCodeData();;
-          doc["supported_functions"] = webastoInfo.getSupportedFunctionsData();
+          // Запускаем периодический опрос сенсоров
+          webastoSensors.getOperationalInfo(true);
+          webastoSensors.getOnOffFlags(true);
+          webastoSensors.getStatusFlags(true);
+          webastoSensors.getOperatingState(true);
+          webastoSensors.getSubsystemsStatus(true);
+          webastoErrors.check(true);
 
-          String json;
-          serializeJson(doc, json);
-          socketServer.send("device_info", json);
-        });
+          Serial.println();
+          Serial.println("✅ Подключение к Webasto установлено");
+          setConnectionState(CONNECTED);
+        }
+        else
+        {
+          Serial.println();
+          Serial.println("❌ Ошибка подключения к Webasto");
+          setConnectionState(CONNECTION_FAILED);
+        }
 
-        wbusQueue.setInterval(200);
-
-        // Периодически запрашиваем состояние устройства с колбэками
-        webastoSensors.getOperationalInfo(true, [this](String tx, String rx, OperationalMeasurements * measurements) {
-          if (measurements != nullptr) {
-            String json = webastoSensors.createJsonOperationalInfo( * measurements);
-            socketServer.send("operational_measurements", json);
-          }
-        });
-
-        webastoSensors.getFuelSettings(false, [this](String tx, String rx, FuelSettings * fuel) {
-          if (fuel != nullptr) {
-            String json = webastoSensors.createJsonFuelSettings( * fuel);
-            socketServer.send("fuel_settings", json);
-          }
-        });
-
-        webastoSensors.getOnOffFlags(true, [this](String tx, String rx, OnOffFlags * onOff) {
-          if (onOff != nullptr) {
-            String json = webastoSensors.createJsonOnOffFlags( * onOff);
-            socketServer.send("on_off_flags", json);
-          }
-        });
-
-        webastoSensors.getStatusFlags(true, [this](String tx, String rx, StatusFlags * status) {
-          if (status != nullptr) {
-            String json = webastoSensors.createJsonStatusFlags( * status);
-            socketServer.send("status_flags", json);
-          }
-        });
-
-        webastoSensors.getOperatingState(true, [this](String tx, String rx, OperatingState * state) {
-          if (state != nullptr) {
-            String json = webastoSensors.createJsonOperatingState( * state);
-            socketServer.send("operating_state", json);
-          }
-        });
-
-        webastoSensors.getSubsystemsStatus(true, [this](String tx, String rx, SubsystemsStatus * subsystems) {
-          if (subsystems != nullptr) {
-            String json = webastoSensors.createJsonSubsystemsStatus( * subsystems);
-            socketServer.send("subsystems_status", json);
-          }
-        });
-
-        webastoErrors.check(true, [this](String tx, String rx, ErrorCollection * errors) {
-          if (errors != nullptr) {
-            String json = webastoErrors.createJsonErrors( * errors);
-            socketServer.send("errors", json);
-          }
-        });
-      } else {
-        setConnectionState(CONNECTION_FAILED);
-      }
-    });
+        if (callback)
+          callback(tx, rx);
+      });
 }
 
-void WBus::disconnect() {
+void WBus::disconnect()
+{
   wbusQueue.clear();
   setConnectionState(DISCONNECTED);
-  setState(WBUS_STATE_SHUTDOWN);
   // Serial.println();
   // Serial.println("🔌 Отключение от Webasto");
 }
 
 // =============================================================================
-// КОМАНДЫ УПРАВЛЕНИЯ
+// КОМАНДЫ УПРАВЛЕНИЯ С КОЛБЭКАМИ
 // =============================================================================
 
-void WBus::shutdown() {
+void WBus::shutdown(std::function<void(String tx, String rx)> callback)
+{
   if (!isConnected())
     wakeUp();
 
-  wbusQueue.add(CMD_SHUTDOWN, [this](String tx, String rx) {
+  wbusQueue.add(CMD_SHUTDOWN, [this, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("🛑 Нагреватель выключен");
@@ -220,57 +188,61 @@ void WBus::shutdown() {
       Serial.println();
       Serial.println("❌ Ошибка выключения нагревателя");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::startParkingHeat(int minutes) {
+void WBus::startParkingHeat(int minutes, std::function<void(String tx, String rx)> callback)
+{
   if (!isConnected())
     wakeUp();
 
   minutes = constrain(minutes, 1, 255);
   String command = createParkHeatCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](String tx, String rx) {
+  wbusQueue.add(command, [this, minutes, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       setState(WBUS_STATE_PARKING_HEAT);
       Serial.println();
       Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
-
     } else {
       Serial.println();
       Serial.println("❌ Ошибка запуска паркинг-нагрева");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::startVentilation(int minutes) {
+void WBus::startVentilation(int minutes, std::function<void(String tx, String rx)> callback)
+{
   if (!isConnected())
     wakeUp();
 
   minutes = constrain(minutes, 1, 255);
   String command = createVentilateCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](String tx, String rx) {
+  wbusQueue.add(command, [this, minutes, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       setState(WBUS_STATE_VENTILATION);
       Serial.println();
       Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
-
     } else {
       Serial.println();
       Serial.println("❌ Ошибка запуска вентиляции");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::startSupplementalHeat(int minutes) {
+void WBus::startSupplementalHeat(int minutes, std::function<void(String tx, String rx)> callback)
+{
   if (!isConnected())
     wakeUp();
 
   minutes = constrain(minutes, 1, 255);
   String command = createSuppHeatCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](String tx, String rx) {
+  wbusQueue.add(command, [this, minutes, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       setState(WBUS_STATE_SUPP_HEAT);
       Serial.println();
@@ -279,16 +251,18 @@ void WBus::startSupplementalHeat(int minutes) {
       Serial.println();
       Serial.println("❌ Ошибка запуска дополнительного нагрева");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::controlCirculationPump(bool enable) {
+void WBus::controlCirculationPump(bool enable, std::function<void(String tx, String rx)> callback)
+{
   if (!isConnected())
     wakeUp();
 
   String command = createCircPumpCommand(enable);
 
-  wbusQueue.add(command, [this, enable](String tx, String rx) {
+  wbusQueue.add(command, [this, enable, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       setState(WBUS_STATE_CIRC_PUMP);
       Serial.println();
@@ -297,17 +271,19 @@ void WBus::controlCirculationPump(bool enable) {
       Serial.println();
       Serial.println("❌ Ошибка управления циркуляционным насосом");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::startBoostMode(int minutes) {
+void WBus::startBoostMode(int minutes, std::function<void(String tx, String rx)> callback)
+{
   if (!isConnected())
     wakeUp();
 
   minutes = constrain(minutes, 1, 255);
   String command = createBoostCommand(minutes);
 
-  wbusQueue.add(command, [this, minutes](String tx, String rx) {
+  wbusQueue.add(command, [this, minutes, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       setState(WBUS_STATE_BOOST);
       Serial.println();
@@ -316,24 +292,25 @@ void WBus::startBoostMode(int minutes) {
       Serial.println();
       Serial.println("❌ Ошибка запуска Boost режима");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
 // =============================================================================
-// ТЕСТИРОВАНИЕ КОМПОНЕНТОВ
+// ТЕСТИРОВАНИЕ КОМПОНЕНТОВ С КОЛБЭКАМИ
 // =============================================================================
 
-void WBus::testCombustionFan(int seconds, int powerPercent) {
-  if (!isConnected()) {
+void WBus::testCombustionFan(int seconds, int powerPercent, std::function<void(String tx, String rx)> callback)
+{
+  if (!isConnected())
     wakeUp();
-  }
 
   seconds = constrain(seconds, 1, 255);
   powerPercent = constrain(powerPercent, 0, 100);
 
   String command = createTestCAFCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx) {
+  wbusQueue.add(command, [this, seconds, powerPercent, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("🌀 Тест вентилятора горения: " + String(seconds) + "сек, " + String(powerPercent) + "%");
@@ -341,20 +318,21 @@ void WBus::testCombustionFan(int seconds, int powerPercent) {
       Serial.println();
       Serial.println("❌ Ошибка теста вентилятора горения");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::testFuelPump(int seconds, int frequencyHz) {
-  if (!isConnected()) {
+void WBus::testFuelPump(int seconds, int frequencyHz, std::function<void(String tx, String rx)> callback)
+{
+  if (!isConnected())
     wakeUp();
-  }
 
   seconds = constrain(seconds, 1, 255);
   frequencyHz = constrain(frequencyHz, 1, 50);
 
   String command = createTestFuelPumpCommand(seconds, frequencyHz);
 
-  wbusQueue.add(command, [this, seconds, frequencyHz](String tx, String rx) {
+  wbusQueue.add(command, [this, seconds, frequencyHz, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("⛽ Тест топливного насоса: " + String(seconds) + "сек, " + String(frequencyHz) + "Гц");
@@ -362,20 +340,21 @@ void WBus::testFuelPump(int seconds, int frequencyHz) {
       Serial.println();
       Serial.println("❌ Ошибка теста топливного насоса");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::testGlowPlug(int seconds, int powerPercent) {
-  if (!isConnected()) {
+void WBus::testGlowPlug(int seconds, int powerPercent, std::function<void(String tx, String rx)> callback)
+{
+  if (!isConnected())
     wakeUp();
-  }
 
   seconds = constrain(seconds, 1, 255);
   powerPercent = constrain(powerPercent, 0, 100);
 
   String command = createTestGlowPlugCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx) {
+  wbusQueue.add(command, [this, seconds, powerPercent, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("🔌 Тест свечи накаливания: " + String(seconds) + "сек, " + String(powerPercent) + "%");
@@ -383,20 +362,21 @@ void WBus::testGlowPlug(int seconds, int powerPercent) {
       Serial.println();
       Serial.println("❌ Ошибка теста свечи накаливания");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::testCirculationPump(int seconds, int powerPercent) {
-  if (!isConnected()) {
+void WBus::testCirculationPump(int seconds, int powerPercent, std::function<void(String tx, String rx)> callback)
+{
+  if (!isConnected())
     wakeUp();
-  }
 
   seconds = constrain(seconds, 1, 255);
   powerPercent = constrain(powerPercent, 0, 100);
 
   String command = createTestCircPumpCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx) {
+  wbusQueue.add(command, [this, seconds, powerPercent, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("💧 Тест циркуляционного насоса: " + String(seconds) + "сек, " + String(powerPercent) + "%");
@@ -404,19 +384,20 @@ void WBus::testCirculationPump(int seconds, int powerPercent) {
       Serial.println();
       Serial.println("❌ Ошибка теста циркуляционного насоса");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::testVehicleFan(int seconds) {
-  if (!isConnected()) {
+void WBus::testVehicleFan(int seconds, std::function<void(String tx, String rx)> callback)
+{
+  if (!isConnected())
     wakeUp();
-  }
 
   seconds = constrain(seconds, 1, 255);
 
   String command = createTestVehicleFanCommand(seconds);
 
-  wbusQueue.add(command, [this, seconds](String tx, String rx) {
+  wbusQueue.add(command, [this, seconds, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("🌀 Тест реле вентилятора автомобиля: " + String(seconds) + "сек");
@@ -424,19 +405,20 @@ void WBus::testVehicleFan(int seconds) {
       Serial.println();
       Serial.println("❌ Ошибка теста реле вентилятора автомобиля");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::testSolenoidValve(int seconds) {
-  if (!isConnected()) {
+void WBus::testSolenoidValve(int seconds, std::function<void(String tx, String rx)> callback)
+{
+  if (!isConnected())
     wakeUp();
-  }
 
   seconds = constrain(seconds, 1, 255);
 
   String command = createTestSolenoidCommand(seconds);
 
-  wbusQueue.add(command, [this, seconds](String tx, String rx) {
+  wbusQueue.add(command, [this, seconds, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("🔘 Тест соленоидного клапана: " + String(seconds) + "сек");
@@ -444,20 +426,21 @@ void WBus::testSolenoidValve(int seconds) {
       Serial.println();
       Serial.println("❌ Ошибка теста соленоидного клапана");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-void WBus::testFuelPreheating(int seconds, int powerPercent) {
-  if (!isConnected()) {
+void WBus::testFuelPreheating(int seconds, int powerPercent, std::function<void(String tx, String rx)> callback)
+{
+  if (!isConnected())
     wakeUp();
-  }
 
   seconds = constrain(seconds, 1, 255);
   powerPercent = constrain(powerPercent, 0, 100);
 
   String command = createTestFuelPreheatCommand(seconds, powerPercent);
 
-  wbusQueue.add(command, [this, seconds, powerPercent](String tx, String rx) {
+  wbusQueue.add(command, [this, seconds, powerPercent, callback](String tx, String rx)
+                {
     if (!rx.isEmpty()) {
       Serial.println();
       Serial.println("🔥 Тест подогрева топлива: " + String(seconds) + "сек, " + String(powerPercent) + "%");
@@ -465,11 +448,13 @@ void WBus::testFuelPreheating(int seconds, int powerPercent) {
       Serial.println();
       Serial.println("❌ Ошибка теста подогрева топлива");
     }
-  });
+    if (callback) callback(tx, rx); });
 }
 
-String WBus::getKeepAliveCommandForCurrentState() {
-  switch (currentState) {
+String WBus::getKeepAliveCommandForCurrentState()
+{
+  switch (currentState)
+  {
   case WBUS_STATE_PARKING_HEAT:
     return CMD_KEEPALIVE_PARKING;
   case WBUS_STATE_VENTILATION:
@@ -490,8 +475,10 @@ String WBus::getKeepAliveCommandForCurrentState() {
   }
 }
 
-String WBus::getStateName(WebastoState state) {
-  switch (currentState) {
+String WBus::getStateName(WebastoState state)
+{
+  switch (currentState)
+  {
   case WBUS_STATE_OFF:
     return "🔴 Выключен";
   case WBUS_STATE_READY:
@@ -511,13 +498,16 @@ String WBus::getStateName(WebastoState state) {
   }
 }
 
-String WBus::getCurrentStateName() {
+String WBus::getCurrentStateName()
+{
   return getStateName(currentState);
 }
 
-void WBus::updateStateFromSensors(std:: function < void() > callback) {
+void WBus::updateStateFromSensors(std::function<void()> callback)
+{
   webastoSensors.getStatusFlags();
-  webastoSensors.getOnOffFlags(false, [this, callback](String tx, String rx, OnOffFlags * onOff) {
+  webastoSensors.getOnOffFlags(false, [this, callback](String tx, String rx, OnOffFlags *onOff)
+                               {
     StatusFlags * flags = webastoSensors.getStatusFlagsData();
 
     WebastoState newState = determineStateFromFlags(flags, onOff);
@@ -528,68 +518,98 @@ void WBus::updateStateFromSensors(std:: function < void() > callback) {
 
     if (callback != nullptr) {
       callback();
-    }
-  });
+    } });
 }
 
-WebastoState WBus::determineStateFromFlags(const StatusFlags * flags, OnOffFlags * onOff) {
+WebastoState WBus::determineStateFromFlags(const StatusFlags *flags, OnOffFlags *onOff)
+{
   // Анализируем флаги статуса
-  if (flags -> parkingHeatRequest)
+  if (flags->parkingHeatRequest)
     return WBUS_STATE_PARKING_HEAT;
-  if (flags -> ventilationRequest)
+  if (flags->ventilationRequest)
     return WBUS_STATE_VENTILATION;
-  if (flags -> supplementalHeatRequest)
+  if (flags->supplementalHeatRequest)
     return WBUS_STATE_SUPP_HEAT;
-  if (flags -> boostMode)
+  if (flags->boostMode)
     return WBUS_STATE_BOOST;
 
   // Проверяем активные компоненты
-  if (onOff -> circulationPump && !onOff -> combustionAirFan && !onOff -> fuelPump)
+  if (onOff->circulationPump && !onOff->combustionAirFan && !onOff->fuelPump)
     return WBUS_STATE_CIRC_PUMP;
 
   // Если ничего активного не найдено, но главный выключатель включен
-  if (flags -> mainSwitch)
+  if (flags->mainSwitch)
     return WBUS_STATE_READY;
 
   return WBUS_STATE_OFF;
 }
 
-void WBus::processSerialCommands() {
+void WBus::processSerialCommands()
+{
   // Проверяем команды от пользователя
-  if (Serial.available()) {
+  if (Serial.available())
+  {
     String command = Serial.readString();
     command.trim();
     command.toLowerCase();
 
-    if (command == "start") {
+    if (command == "start")
+    {
       startParkingHeat();
-    } else if (command == "stop") {
+    }
+    else if (command == "stop")
+    {
       shutdown();
-    } else if (command == "wake" || command == "w") {
+    }
+    else if (command == "wake" || command == "w")
+    {
       wakeUpTJA1020();
-    } else if (command == "sleep" || command == "s") {
+    }
+    else if (command == "sleep" || command == "s")
+    {
       sleepTJA1020();
-    } else if (command == "connect" || command == "con") {
+    }
+    else if (command == "connect" || command == "con")
+    {
       connect();
-    } else if (command == "disconnect" || command == "dc") {
+    }
+    else if (command == "disconnect" || command == "dc")
+    {
       disconnect();
-    } else if (command == "info" || command == "i") {
+    }
+    else if (command == "info" || command == "i")
+    {
       webastoInfo.printInfo();
-    } else if (command == "sensors") {
+    }
+    else if (command == "sensors")
+    {
       webastoSensors.printSensorData();
-    } else if (command == "errors" || command == "err") {
+    }
+    else if (command == "errors" || command == "err")
+    {
       webastoErrors.printErrors();
-    } else if (command == "clear" || command == "clr") {
+    }
+    else if (command == "clear" || command == "clr")
+    {
       webastoErrors.reset();
-    } else if (command == "log") {
-      if (wBus.isLogging()) {
+    }
+    else if (command == "log")
+    {
+      if (wBus.isLogging())
+      {
         wBus.stopLogging();
-      } else {
+      }
+      else
+      {
         wBus.startLogging();
       }
-    } else if (command == "help" || command == "h") {
+    }
+    else if (command == "help" || command == "h")
+    {
       printHelp();
-    } else {
+    }
+    else
+    {
       if (!isConnected())
         wakeUp();
 
@@ -598,48 +618,61 @@ void WBus::processSerialCommands() {
   }
 }
 
-void WBus::processKeepAlive() {
-  if (keepAliveTimeout.isReady() && !getKeepAliveCommandForCurrentState().isEmpty()) {
+void WBus::processKeepAlive()
+{
+  if (keepAliveTimeout.isReady() && !getKeepAliveCommandForCurrentState().isEmpty())
+  {
     Serial.println();
     Serial.print("Статус: " + getStateName(currentState));
-    if (!isConnected()) {
+    if (!isConnected())
+    {
       wakeUp();
     }
 
     // Сначала обновляем состояние на основе текущих данных состояния Webasto
     updateStateFromSensors(
-      [this]() {
-        String keepAliveCommand = getKeepAliveCommandForCurrentState();
+        [this]()
+        {
+          String keepAliveCommand = getKeepAliveCommandForCurrentState();
 
-        if (!keepAliveCommand.isEmpty()) {
-          wbusQueue.addPriority(keepAliveCommand, [this](String tx, String rx) {
+          if (!keepAliveCommand.isEmpty())
+          {
+            wbusQueue.addPriority(keepAliveCommand, [this](String tx, String rx)
+                                  {
             if (rx.isEmpty()) {
               Serial.println("❌ Keep-alive не доставлен для состояния: " + getStateName(currentState));
-            }
-          });
-        }
-      });
+            } });
+          }
+        });
   }
 }
 
-void WBus::checkConnection() {
-  if (wbusQueue.isEmpty() && connectionState != DISCONNECTED) {
+void WBus::checkConnection()
+{
+  if (wbusQueue.isEmpty() && connectionState != DISCONNECTED)
+  {
     setConnectionState(DISCONNECTED);
-  } else if (connectionState == CONNECTION_FAILED) {
+  }
+  else if (connectionState == CONNECTION_FAILED)
+  {
     // Если было состояние ошибки, но мы получили успешный ответ - восстанавливаем соединение
     if (_lastRxTime > 0 && millis() - _lastRxTime < 2000) // Ответ получен в последние 2 секунды
     {
       setConnectionState(CONNECTED);
     }
-  } else if (connectionState == CONNECTED) {
+  }
+  else if (connectionState == CONNECTED)
+  {
     // 2 секунды без ответа - считаем что соединение разорвано
-    if (_lastRxTime > 0 && millis() - _lastRxTime > 2000) {
+    if (_lastRxTime > 0 && millis() - _lastRxTime > 2000)
+    {
       setConnectionState(CONNECTION_FAILED);
     }
   }
 }
 
-void WBus::process() {
+void WBus::process()
+{
   kLineReceiver.process();
 
   checkConnection();
@@ -648,8 +681,10 @@ void WBus::process() {
 
   wbusQueue.process();
 
-  if (kLineReceiver.kLineReceivedData.isRxReceived()) {
-    if (_logging) {
+  if (kLineReceiver.kLineReceivedData.isRxReceived())
+  {
+    if (_logging)
+    {
       socketServer.sendRx(kLineReceiver.kLineReceivedData.getRxData());
       kLineReceiver.kLineReceivedData.printRx();
     }
@@ -657,8 +692,10 @@ void WBus::process() {
     _lastRxTime = millis();
   }
 
-  if (kLineReceiver.kLineReceivedData.isTxReceived()) {
-    if (_logging) {
+  if (kLineReceiver.kLineReceivedData.isTxReceived())
+  {
+    if (_logging)
+    {
       socketServer.sendTx(kLineReceiver.kLineReceivedData.getTxData());
       kLineReceiver.kLineReceivedData.printTx();
     }
