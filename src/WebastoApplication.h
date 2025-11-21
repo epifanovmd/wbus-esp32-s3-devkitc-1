@@ -1,0 +1,294 @@
+#pragma once
+#include <WiFi.h>
+#include "core/EventBus.h"
+#include "core/ConfigManager.h"
+#include "infrastructure/hardware/TJA1020Driver.h"
+#include "infrastructure/network/WebSocketServer.h"
+#include "infrastructure/network/ApiServer.h"
+#include "application/CommandManager.h"
+#include "application/SensorManager.h"
+#include "application/HeaterController.h"
+#include "application/DeviceInfoManager.h"
+#include "application/ErrorsManager.h"
+#include "application/CommanReceiver.h"
+#include "common/Utils.h"
+#include "common/Constants.h"
+
+class WebastoApplication {
+private:
+    EventBus& eventBus;
+    ConfigManager& configManager;
+    
+    // Аппаратный слой
+    TJA1020Driver busDriver;
+    
+        // Приемник W-Bus пакетов
+    CommanReceiver commanReceiver;
+    // Управление командами
+    CommandManager commandManager;
+    
+    // Бизнес-логика
+    DeviceInfoManager deviceInfoManager;
+    SensorManager sensorManager;
+    ErrorsManager errorsManager;
+    HeaterController heaterController;
+    
+    // Сетевой слой
+    WebSocketServer webSocketServer;
+    ApiServer apiServer;
+
+    
+    // Состояние приложения
+    bool initialized = false;
+    bool isLogging = false;
+    uint32_t lastKeepAliveTime = 0;
+    const uint32_t KEEP_ALIVE_INTERVAL = 15000;
+    
+    // Кнопка управления (пин 0)
+    static const int BUTTON_PIN = 0;
+    bool lastButtonState = true;
+
+public:
+    WebastoApplication() 
+        : eventBus(EventBus::getInstance())
+        , configManager(ConfigManager::getInstance())
+        , busDriver(KLineSerial, eventBus)
+        , commanReceiver(KLineSerial, eventBus)
+        , commandManager(eventBus, busDriver, commanReceiver)
+        , deviceInfoManager(eventBus, commandManager)
+        , sensorManager(eventBus, commandManager)
+        , errorsManager(eventBus, commandManager)
+        , heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager)
+        , webSocketServer(eventBus, configManager.getConfig().network.wsPort)
+        , apiServer(deviceInfoManager, sensorManager, errorsManager, heaterController, configManager.getConfig().network.webPort) 
+    {
+        // Настраиваем таймауты как в оригинальном коде
+        commandManager.setTimeout(2000);
+        commandManager.setInterval(150);
+    }
+    
+    void initialize() {
+        Serial.begin(115200);
+        Serial.println();
+        Serial.println("🚗 Webasto W-Bus Controller - Новая архитектура");
+        Serial.println("===============================================");
+        
+        // Инициализация конфигурации
+        if (!configManager.loadConfig()) {
+            Serial.println("⚠️  Using default configuration");
+        }
+        configManager.printConfig();
+        
+        // Инициализация WiFi
+        setupWiFi();
+        
+        // Инициализация аппаратного обеспечения
+        busDriver.initialize();
+        // deviceInfoManager.initialize();
+        // sensorManager.initialize();
+        // errorsManager.initialize();
+        heaterController.initialize();
+
+        webSocketServer.initialize();
+        apiServer.initialize();
+        
+        // Настройка обработчиков событий
+        setupEventHandlers();
+        
+        // Автоматическое подключение к Webasto
+        busDriver.connect();
+        
+        initialized = true;
+        Serial.println();
+        Serial.println("✅ Webasto Application initialized successfully");
+        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString());
+        
+        printHelp();
+    }
+    
+    void process() {
+        if (!initialized) return;
+        
+        // 1. Обработка входящих W-Bus пакетов
+        commanReceiver.process();
+        
+        // 2. Обработка команд из очереди
+        commandManager.process();
+        
+        // 3. Периодические задачи
+        uint32_t currentTime = millis();
+        
+        // Keep-alive логика
+        if (currentTime - lastKeepAliveTime >= KEEP_ALIVE_INTERVAL) {
+            processKeepAlive();
+            lastKeepAliveTime = currentTime;
+        }
+        
+        // 5. Обработка serial команд
+        handleSerialCommands();
+        
+        // 6. Обработка кнопки
+        handleButton();
+        
+        // 7. Сетевые сервисы
+        webSocketServer.process();
+        apiServer.process();
+        
+        delay(1);
+    }
+    
+    void printStatus() {
+        HeaterStatus status = heaterController.getStatus();
+        
+        Serial.println();
+        Serial.println("📊 Current Status:");
+        Serial.println("  Heater: " + status.getStateName());
+        Serial.println("  Connection: " + status.getConnectionName());
+        Serial.println("  Pending commands: " + String(commandManager.getPendingCount()));
+        Serial.println("  Waiting response: " + String(commandManager.isWaitingForResponse() ? "Yes" : "No"));
+        Serial.println("  WebSocket clients: " + String(webSocketServer.isWebSocketConnected() ? "Connected" : "None"));
+        
+        if (commandManager.isWaitingForResponse()) {
+            Serial.println("  Current TX: " + commandManager.getCurrentTx());
+        }
+    }
+
+private:
+    void setupWiFi() {
+        const NetworkConfig& netConfig = configManager.getConfig().network;
+        
+        Serial.println();
+        Serial.println("📡 Starting Access Point...");
+        Serial.println("  SSID: " + netConfig.ssid);
+        Serial.println("  Password: " + netConfig.password);
+        
+        WiFi.mode(WIFI_AP);
+        bool apStarted = WiFi.softAP(netConfig.ssid, netConfig.password);
+        
+        if (apStarted) {
+            Serial.println("✅ Access Point started");
+            Serial.println("  IP: " + WiFi.softAPIP().toString());
+            Serial.println("  MAC: " + WiFi.softAPmacAddress());
+        } else {
+            Serial.println("❌ Failed to start Access Point");
+            while (true) {
+                delay(1000);
+            }
+        }
+    }
+    
+    void setupEventHandlers() {
+        eventBus.subscribe(EventType::ERROR_OCCURRED,
+            [](const Event& event) {
+                Serial.println("❌ Error: " + event.source);
+            });
+            
+        eventBus.subscribe(EventType::COMMAND_SENT,
+            [this](const Event& event) {
+                const auto& cmdEvent = static_cast<const TypedEvent<CommandSentEvent>&>(event);
+                if (isLogging) {
+                    Serial.println("📤 TX: " + cmdEvent.data.command);
+                }
+            });
+            
+        eventBus.subscribe(EventType::COMMAND_RECEIVED,
+            [this](const Event& event) {
+                const auto& cmdEvent = static_cast<const TypedEvent<CommandReceivedEvent>&>(event);
+                if (isLogging && cmdEvent.data.success) {
+                    Serial.println("📨 RX: " + cmdEvent.data.response);
+                }
+            });
+    }
+    
+    void processKeepAlive() {
+        HeaterStatus status = heaterController.getStatus();
+        String keepAliveCommand = getKeepAliveCommandForState(status.state);
+        
+        if (!keepAliveCommand.isEmpty() && busDriver.isConnected()) {
+            commandManager.addCommand(keepAliveCommand);
+        }
+    }
+    
+    String getKeepAliveCommandForState(WebastoState state) {
+        switch (state) {
+            case WebastoState::PARKING_HEAT: return "F4 04 44 21 00 95";
+            case WebastoState::VENTILATION: return "F4 04 44 22 00 96";
+            case WebastoState::SUPP_HEAT: return "F4 04 44 23 00 97";
+            case WebastoState::BOOST: return "F4 04 44 25 00 91";
+            case WebastoState::CIRC_PUMP: return "F4 04 44 24 00 90";
+            default: return "";
+        }
+    }
+    
+    void handleButton() {
+        bool currentButtonState = digitalRead(BUTTON_PIN);
+        
+        if (currentButtonState == false && lastButtonState == true) {
+            if (busDriver.isConnected()) {
+                heaterController.disconnect();
+                Serial.println("🔌 Disconnected by button");
+            } else {
+                heaterController.connect();
+                Serial.println("🔌 Connected by button");
+            }
+            
+            delay(50); // Debounce
+        }
+        
+        lastButtonState = currentButtonState;
+    }
+    
+    void handleSerialCommands() {
+        if (Serial.available()) {
+            String command = Serial.readString();
+            command.trim();
+            command.toLowerCase();
+            
+            if (command == "status") {
+                printStatus();
+            } else if (command == "connect" || command == "con") {
+                heaterController.connect();
+            } else if (command == "disconnect" || command == "dc") {
+                heaterController.disconnect();
+            } else if (command == "info" || command == "i") {
+                deviceInfoManager.printInfo();
+            } else if (command == "sensors") {
+                sensorManager.printSensorData();
+            } else if (command == "errors" || command == "err") {
+                errorsManager.printErrors();
+            } else if (command == "clear" || command == "clr") {
+                errorsManager.resetErrors();
+            } else if (command == "queue") {
+                commandManager.printQueue();
+            } else if (command == "help" || command == "h") {
+                printHelp();
+            } else {
+                // Прямая отправка команды в очередь
+                commandManager.addCommand(command);
+                Serial.println("📋 Команда добавлена в очередь: " + command);
+            }
+        }
+    }
+    
+    void printHelp() {
+        Serial.println("\n📋 КОМАНДЫ УПРАВЛЕНИЯ:");
+        Serial.println("status        - текущий статус");
+        Serial.println("connect/con   - подключение к Webasto");
+        Serial.println("disconnect/dc - отключение от Webasto");
+        Serial.println("start         - запустить паркинг-нагрев");
+        Serial.println("stop          - остановить");
+        Serial.println("info/i        - информация о Webasto");
+        Serial.println("sensors       - данные датчиков");
+        Serial.println("errors/err    - чтение ошибок");
+        Serial.println("clear/clr     - стереть ошибки");
+        Serial.println("log           - вкл/выкл логирование");
+        Serial.println("queue         - показать очередь команд");
+        Serial.println("help/h        - эта справка");
+        Serial.println();
+        Serial.println("🌐 Web Interface: http://" + WiFi.softAPIP().toString());
+        Serial.println("========================================");
+    }
+};
+
+// Глобальный экземпляр приложения
+extern WebastoApplication app;

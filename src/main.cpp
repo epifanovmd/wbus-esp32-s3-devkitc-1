@@ -1,91 +1,13 @@
-// main.cpp
+// src/main.cpp
+#include "WebastoApplication.h"
 
-#include "wbus/wbus.h"
-#include <WiFi.h>
-#include <WebServer.h>
-#include <WebSocketsServer.h>
-#include "server/socket-server.h"
-#include "server/api-server.h"
+// Глобальный экземпляр приложения
+WebastoApplication app;
 
-const char *ap_ssid = "Webasto_WiFi";
-const char *ap_password = "Epifan123";
-
-void setup()
-{
-  // Инициализация пинов управления TJA1020
-  wBus.init();
-
-  Serial.begin(115200);
-  Serial.println("🚗 Webasto W-Bus");
-  Serial.println("=================================");
-  Serial.println();
-
-  Serial.println("📡 Запуск точки доступа...");
-  Serial.println("SSID: " + String(ap_ssid));
-  Serial.println("Password: " + String(ap_password));
-
-  WiFi.mode(WIFI_AP);
-  bool ap_started = WiFi.softAP(ap_ssid, ap_password);
-
-  if (ap_started)
-  {
-    Serial.println("✅ Точка доступа запущена");
-    Serial.println("IP адрес: " + WiFi.softAPIP().toString());
-    Serial.println("MAC адрес: " + WiFi.softAPmacAddress());
-
-    // Запуск WebSocket и веб-сервера
-    socketServer.begin();
-    apiServer.begin();
-  }
-  else
-  {
-    Serial.println("❌ Ошибка запуска точки доступа");
-    while (1)
-    {
-      delay(1000);
-    } // Останавливаем выполнение
-  }
-
-  // Автоматическое пробуждение при старте
-  printHelp();
-
-  Serial.println();
-  Serial.println("📱 Подключитесь с телефона к WiFi:");
-  Serial.println("   Сеть: " + String(ap_ssid));
-  Serial.println("   Пароль: " + String(ap_password));
-  Serial.println("   Затем откройте браузер: http://" + WiFi.softAPIP().toString());
-  Serial.println();
+void setup() {
+    app.initialize();
 }
 
-bool lastButtonState = HIGH;
-
-void loop()
-{
-
-  bool currentButtonState = digitalRead(0);
-
-  if (currentButtonState == LOW && lastButtonState == HIGH)
-  {
-    if (wBus.isConnected())
-    {
-      wBus.disconnect();
-    }
-    else
-    {
-      wBus.connect();
-    }
-  }
-
-  lastButtonState = currentButtonState;
-
-  // Чтение и обработка пакетов W-Bus
-  if (digitalRead(NSLP_PIN) == HIGH)
-  {
-    wBus.process();
-  }
-
-    socketServer.loop();
-    apiServer.loop();
-
-  delay(1);
+void loop() {
+    app.process();
 }
