@@ -85,7 +85,6 @@ public:
     }
     
     bool isWebSocketConnected() override {
-        // ИСПРАВЛЕНО: убираем const для вызова non-const метода
         return webSocket.connectedClients() > 0;
     }
 

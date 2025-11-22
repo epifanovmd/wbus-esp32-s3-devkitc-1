@@ -19,30 +19,40 @@ public:
     , commandManager(cmdManager)
      {}
     
-    void checkErrors(bool loop = false, std::function<void(String, String)> callback = nullptr) override {
+    void checkErrors(bool loop = false, std::function<void(String, String, ErrorCollection*)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_READ_ERRORS_LIST,
-            [this, loop](String tx, String rx) {
+            [this, loop, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     currentErrors = errorsDecoder.decodeErrorPacket(rx);
                     if (!currentErrors.isEmpty()) {
                         printErrors();
                         
                         // Отправляем события WebSocket
-                        eventBus.publish(EventType::ERRORS_UPDATED, "ErrorsManager");
+                        // eventBus.publish(EventType::ERRORS_UPDATED, "ErrorsManager");
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &currentErrors);
+                        } 
                     }
                 }
-            });
+            }, loop);
     }
     
     void resetErrors(std::function<void(String, String)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_CLEAR_ERRORS,
-            [this](String tx, String rx) {
+            [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     currentErrors.clear();
                     Serial.println("✅ Errors cleared successfully");
+
+                        if (callback)
+                        {
+                            callback(tx, rx);
+                        } 
                     
                     // Отправляем события WebSocket
-                    eventBus.publish(EventType::ERRORS_UPDATED, "ErrorsManager");
+                    // eventBus.publish(EventType::ERRORS_UPDATED, "ErrorsManager");
                 } else {
                     Serial.println("❌ Failed to clear errors");
                 }

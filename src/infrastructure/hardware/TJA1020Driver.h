@@ -20,12 +20,15 @@ public:
         : serial(serialRef), eventBus(bus), config(ConfigManager::getInstance().getConfig().bus) {}
     
     bool initialize() override {
-        // Инициализация пинов из оригинального tja1020.cpp
+        // Инициализация пинов управления TJA1020
         pinMode(NSLP_PIN, OUTPUT);
         pinMode(NWAKE_PIN, OUTPUT);
         pinMode(RXD_PULLUP, OUTPUT);
-        
+
+        // Подтяжка RXD к 3.3V
         digitalWrite(RXD_PULLUP, HIGH);
+
+        // Изначально спящий режим
         digitalWrite(NSLP_PIN, LOW);
         digitalWrite(NWAKE_PIN, HIGH);
         
@@ -43,7 +46,7 @@ public:
         wakeUp();
         
         // Инициализация UART из оригинального кода
-        serial.begin(config.baudRate, SERIAL_8E1, RX_TJA_PIN, TX_TJA_PIN);
+        serial.begin(2400, SERIAL_8E1, 18, 17);
         
         setConnectionState(ConnectionState::CONNECTED);
         Serial.println("✅ TJA1020 connected");
@@ -68,15 +71,25 @@ public:
         // Реализация из оригинального wakeUpTJA1020()
         digitalWrite(NSLP_PIN, HIGH);
         delay(10);
-        
+
         digitalWrite(NWAKE_PIN, LOW);
         delay(2);
         digitalWrite(NWAKE_PIN, HIGH);
-        
+
         delay(50);
         isAwakeFlag = true;
         
         Serial.println("🔔 TJA1020 awakened");
+    }
+
+    void sendBreak() override {
+        sendBreakSignal(true);
+        delay(50);
+
+        sendBreakSignal(false);
+        delay(50);
+        
+        Serial.println("🔔 TJA1020 break");
     }
     
     void sleep() override {
@@ -115,11 +128,6 @@ public:
         }
         
         serial.flush(); // Ensure data is sent
-        
-        eventBus.publish<CommandSentEvent>(
-            EventType::COMMAND_SENT,
-            {command, "W-Bus command sent"}
-        );
         
         return true;
     }

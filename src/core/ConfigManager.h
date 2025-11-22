@@ -64,7 +64,7 @@ public:
             return false;
         }
         
-        // Load bus config - ИСПРАВЛЕНО: используем правильные имена полей
+        // Load bus config
         config.bus.baudRate = doc["bus"]["baudRate"] | 2400;
         config.bus.commandTimeout = doc["bus"]["commandTimeout"] | 2000;
         config.bus.maxRetries = doc["bus"]["maxRetries"] | 3;

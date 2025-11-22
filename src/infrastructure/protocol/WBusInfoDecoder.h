@@ -7,7 +7,7 @@
 class WBusInfoDecoder {
 public:
     static DecodedVersion decodeWBusVersion(const String& response) {
-        DecodedVersion result = {"", 0, 0, false};
+        DecodedVersion result = {"", 0, 0};
         
         String versionData = extractDataFromResponse(response, "d10a", 2);
         if (versionData.length() == 2) {
@@ -15,46 +15,42 @@ public:
             result.major = (versionByte >> 4) & 0x0F;
             result.minor = versionByte & 0x0F;
             result.versionString = String(result.major) + "." + String(result.minor);
-            result.isValid = true;
         }
         
         return result;
     }
     
     static DecodedTextData decodeDeviceName(const String& response) {
-        DecodedTextData result = {"", false};
+        DecodedTextData result = {""};
         
         String nameData = extractDataFromResponse(response, "d10b");
         if (nameData.length() > 0) {
             String text = hexToString(nameData);
             text.trim();
             result.text = text;
-            result.isValid = true;
         }
         
         return result;
     }
     
     static DecodedWBusCode decodeWBusCode(const String& response) {
-        DecodedWBusCode result = {"", "", false};
+        DecodedWBusCode result = {"", ""};
         
         String codeData = extractDataFromResponse(response, "d10c");
         if (codeData.length() > 0) {
             result.codeString = codeData;
             result.supportedFunctions = analyzeWBusCode(codeData);
-            result.isValid = true;
         }
         
         return result;
     }
     
     static DecodedTextData decodeDeviceID(const String& response) {
-        DecodedTextData result = {"", false};
+        DecodedTextData result = {""};
         
         String idData = extractDataFromResponse(response, "d101");
         if (idData.length() > 0) {
             result.text = idData;
-            result.isValid = true;
         }
         
         return result;
@@ -69,24 +65,22 @@ public:
     }
     
     static DecodedTextData decodeCustomerID(const String& response) {
-        DecodedTextData result = {"", false};
+        DecodedTextData result = {""};
         
         String data = extractDataFromResponse(response, "d107");
         if (data.length() > 0) {
             result.text = hexToString(data);
-            result.isValid = true;
         }
         
         return result;
     }
     
     static DecodedTextData decodeSerialNumber(const String& response) {
-        DecodedTextData result = {"", false};
+        DecodedTextData result = {""};
         
         String data = extractDataFromResponse(response, "d109");
         if (data.length() >= 10) {
             result.text = data.substring(0, 10);
-            result.isValid = true;
         }
         
         return result;
@@ -134,7 +128,7 @@ private:
     }
     
     static DecodedManufactureDate decodeManufactureDate(const String& response, const String& command) {
-        DecodedManufactureDate result = {"", 0, 0, 0, false};
+        DecodedManufactureDate result = {"", 0, 0, 0};
         
         String dateData = extractDataFromResponse(response, command, 6);
         if (dateData.length() == 6) {
@@ -146,7 +140,6 @@ private:
             result.month = Utils::hexStringToByte(monthStr);
             result.year = 2000 + Utils::hexStringToByte(yearStr);
             result.dateString = dayStr + "." + monthStr + ".20" + yearStr;
-            result.isValid = true;
         }
         
         return result;

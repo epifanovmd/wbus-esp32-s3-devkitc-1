@@ -14,6 +14,7 @@ public:
     virtual bool sendCommand(const String& command) = 0;
     virtual bool sendCommand(const String& command, std::function<void(String, String)> callback) = 0;
     
+    virtual void sendBreak() = 0;
     virtual void wakeUp() = 0;
     virtual void sleep() = 0;
     virtual bool isAwake() const = 0;

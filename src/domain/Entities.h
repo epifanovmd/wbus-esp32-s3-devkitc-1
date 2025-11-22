@@ -30,25 +30,21 @@ struct DecodedManufactureDate {
     uint8_t day;
     uint8_t month;
     uint16_t year;
-    bool isValid;
 };
 
 struct DecodedVersion {
     String versionString;
     uint8_t major;
     uint8_t minor;
-    bool isValid;
 };
 
 struct DecodedWBusCode {
     String codeString;
     String supportedFunctions;
-    bool isValid;
 };
 
 struct DecodedTextData {
     String text;
-    bool isValid;
 };
 
 // Структуры для сенсоров

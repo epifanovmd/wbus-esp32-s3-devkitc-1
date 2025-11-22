@@ -5,11 +5,12 @@
 #include "../infrastructure/protocol/WBusInfoDecoder.h"
 #include "../application/CommandManager.h"
 
-class DeviceInfoManager : public IDeviceInfoManager {
+class DeviceInfoManager : public IDeviceInfoManager
+{
 private:
-    EventBus& eventBus;
-    CommandManager& commandManager;
-    
+    EventBus &eventBus;
+    CommandManager &commandManager;
+
     // Данные устройства
     String wbusVersion;
     String deviceName;
@@ -20,16 +21,17 @@ private:
     String customerID;
     String wbusCode;
     String supportedFunctions;
-    
+
     bool hasData = false;
 
 public:
-    DeviceInfoManager(EventBus& bus, CommandManager& cmdManager) 
-    : eventBus(bus)
-    , commandManager(cmdManager)
-     {}
-    
-    void requestAllInfo(bool loop = false) override {
+    DeviceInfoManager(EventBus &bus, CommandManager &cmdManager)
+        : eventBus(bus), commandManager(cmdManager)
+    {
+    }
+
+    void requestAllInfo(bool loop = false) override
+    {
         requestWBusVersion(loop);
         requestDeviceName(loop);
         requestWBusCode(loop);
@@ -39,112 +41,135 @@ public:
         requestCustomerID(loop);
         requestSerialNumber(loop);
     }
-    
-    void requestWBusVersion(bool loop = false, std::function<void(String, String, DecodedVersion*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_WBUS_VERSION,
-            [this](String tx, String rx) {
+
+    void requestWBusVersion(bool loop = false, std::function<void(String, String, DecodedVersion *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_WBUS_VERSION, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
                     DecodedVersion version = WBusInfoDecoder::decodeWBusVersion(rx);
-                    if (version.isValid) {
                         wbusVersion = version.versionString;
-                        Serial.println("✅ W-Bus Version: " + wbusVersion);
-                    }
-                }
-            });
+                        // Serial.println("✅ W-Bus Version: " + wbusVersion);
+                        
+                                                                        if (callback)
+                        {
+                            callback(tx, rx, &version);
+                        }  
+                } }, loop);
     }
-    
-    void requestDeviceName(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_DEVICE_NAME,
-            [this](String tx, String rx) {
+
+    void requestDeviceName(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_DEVICE_NAME, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
                     DecodedTextData name = WBusInfoDecoder::decodeDeviceName(rx);
-                    if (name.isValid) {
                         deviceName = name.text;
-                        Serial.println("✅ Device Name: " + deviceName);
-                    }
-                }
-            });
+                        // Serial.println("✅ Device Name: " + deviceName);
+
+                                                if (callback)
+                        {
+                            callback(tx, rx, &name);
+                        }  
+                } }, loop);
     }
-    
-    void requestWBusCode(bool loop = false, std::function<void(String, String, DecodedWBusCode*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_WBUS_CODE,
-            [this](String tx, String rx) {
+
+    void requestWBusCode(bool loop = false, std::function<void(String, String, DecodedWBusCode *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_WBUS_CODE, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
                     DecodedWBusCode code = WBusInfoDecoder::decodeWBusCode(rx);
-                    if (code.isValid) {
                         wbusCode = code.codeString;
                         supportedFunctions = code.supportedFunctions;
-                        Serial.println("✅ W-Bus Code: " + wbusCode);
-                    }
-                }
-            });
+                        // Serial.println("✅ W-Bus Code: " + wbusCode);
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &code);
+                        }  
+                } }, loop);
     }
-    
-    void requestDeviceID(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_DEVICE_ID,
-            [this](String tx, String rx) {
+
+    void requestDeviceID(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_DEVICE_ID, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
-                    DecodedTextData id = WBusInfoDecoder::decodeDeviceID(rx);
-                    if (id.isValid) {
-                        deviceID = id.text;
-                        Serial.println("✅ Device ID: " + deviceID);
-                    }
-                }
-            });
+                    DecodedTextData deviceId = WBusInfoDecoder::decodeDeviceID(rx);
+                        // Serial.println("✅ Device ID: " + deviceId.text);
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &deviceId);
+                        }                      
+                } }, loop);
     }
-    
-    void requestControllerManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_CTRL_MFG_DATE,
-            [this](String tx, String rx) {
+
+    void requestControllerManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_CTRL_MFG_DATE, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
                     DecodedManufactureDate date = WBusInfoDecoder::decodeControllerManufactureDate(rx);
-                    if (date.isValid) {
                         controllerManufactureDate = date.dateString;
-                        Serial.println("✅ Controller Date: " + controllerManufactureDate);
-                    }
-                }
-            });
+                        // Serial.println("✅ Controller Date: " + controllerManufactureDate);
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &date);
+                        } 
+                } }, loop);
     }
-    
-    void requestHeaterManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_HEATER_MFG_DATE,
-            [this](String tx, String rx) {
+
+    void requestHeaterManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_HEATER_MFG_DATE, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
                     DecodedManufactureDate date = WBusInfoDecoder::decodeHeaterManufactureDate(rx);
-                    if (date.isValid) {
                         heaterManufactureDate = date.dateString;
-                        Serial.println("✅ Heater Date: " + heaterManufactureDate);
-                    }
-                }
-            });
+                        // Serial.println("✅ Heater Date: " + heaterManufactureDate);
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &date);
+                        } 
+                } }, loop);
     }
-    
-    void requestCustomerID(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_CUSTOMER_ID,
-            [this](String tx, String rx) {
+
+    void requestCustomerID(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_CUSTOMER_ID, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
                     DecodedTextData customer = WBusInfoDecoder::decodeCustomerID(rx);
-                    if (customer.isValid) {
                         customerID = customer.text;
-                        Serial.println("✅ Customer ID: " + customerID);
-                    }
-                }
-            });
+                        // Serial.println("✅ Customer ID: " + customerID);
+
+                       if (callback)
+                        {
+                            callback(tx, rx, &customer);
+                        } 
+                } }, loop);
     }
-    
-    void requestSerialNumber(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_SERIAL_NUMBER,
-            [this](String tx, String rx) {
+
+    void requestSerialNumber(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_SERIAL_NUMBER, [this, callback](String tx, String rx)
+                                  {
                 if (!rx.isEmpty()) {
                     DecodedTextData serial = WBusInfoDecoder::decodeSerialNumber(rx);
-                    if (serial.isValid) {
                         serialNumber = serial.text;
-                        Serial.println("✅ Serial Number: " + serialNumber);
-                    }
-                }
-            });
+                        // Serial.println("✅ Serial Number: " + serialNumber);
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &serial);
+                        }
+                        
+                } }, loop);
     }
-    
 
     String getWBusVersionData() const override { return wbusVersion; }
     String getDeviceNameData() const override { return deviceName; }
@@ -156,7 +181,8 @@ public:
     String getWBusCodeData() const override { return wbusCode; }
     String getSupportedFunctionsData() const override { return supportedFunctions; }
 
-    String getDeviceInfoJson() const override {
+    String getDeviceInfoJson() const override
+    {
         String json = "{";
         json += "\"wbus_version\":\"" + wbusVersion + "\",";
         json += "\"device_name\":\"" + deviceName + "\",";
@@ -170,8 +196,9 @@ public:
         json += "}";
         return json;
     }
-    
-    void printInfo() const override {
+
+    void printInfo() const override
+    {
         Serial.println();
         Serial.println("═══════════════════════════════════════════════════════════");
         Serial.println("         ИНФОРМАЦИЯ Webasto                                ");
@@ -192,8 +219,9 @@ public:
         Serial.println("═══════════════════════════════════════════════════════════");
         Serial.println();
     }
-    
-    void clear() override {
+
+    void clear() override
+    {
         wbusVersion = "";
         deviceName = "";
         deviceID = "";
@@ -207,5 +235,4 @@ public:
     }
 
 private:
-
 };

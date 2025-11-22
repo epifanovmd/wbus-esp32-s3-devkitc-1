@@ -40,7 +40,6 @@ private:
     
     // Состояние приложения
     bool initialized = false;
-    bool isLogging = false;
     uint32_t lastKeepAliveTime = 0;
     const uint32_t KEEP_ALIVE_INTERVAL = 15000;
     
@@ -178,25 +177,19 @@ private:
     }
     
     void setupEventHandlers() {
+        HeaterStatus status;
+
         eventBus.subscribe(EventType::ERROR_OCCURRED,
             [](const Event& event) {
                 Serial.println("❌ Error: " + event.source);
             });
-            
-        eventBus.subscribe(EventType::COMMAND_SENT,
-            [this](const Event& event) {
-                const auto& cmdEvent = static_cast<const TypedEvent<CommandSentEvent>&>(event);
-                if (isLogging) {
-                    Serial.println("📤 TX: " + cmdEvent.data.command);
-                }
-            });
-            
-        eventBus.subscribe(EventType::COMMAND_RECEIVED,
-            [this](const Event& event) {
-                const auto& cmdEvent = static_cast<const TypedEvent<CommandReceivedEvent>&>(event);
-                if (isLogging && cmdEvent.data.success) {
-                    Serial.println("📨 RX: " + cmdEvent.data.response);
-                }
+
+        eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,
+            [this, status](const Event& event) {
+    
+                const auto& connectionEvent = static_cast<const TypedEvent<ConnectionStateChangedEvent>&>(event);
+                Serial.println();
+                Serial.print(status.getConnectionName(connectionEvent.data.oldState) + " ––> " + status.getConnectionName(connectionEvent.data.newState));
             });
     }
     
@@ -211,11 +204,11 @@ private:
     
     String getKeepAliveCommandForState(WebastoState state) {
         switch (state) {
-            case WebastoState::PARKING_HEAT: return "F4 04 44 21 00 95";
-            case WebastoState::VENTILATION: return "F4 04 44 22 00 96";
-            case WebastoState::SUPP_HEAT: return "F4 04 44 23 00 97";
-            case WebastoState::BOOST: return "F4 04 44 25 00 91";
-            case WebastoState::CIRC_PUMP: return "F4 04 44 24 00 90";
+            case WebastoState::PARKING_HEAT: return WBusProtocol::CMD_KEEPALIVE_PARKING;
+            case WebastoState::VENTILATION: return WBusProtocol::CMD_KEEPALIVE_VENT;
+            case WebastoState::SUPP_HEAT: return WBusProtocol::CMD_KEEPALIVE_SUPP_HEAT;
+            case WebastoState::CIRC_PUMP: return WBusProtocol::CMD_KEEPALIVE_CIRC_PUMP;
+            case WebastoState::BOOST: return WBusProtocol::CMD_KEEPALIVE_BOOST;
             default: return "";
         }
     }
@@ -264,8 +257,8 @@ private:
                 printHelp();
             } else {
                 // Прямая отправка команды в очередь
+                busDriver.sendBreak();
                 commandManager.addCommand(command);
-                Serial.println("📋 Команда добавлена в очередь: " + command);
             }
         }
     }

@@ -35,65 +35,95 @@ public:
     
     void requestOperationalInfo(bool loop = false, std::function<void(String tx, String rx, OperationalMeasurements* measurements)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_OPERATIONAL,
-            [this](String tx, String rx) {
+            [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     operationalMeasurements = WBusSensorsDecoder::decodeOperationalInfo(rx);
-                    eventBus.publish<SensorDataUpdatedEvent>(EventType::SENSOR_DATA_UPDATED, {operationalMeasurements});
+                    // eventBus.publish<SensorDataUpdatedEvent>(EventType::SENSOR_DATA_UPDATED, {operationalMeasurements});
                     
                     // Отправляем в WebSocket
-                    eventBus.publish(EventType::OPERATIONAL_DATA_UPDATED, "SensorManager");
+                    // eventBus.publish(EventType::OPERATIONAL_DATA_UPDATED, "SensorManager");
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &operationalMeasurements);
+                        } 
                 }
-            });
+            }, loop);
     }
     
     void requestFuelSettings(bool loop = false, std::function<void(String tx, String rx, FuelSettings* fuel)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_FUEL_SETTINGS,
-            [this](String tx, String rx) {
+            [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     fuelSettings = WBusSensorsDecoder::decodeFuelSettings(rx);
-                    eventBus.publish(EventType::FUEL_SETTINGS_UPDATED, "SensorManager");
+                    // eventBus.publish(EventType::FUEL_SETTINGS_UPDATED, "SensorManager");
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &fuelSettings);
+                        } 
                 }
-            });
+            }, loop);
     }
     
     void requestOnOffFlags(bool loop = false, std::function<void(String tx, String rx, OnOffFlags* onOff)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_ON_OFF_FLAGS,
-            [this](String tx, String rx) {
+            [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     onOffFlags = WBusSensorsDecoder::decodeOnOffFlags(rx);
-                    eventBus.publish(EventType::ON_OFF_FLAGS_UPDATED, "SensorManager");
+                    // eventBus.publish(EventType::ON_OFF_FLAGS_UPDATED, "SensorManager");
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &onOffFlags);
+                        } 
                 }
-            });
+            }, loop);
     }
     
     void requestStatusFlags(bool loop = false, std::function<void(String tx, String rx, StatusFlags* status)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_STATUS_FLAGS,
-            [this](String tx, String rx) {
+            [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     statusFlags = WBusSensorsDecoder::decodeStatusFlags(rx);
-                    eventBus.publish(EventType::STATUS_FLAGS_UPDATED, "SensorManager");
+                    // eventBus.publish(EventType::STATUS_FLAGS_UPDATED, "SensorManager");
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &statusFlags);
+                        } 
                 }
-            });
+            }, loop);
     }
     
     void requestOperatingState(bool loop = false, std::function<void(String tx, String rx, OperatingState* state)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_OPERATING_STATE,
-            [this](String tx, String rx) {
+            [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     operatingState = WBusSensorsDecoder::decodeOperatingState(rx);
-                    eventBus.publish(EventType::OPERATING_STATE_UPDATED, "SensorManager");
+                    // eventBus.publish(EventType::OPERATING_STATE_UPDATED, "SensorManager");
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &operatingState);
+                        } 
                 }
-            });
+            }, loop);
     }
     
     void requestSubsystemsStatus(bool loop = false, std::function<void(String tx, String rx, SubsystemsStatus* subsystems)> callback = nullptr) override {
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_SUBSYSTEMS_STATUS,
-            [this](String tx, String rx) {
+            [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     subsystemsStatus = WBusSensorsDecoder::decodeSubsystemsStatus(rx);
-                    eventBus.publish(EventType::SUBSYSTEMS_STATUS_UPDATED, "SensorManager");
+                    // eventBus.publish(EventType::SUBSYSTEMS_STATUS_UPDATED, "SensorManager");
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &subsystemsStatus);
+                        } 
                 }
-            });
+            }, loop);
     }
     
 

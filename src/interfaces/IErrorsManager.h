@@ -7,7 +7,7 @@ class IErrorsManager {
 public:
     virtual ~IErrorsManager() = default;
 
-    virtual void checkErrors(bool loop = false, std::function<void(String, String)> callback = nullptr) = 0;
+    virtual void checkErrors(bool loop = false, std::function<void(String, String, ErrorCollection*)> callback = nullptr) = 0;
     virtual void resetErrors(std::function<void(String, String)> callback = nullptr) = 0;
 
     virtual String getErrorsJson() const = 0;

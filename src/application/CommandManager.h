@@ -65,7 +65,6 @@ private:
     
     // Текущее состояние
     ProcessingState state = ProcessingState::IDLE;
-    Command currentCommand;
     uint8_t currentRetries = 0;
     const uint8_t MAX_RETRIES = 5;
 
@@ -100,7 +99,7 @@ public:
         
         queue.push(Command(command, CommandPriority::PRIORITY_NORMAL, callback, loop));
         
-        Serial.println("📋 Команда добавлена в очередь: " + command);
+        // Serial.println("📋 Команда добавлена в очередь: " + command);
         
         return true;
     }
@@ -148,15 +147,14 @@ public:
             case ProcessingState::SENDING:
                 if (commanReceiver.isRxReceived())
                 {
-                    Serial.println("isRxReceived");
                     // ✅ Ответ получен
                     _completeCurrentCommand(commanReceiver.getRxData(), true);
                 }
-                // else if (timeoutTimer.isReady())
-                // {
-                //     // ⏰ Таймаут
-                //     _handleTimeout();
-                // }
+                else if (timeoutTimer.isReady())
+                {
+                    // ⏰ Таймаут
+                    _handleTimeout();
+                }
                 break;
                 
             case ProcessingState::RETRY:
@@ -278,12 +276,6 @@ public:
             return;
         }
         
-        // Показываем текущую обрабатываемую команду
-        if (state != ProcessingState::IDLE) {
-            Serial.println("   [ТЕКУЩАЯ] " + currentCommand.data + 
-                          " [попытка " + String(currentRetries) + "]");
-        }
-        
         // Показываем команды в очереди
         std::priority_queue<Command> tempQueue = queue;
         int index = 0;
@@ -312,51 +304,49 @@ private:
     void _sendCurrentCommand() {
         if (queue.empty()) return;
         
-        currentCommand = queue.top();
-        queue.pop();
+        Command command = queue.top();
         
         // Валидация пакета (как в оригинале)
-        WBusPacket packet = WBusProtocol::parseHexStringToPacket(currentCommand.data);
+        WBusPacket packet = WBusProtocol::parseHexStringToPacket(command.data);
         if (!WBusProtocol::validateWbusPacket(packet)) {
-            Serial.println("❌ Неверный пакет: " + currentCommand.data);
+            Serial.println("❌ Неверный пакет: " + command.data);
             _completeCurrentCommand("", false);
             return;
         }
         
-        if (busManager.sendCommand(currentCommand.data)) {
+        if (busManager.sendCommand(command.data)) {
             state = ProcessingState::SENDING;
             timeoutTimer.reset();
             currentRetries = 0;
 
         } else {
-            Serial.println("❌ Ошибка отправки команды: " + currentCommand.data);
+            Serial.println("❌ Ошибка отправки команды: " + command.data);
             _completeCurrentCommand("", false);
         }
     }
     
     void _completeCurrentCommand(const String& response, bool success) {
+        Command command = queue.top();
+        queue.pop();
+
         // Вызываем колбэк если есть
-        if (currentCommand.callback) {
-            currentCommand.callback(currentCommand.data, success ? response : "");
+        if (command.callback) {
+            command.callback(command.data, success ? response : "");
         }
         
         // Если команда зациклена и успешно выполнена - добавляем обратно
-        if (success && currentCommand.loop && !response.isEmpty()) {
-            queue.push(Command(currentCommand.data, currentCommand.priority, currentCommand.callback, true));
+        if (success && command.loop && !response.isEmpty()) {
+            queue.push(command);
         }
         
         // Событие о получении ответа
-        eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {currentCommand.data, response, success});
+        // eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {command.data, response, success});
 
         if (success) {
-            Serial.println("✅ Ответ получен для: " + currentCommand.data);
-            if (!response.isEmpty()) {
-                Serial.println("📨 RX: " + response);
-            }
+       
         } else {
-            Serial.println("❌ Ошибка выполнения: " + currentCommand.data);
+            Serial.println("❌ Ошибка выполнения: " + command.data);
         }
-
         
         // Сброс состояния
         state = ProcessingState::IDLE;
@@ -370,12 +360,14 @@ private:
     
     void _handleTimeout() {
         currentRetries++;
-        
+        Command command = queue.top();
+
         if (currentRetries >= MAX_RETRIES) {
-            Serial.println("❌ Таймаут после " + String(currentRetries) + " попыток: " + currentCommand.data);
+            Serial.println();
+            Serial.print("❌ Попытка " + String(currentRetries) + " – " + command.data);
             _completeCurrentCommand("", false);
         } else {
-            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(MAX_RETRIES) + ": " + currentCommand.data);
+            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(MAX_RETRIES) + ": " + command.data);
             
             // Как в оригинале - BREAK сигнал перед повторной отправкой
             state = ProcessingState::BREAK_SET;

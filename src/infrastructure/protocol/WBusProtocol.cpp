@@ -2,6 +2,19 @@
 #include "WBusProtocol.h"
 
 // =================================================================================
+// КОМАНДЫ ЧТЕНИЯ ИНФОРМАЦИИ (0x51)
+// =================================================================================
+
+const String WBusProtocol::CMD_READ_INFO_WBUS_VERSION = "F4 03 51 0A AC";
+const String WBusProtocol::CMD_READ_INFO_DEVICE_NAME = "F4 03 51 0B AD";
+const String WBusProtocol::CMD_READ_INFO_WBUS_CODE = "F4 03 51 0C AA";
+const String WBusProtocol::CMD_READ_INFO_DEVICE_ID = "F4 03 51 01 A7";
+const String WBusProtocol::CMD_READ_INFO_CTRL_MFG_DATE = "F4 03 51 04 A2";
+const String WBusProtocol::CMD_READ_INFO_HEATER_MFG_DATE = "F4 03 51 05 A3";
+const String WBusProtocol::CMD_READ_INFO_CUSTOMER_ID = "F4 03 51 07 A1";
+const String WBusProtocol::CMD_READ_INFO_SERIAL_NUMBER = "F4 03 51 09 AF";
+
+// =================================================================================
 // БАЗОВЫЕ КОМАНДЫ УПРАВЛЕНИЯ
 // =================================================================================
 const String WBusProtocol::CMD_SHUTDOWN = "F4 02 10 E6";
@@ -30,18 +43,6 @@ const String WBusProtocol::CMD_READ_SENSOR_FUEL_SETTINGS = "F4 03 50 04 A3";
 const String WBusProtocol::CMD_READ_SENSOR_OPERATIONAL = "F4 03 50 05 A2";
 const String WBusProtocol::CMD_READ_SENSOR_OPERATING_STATE = "F4 03 50 06 A1";
 const String WBusProtocol::CMD_READ_SENSOR_SUBSYSTEMS_STATUS = "F4 03 50 0F A8";
-
-// =================================================================================
-// КОМАНДЫ ЧТЕНИЯ ИНФОРМАЦИИ (0x51)
-// =================================================================================
-const String WBusProtocol::CMD_READ_INFO_DEVICE_ID = "F4 03 51 01 A7";
-const String WBusProtocol::CMD_READ_INFO_CTRL_MFG_DATE = "F4 03 51 04 A2";
-const String WBusProtocol::CMD_READ_INFO_HEATER_MFG_DATE = "F4 03 51 05 A3";
-const String WBusProtocol::CMD_READ_INFO_CUSTOMER_ID = "F4 03 51 07 A1";
-const String WBusProtocol::CMD_READ_INFO_SERIAL_NUMBER = "F4 03 51 09 AF";
-const String WBusProtocol::CMD_READ_INFO_WBUS_VERSION = "F4 03 51 0A AC";
-const String WBusProtocol::CMD_READ_INFO_DEVICE_NAME = "F4 03 51 0B AD";
-const String WBusProtocol::CMD_READ_INFO_WBUS_CODE = "F4 03 51 0C AA";
 
 // =================================================================================
 // КОМАНДЫ ОШИБОК (0x56)

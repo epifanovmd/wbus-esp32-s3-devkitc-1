@@ -8,7 +8,6 @@
 #include "../application/SensorManager.h"
 #include "../interfaces/IBusManager.h"
 #include "../domain/Events.h" 
-#include "../infrastructure/protocol/WBusConstants.h"
 
 class HeaterController : public IHeaterController {
 private:
@@ -33,17 +32,12 @@ public:
     {
         currentStatus.state = WebastoState::OFF;
         currentStatus.connection = ConnectionState::DISCONNECTED;
-        neopixelWrite(RGB_PIN, 0, 0, 0);
     }
     
     bool initialize() override {
         Serial.println("✅ Heater Controller initialized");
-        
-        eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,
-            [this](const Event& event) {
-                handleConnectionStateChange(event);
-            });
-            
+        neopixelWrite(RGB_PIN, 0, 0, 0);
+   
         return true;
     }
     
@@ -67,8 +61,7 @@ public:
 
         Serial.println("🔌 Начинаем подключение к Webasto...");
 
-        // WakeUp TJA1020 как в оригинале
-        busManager.wakeUp();
+        busManager.sendBreak();
         delay(100);
 
         // Запрашиваем основную информацию об устройстве
@@ -77,7 +70,7 @@ public:
         deviceInfoManager.requestWBusCode();
 
         // Запускаем диагностику (как в оригинальном коде)
-        commandManager.addCommand(WBusConstants::CMD_DIAGNOSTIC,
+        commandManager.addCommand(WBusProtocol::CMD_DIAGNOSTIC,
             [this](String tx, String rx) {
                 handleDiagnosticResponse(tx, rx);
             });
@@ -178,7 +171,7 @@ public:
     }
     
     bool shutdown() override {
-        commandManager.addPriorityCommand(WBusConstants::CMD_SHUTDOWN,
+        commandManager.addPriorityCommand(WBusProtocol::CMD_SHUTDOWN,
             [this](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     setState(WebastoState::OFF);
@@ -304,66 +297,64 @@ private:
     void handleDiagnosticResponse(String tx, String rx) {
         if (!rx.isEmpty()) {
             // Успешное подключение - запрашиваем остальную информацию
-            deviceInfoManager.requestDeviceID();
-            deviceInfoManager.requestControllerManufactureDate();
-            deviceInfoManager.requestHeaterManufactureDate();
-            deviceInfoManager.requestCustomerID();
-            deviceInfoManager.requestSerialNumber(false,
+            // deviceInfoManager.requestDeviceID();
+            // deviceInfoManager.requestControllerManufactureDate();
+            // deviceInfoManager.requestHeaterManufactureDate();
+            // deviceInfoManager.requestCustomerID();
+            deviceInfoManager.requestSerialNumber(loop,
                 [this](String tx, String rx, DecodedTextData* serial) {
-                    onDeviceInfoComplete();
+                    commandManager.setInterval(1000);
+                    eventBus.publish(EventType::COMMAND_SENT, tx);
                 });
 
             // Настраиваем интервал очереди как в оригинале
-            commandManager.setInterval(200);
+            // commandManager.setInterval(200);
 
             // Запускаем периодический опрос сенсоров
-            startSensorMonitoring();
+            // startSensorMonitoring();
 
+            Serial.println();
             Serial.println("✅ Подключение к Webasto установлено");
             setConnectionState(ConnectionState::CONNECTED);
         } else {
+            Serial.println();
             Serial.println("❌ Ошибка подключения к Webasto");
             setConnectionState(ConnectionState::CONNECTION_FAILED);
         }
         isConnecting = false;
     }
 
-    void onDeviceInfoComplete() {
-        Serial.println("✅ Вся информация об устройстве получена");
-        eventBus.publish(EventType::DEVICE_INFO_UPDATED, "HeaterController");
-    }
-
     void startSensorMonitoring() {
         sensorManager.requestOperationalInfo(true, [this](String tx, String rx, OperationalMeasurements* measurements) {
             if (measurements != nullptr) {
-                eventBus.publish(EventType::OPERATIONAL_DATA_UPDATED, "HeaterController");
+                // eventBus.publish(EventType::OPERATIONAL_DATA_UPDATED, "HeaterController");
             }
         });
         sensorManager.requestOnOffFlags(true, [this](String tx, String rx, OnOffFlags* onOff) {
             if (onOff != nullptr) {
-                eventBus.publish(EventType::ON_OFF_FLAGS_UPDATED, "HeaterController");
+                // eventBus.publish(EventType::ON_OFF_FLAGS_UPDATED, "HeaterController");
                 updateHeaterStateFromSensors(onOff);
             }
         });
         sensorManager.requestStatusFlags(true, [this](String tx, String rx, StatusFlags* status) {
             if (status != nullptr) {
-                eventBus.publish(EventType::STATUS_FLAGS_UPDATED, "HeaterController");
+                // eventBus.publish(EventType::STATUS_FLAGS_UPDATED, "HeaterController");
                 updateHeaterStateFromFlags(status);
             }
         });
         sensorManager.requestOperatingState(true, [this](String tx, String rx, OperatingState* state) {
             if (state != nullptr) {
-                eventBus.publish(EventType::OPERATING_STATE_UPDATED, "HeaterController");
+                // eventBus.publish(EventType::OPERATING_STATE_UPDATED, "HeaterController");
             }
         });
         sensorManager.requestSubsystemsStatus(true, [this](String tx, String rx, SubsystemsStatus* subsystems) {
             if (subsystems != nullptr) {
-                eventBus.publish(EventType::SUBSYSTEMS_STATUS_UPDATED, "HeaterController");
+                // eventBus.publish(EventType::SUBSYSTEMS_STATUS_UPDATED, "HeaterController");
             }
         });
         sensorManager.requestFuelSettings(false, [this](String tx, String rx, FuelSettings* fuel) {
             if (fuel != nullptr) {
-                eventBus.publish(EventType::FUEL_SETTINGS_UPDATED, "HeaterController");
+                // eventBus.publish(EventType::FUEL_SETTINGS_UPDATED, "HeaterController");
             }
         });
     }
@@ -435,11 +426,6 @@ private:
                 {oldState, newState, "Connection state changed"}
             );
         }
-    }
-    
-    void handleConnectionStateChange(const Event& event) {
-        const auto& connectionEvent = static_cast<const TypedEvent<ConnectionStateChangedEvent>&>(event);
-        currentStatus.connection = connectionEvent.data.newState;
     }
     
     String getStateName(WebastoState state) {

@@ -5,7 +5,7 @@
 WebastoApplication app;
 
 void setup() {
-    app.initialize();
+      app.initialize();
 }
 
 void loop() {
