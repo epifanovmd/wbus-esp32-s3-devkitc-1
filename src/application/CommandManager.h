@@ -321,8 +321,6 @@ private:
         if (busManager.sendCommand(command.data)) {
             state = ProcessingState::SENDING;
             timeoutTimer.reset();
-            currentRetries = 0;
-
         } else {
             Serial.println();
             Serial.println("❌ Ошибка отправки команды: " + command.data);
