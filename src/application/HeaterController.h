@@ -35,6 +35,7 @@ public:
     }
     
     bool initialize() override {
+         Serial.println();
         Serial.println("✅ Heater Controller initialized");
         neopixelWrite(RGB_PIN, 0, 0, 0);
    
@@ -51,6 +52,7 @@ public:
     
     bool connect() override {
         if (isConnecting) {
+            Serial.println();
             Serial.println("⚠️  Подключение уже выполняется...");
             return false;
         }
@@ -59,6 +61,7 @@ public:
         connectionStartTime = millis();
         setConnectionState(ConnectionState::CONNECTING);
 
+        Serial.println();
         Serial.println("🔌 Начинаем подключение к Webasto...");
 
         busManager.sendBreak();
@@ -77,10 +80,15 @@ public:
 
         return true;
     }
+
+    bool isConnected() {
+        return currentStatus.connection == ConnectionState::CONNECTED;
+    }
     
     void disconnect() override {
         isConnecting = false;
         commandManager.clear();
+        commandManager.setInterval(150);
         setConnectionState(ConnectionState::DISCONNECTED);
         
         Serial.println("🔌 Отключение от Webasto выполнено");
@@ -297,21 +305,17 @@ private:
     void handleDiagnosticResponse(String tx, String rx) {
         if (!rx.isEmpty()) {
             // Успешное подключение - запрашиваем остальную информацию
-            // deviceInfoManager.requestDeviceID();
-            // deviceInfoManager.requestControllerManufactureDate();
-            // deviceInfoManager.requestHeaterManufactureDate();
-            // deviceInfoManager.requestCustomerID();
-            deviceInfoManager.requestSerialNumber(loop,
-                [this](String tx, String rx, DecodedTextData* serial) {
-                    commandManager.setInterval(1000);
-                    eventBus.publish(EventType::COMMAND_SENT, tx);
-                });
+            deviceInfoManager.requestDeviceID();
+            deviceInfoManager.requestControllerManufactureDate();
+            deviceInfoManager.requestHeaterManufactureDate();
+            deviceInfoManager.requestCustomerID();
+            deviceInfoManager.requestSerialNumber();
 
             // Настраиваем интервал очереди как в оригинале
-            // commandManager.setInterval(200);
+            commandManager.setInterval(200);
 
             // Запускаем периодический опрос сенсоров
-            // startSensorMonitoring();
+            startSensorMonitoring();
 
             Serial.println();
             Serial.println("✅ Подключение к Webasto установлено");

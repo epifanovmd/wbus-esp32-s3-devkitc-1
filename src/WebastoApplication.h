@@ -217,7 +217,7 @@ private:
         bool currentButtonState = digitalRead(BUTTON_PIN);
         
         if (currentButtonState == false && lastButtonState == true) {
-            if (busDriver.isConnected()) {
+            if (heaterController.isConnected()) {
                 heaterController.disconnect();
                 Serial.println("🔌 Disconnected by button");
             } else {
