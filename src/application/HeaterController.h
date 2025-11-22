@@ -91,6 +91,7 @@ public:
         commandManager.setInterval(150);
         setConnectionState(ConnectionState::DISCONNECTED);
         
+        Serial.println();
         Serial.println("🔌 Отключение от Webasto выполнено");
     }
     

@@ -237,6 +237,7 @@ public:
         state = ProcessingState::IDLE;
         currentRetries = 0;
         
+        Serial.println();
         Serial.println("🧹 Очередь очищена");
     }
     
@@ -246,6 +247,7 @@ public:
     
     void setTimeout(unsigned long timeout) {
         timeoutTimer = timeout;
+        Serial.println();
         Serial.println("⏰ Таймаут установлен: " + String(timeout) + "мс");
     }
     
@@ -270,6 +272,7 @@ public:
     }
     
     void printQueue() {
+        Serial.println();
         Serial.println("📋 Содержимое очереди:");
         if (queue.empty() && state == ProcessingState::IDLE) {
             Serial.println("   (пусто)");
@@ -309,6 +312,7 @@ private:
         // Валидация пакета (как в оригинале)
         WBusPacket packet = WBusProtocol::parseHexStringToPacket(command.data);
         if (!WBusProtocol::validateWbusPacket(packet)) {
+            Serial.println();
             Serial.println("❌ Неверный пакет: " + command.data);
             _completeCurrentCommand("", false);
             return;
@@ -320,6 +324,7 @@ private:
             currentRetries = 0;
 
         } else {
+            Serial.println();
             Serial.println("❌ Ошибка отправки команды: " + command.data);
             _completeCurrentCommand("", false);
         }
@@ -345,6 +350,7 @@ private:
         if (success) {
        
         } else {
+            Serial.println();
             Serial.println("❌ Ошибка выполнения: " + command.data);
         }
         
@@ -354,6 +360,7 @@ private:
         
         // Если очередь пуста - сообщаем
         if (queue.empty()) {
+            Serial.println();
             Serial.println("ℹ️  Очередь команд пуста");
         }
     }
