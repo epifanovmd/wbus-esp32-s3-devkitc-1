@@ -14,6 +14,8 @@
 #include "common/Utils.h"
 #include "common/Constants.h"
 
+Timer keepAliveTimer(15000);
+
 class WebastoApplication {
 private:
     EventBus& eventBus;
@@ -40,8 +42,6 @@ private:
     
     // Состояние приложения
     bool initialized = false;
-    uint32_t lastKeepAliveTime = 0;
-    const uint32_t KEEP_ALIVE_INTERVAL = 15000;
     
     // Кнопка управления (пин 0)
     static const int BUTTON_PIN = 0;
@@ -57,7 +57,7 @@ public:
         , deviceInfoManager(eventBus, commandManager)
         , sensorManager(eventBus, commandManager)
         , errorsManager(eventBus, commandManager)
-        , heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager)
+        , heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager)
         , webSocketServer(eventBus, configManager.getConfig().network.wsPort)
         , apiServer(deviceInfoManager, sensorManager, errorsManager, heaterController, configManager.getConfig().network.webPort) 
     {
@@ -83,9 +83,6 @@ public:
         
         // Инициализация аппаратного обеспечения
         busDriver.initialize();
-        // deviceInfoManager.initialize();
-        // sensorManager.initialize();
-        // errorsManager.initialize();
         heaterController.initialize();
 
         webSocketServer.initialize();
@@ -93,8 +90,7 @@ public:
         
         // Настройка обработчиков событий
         setupEventHandlers();
-        
-        // Автоматическое подключение к Webasto
+  
         busDriver.connect();
         
         initialized = true;
@@ -107,29 +103,21 @@ public:
     
     void process() {
         if (!initialized) return;
-        
-        // 1. Обработка входящих W-Bus пакетов
+
         commanReceiver.process();
-        
-        // 2. Обработка команд из очереди
         commandManager.process();
-        
-        // 3. Периодические задачи
-        uint32_t currentTime = millis();
-        
         // Keep-alive логика
-        if (currentTime - lastKeepAliveTime >= KEEP_ALIVE_INTERVAL) {
+        if (keepAliveTimer.isReady()) {
             processKeepAlive();
-            lastKeepAliveTime = currentTime;
         }
         
-        // 5. Обработка serial команд
+        // Обработка serial команд
         handleSerialCommands();
         
-        // 6. Обработка кнопки
+        // Обработка кнопки
         handleButton();
         
-        // 7. Сетевые сервисы
+        // Сетевые сервисы
         webSocketServer.process();
         apiServer.process();
         
@@ -179,9 +167,20 @@ private:
     void setupEventHandlers() {
         HeaterStatus status;
 
-        eventBus.subscribe(EventType::ERROR_OCCURRED,
+        eventBus.subscribe(EventType::TX_RECEIVED,
             [](const Event& event) {
-                Serial.println("❌ Error: " + event.source);
+                const auto& txEvent = static_cast<const TypedEvent<TxReceivedEvent>&>(event);
+
+                Serial.println();
+                Serial.print("📤 TX: " + txEvent.data.tx);
+            });
+
+        eventBus.subscribe(EventType::RX_RECEIVED,
+            [](const Event& event) {
+                const auto& rxEvent = static_cast<const TypedEvent<RxReceivedEvent>&>(event);
+
+                Serial.println();
+                Serial.print("📨 RX: " + rxEvent.data.rx);
             });
 
         eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,
@@ -198,7 +197,15 @@ private:
         String keepAliveCommand = getKeepAliveCommandForState(status.state);
         
         if (!keepAliveCommand.isEmpty() && busDriver.isConnected()) {
-            commandManager.addCommand(keepAliveCommand);
+            if (!status.isConnected())
+            {
+                busDriver.sendBreak();
+            }
+
+            heaterController.checkWebastoStatus();
+            commandManager.addCommand(keepAliveCommand, [this](String tx, String rx) {
+                eventBus.publish(EventType::KEEP_ALLIVE_SENT);
+            });
         }
     }
     
@@ -243,6 +250,10 @@ private:
                 heaterController.connect();
             } else if (command == "disconnect" || command == "dc") {
                 heaterController.disconnect();
+            } else if (command == "start") {
+                heaterController.startParkingHeat();
+            } else if (command == "stop") {
+                heaterController.shutdown();
             } else if (command == "info" || command == "i") {
                 deviceInfoManager.printInfo();
             } else if (command == "sensors") {

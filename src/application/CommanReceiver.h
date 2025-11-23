@@ -6,161 +6,176 @@
 #include "../core/EventBus.h"
 
 enum class KLineReceptionStates {
-    IDLE,
-    RX_RECEIVED,
-    TX_RECEIVED
+  IDLE,
+  RX_RECEIVED,
+  TX_RECEIVED
 };
 
 struct KLineReceivedData {
-    String rxString = "";
-    String txString = "";
-    bool isReceivingRx = false;
-    bool isReceivingTx = false;
-    int bytesToRead = 0;
-    int bytesRead = 0;
-    KLineReceptionStates rx_reception_state = KLineReceptionStates::IDLE;
-    KLineReceptionStates tx_reception_state = KLineReceptionStates::IDLE;
+  String rxString = "";
+  String txString = "";
+  bool isReceivingRx = false;
+  bool isReceivingTx = false;
+  int bytesToRead = 0;
+  int bytesRead = 0;
+  KLineReceptionStates rx_reception_state = KLineReceptionStates::IDLE;
+  KLineReceptionStates tx_reception_state = KLineReceptionStates::IDLE;
 
-    void startTxReception(byte headerByte) {
-        isReceivingTx = true;
-        txString = "";
-        bytesRead = 1;
-        txString += Utils::byteToHexString(headerByte) + " ";
+  void startTxReception(byte headerByte) {
+    isReceivingTx = true;
+    txString = "";
+    bytesRead = 1;
+    txString += Utils::byteToHexString(headerByte) + " ";
+  }
+
+  void startRxReception(byte headerByte) {
+    isReceivingRx = true;
+    rxString = "";
+    bytesRead = 1;
+    rxString += Utils::byteToHexString(headerByte) + " ";
+  }
+
+  void addByte(byte readByte) {
+    if (bytesRead == 1) {
+      bytesToRead = readByte;
     }
 
-    void startRxReception(byte headerByte) {
-        isReceivingRx = true;
-        rxString = "";
-        bytesRead = 1;
-        rxString += Utils::byteToHexString(headerByte) + " ";
-    }
+    String hexByte = Utils::byteToHexString(readByte);
 
-    void addByte(byte readByte) {
-        if (bytesRead == 1) {
-            bytesToRead = readByte;
-        }
+    if (isReceivingRx) rxString += hexByte + " ";
+    if (isReceivingTx) txString += hexByte + " ";
+    bytesRead++;
+  }
 
-        String hexByte = Utils::byteToHexString(readByte);
+  bool isPacketComplete() {
+    return bytesRead >= bytesToRead + 2;
+  }
 
-        if (isReceivingRx) rxString += hexByte + " ";
-        if (isReceivingTx) txString += hexByte + " ";
-        bytesRead++;
-    }
+  void completeRxReception() {
+    rxString.trim();
+    isReceivingRx = false;
+    rx_reception_state = KLineReceptionStates::RX_RECEIVED;
+  }
 
-    bool isPacketComplete() {
-        return bytesRead >= bytesToRead + 2;
-    }
+  void completeTxReception() {
+    txString.trim();
+    isReceivingTx = false;
+    tx_reception_state = KLineReceptionStates::TX_RECEIVED;
+  }
 
-    void completeRxReception() {
-        rxString.trim();
-        isReceivingRx = false;
-        rx_reception_state = KLineReceptionStates::RX_RECEIVED;
-    }
+  void reset() {
+    resetRx();
+    resetTx();
+  }
 
-    void completeTxReception() {
-        txString.trim();
-        isReceivingTx = false;
-        tx_reception_state = KLineReceptionStates::TX_RECEIVED;
-    }
+  void resetState() {
+    rx_reception_state = KLineReceptionStates::IDLE;
+    tx_reception_state = KLineReceptionStates::IDLE;
+  }
 
-    void reset()
-    {
-        resetRx();
-        resetTx();
-    }
+  void resetRx() {
+    rxString = "";
+    isReceivingRx = false;
+    rx_reception_state = KLineReceptionStates::IDLE;
+  }
 
-    void resetState()
-    {
-        rx_reception_state = KLineReceptionStates::IDLE;
-        tx_reception_state = KLineReceptionStates::IDLE;
-    }
+  void resetTx() {
+    txString = "";
+    isReceivingTx = false;
+    tx_reception_state = KLineReceptionStates::IDLE;
+  }
 
-    void resetRx()
-    {
-        rxString = "";
-        isReceivingRx = false;
-        rx_reception_state = KLineReceptionStates::IDLE;
-    }
-
-    void resetTx()
-    {
-        txString = "";
-        isReceivingTx = false;
-        tx_reception_state = KLineReceptionStates::IDLE;
-    }
-
-    bool isReceiving() const { return isReceivingRx || isReceivingTx; }
-    bool isRxReceived() const { return rx_reception_state == KLineReceptionStates::RX_RECEIVED; }
-    bool isTxReceived() const { return tx_reception_state == KLineReceptionStates::TX_RECEIVED; }
-    String getRxData() const { return rxString; }
-    String getTxData() const { return txString; }
+  bool isReceiving() const {
+    return isReceivingRx || isReceivingTx;
+  }
+  bool isRxReceived() const {
+    return rx_reception_state == KLineReceptionStates::RX_RECEIVED;
+  }
+  bool isTxReceived() const {
+    return tx_reception_state == KLineReceptionStates::TX_RECEIVED;
+  }
+  String getRxData() const {
+    return rxString;
+  }
+  String getTxData() const {
+    return txString;
+  }
 };
 
 class CommanReceiver {
-private:
-    HardwareSerial& serial;
-    EventBus& eventBus;
-    KLineReceivedData receivedData;
-    String currentTx;
+  private: HardwareSerial & serial;
+  EventBus & eventBus;
+  KLineReceivedData receivedData;
+  String currentTx;
 
-public:
-    CommanReceiver(HardwareSerial& serialRef, EventBus& bus) 
-        : serial(serialRef), eventBus(bus) {}
+  public: CommanReceiver(HardwareSerial & serialRef, EventBus & bus): serial(serialRef),
+  eventBus(bus) {}
 
-    void process() {
-        receivedData.resetState(); // Сбрасываем состояние при каждом вызове
+  void process() {
+    receivedData.resetState(); // Сбрасываем состояние при каждом вызове
 
-        while (serial.available()) {
-            byte readByte = serial.read();
+    while (serial.available()) {
+      byte readByte = serial.read();
 
-            if (!receivedData.isReceiving()) {
-                if (readByte == RXHEADER) {
-                    receivedData.startRxReception(readByte);
-                } else if (readByte == TXHEADER) {
-                    receivedData.startTxReception(readByte);
-                    currentTx = ""; // Сбрасываем текущую передачу
-                }
-            } else {
-                receivedData.addByte(readByte);
-
-                if (receivedData.isPacketComplete()) {
-                    if (receivedData.isReceivingRx) {
-                        receivedData.completeRxReception();
-                        handleRxPacket(getRxData());
-                        Serial.println();
-                        Serial.print("📤 RX: " + getRxData());
-                    }
-                    if (receivedData.isReceivingTx) {
-                        receivedData.completeTxReception();
-                        currentTx = getTxData();
-                        Serial.println();
-                        Serial.print("📨 TX: " + getTxData());
-                    }
-                    receivedData.bytesToRead = 0;
-                    receivedData.bytesRead = 0;
-                }
-            }
+      if (!receivedData.isReceiving()) {
+        if (readByte == RXHEADER) {
+          receivedData.startRxReception(readByte);
+        } else if (readByte == TXHEADER) {
+          receivedData.startTxReception(readByte);
+          currentTx = ""; // Сбрасываем текущую передачу
         }
-    }
+      } else {
+        receivedData.addByte(readByte);
 
-    bool isRxReceived() const { return receivedData.isRxReceived(); }
-    bool isTxReceived() const { return receivedData.isTxReceived(); }
-    String getRxData() const { return receivedData.getRxData(); }
-    String getTxData() const { return receivedData.getTxData(); }
-    String getCurrentTx() const { return currentTx; }
-
-private:
-    void handleRxPacket(const String& rxData) {
-        // Здесь будет логика обработки пакетов как в WBusSniffer
-        // eventBus.publish(EventType::COMMAND_RECEIVED, "WBusReceiver");
-        
-        // // Отправляем в WebSocket если нужно
-        // DynamicJsonDocument doc(512);
-        // doc["type"] = "rx";
-        // doc["data"] = rxData;
-        
-        // String json;
-        // serializeJson(doc, json);
-        // eventBus.publish(EventType::WEBSOCKET_MESSAGE, "WBusReceiver");
+        if (receivedData.isPacketComplete()) {
+          if (receivedData.isReceivingRx) {
+            receivedData.completeRxReception();
+            handleRxPacket(getRxData());
+            eventBus.publish < RxReceivedEvent > (EventType::RX_RECEIVED, {
+              getRxData()
+            });
+          }
+          if (receivedData.isReceivingTx) {
+            receivedData.completeTxReception();
+            currentTx = getTxData();
+            eventBus.publish < TxReceivedEvent > (EventType::TX_RECEIVED, {
+              getTxData()
+            });
+          }
+          receivedData.bytesToRead = 0;
+          receivedData.bytesRead = 0;
+        }
+      }
     }
+  }
+
+  bool isRxReceived() const {
+    return receivedData.isRxReceived();
+  }
+  bool isTxReceived() const {
+    return receivedData.isTxReceived();
+  }
+  String getRxData() const {
+    return receivedData.getRxData();
+  }
+  String getTxData() const {
+    return receivedData.getTxData();
+  }
+  String getCurrentTx() const {
+    return currentTx;
+  }
+
+  private: void handleRxPacket(const String & rxData) {
+    // Здесь будет логика обработки пакетов как в WBusSniffer
+    // eventBus.publish(EventType::COMMAND_RECEIVED, "WBusReceiver");
+
+    // // Отправляем в WebSocket если нужно
+    // DynamicJsonDocument doc(512);
+    // doc["type"] = "rx";
+    // doc["data"] = rxData;
+
+    // String json;
+    // serializeJson(doc, json);
+    // eventBus.publish(EventType::WEBSOCKET_MESSAGE, "WBusReceiver");
+  }
 };

@@ -30,21 +30,55 @@ struct DecodedManufactureDate {
     uint8_t day;
     uint8_t month;
     uint16_t year;
+    
+    String toJson() const {
+        String json = "{";
+        json += "\"date_string\":\"" + dateString + "\",";
+        json += "\"day\":" + String(day) + ",";
+        json += "\"month\":" + String(month) + ",";
+        json += "\"year\":" + String(year);
+        json += "}";
+        return json;
+    }
 };
 
 struct DecodedVersion {
     String versionString;
     uint8_t major;
     uint8_t minor;
+    
+    String toJson() const {
+        String json = "{";
+        json += "\"version_string\":\"" + versionString + "\",";
+        json += "\"major\":" + String(major) + ",";
+        json += "\"minor\":" + String(minor);
+        json += "}";
+        return json;
+    }
 };
 
 struct DecodedWBusCode {
     String codeString;
     String supportedFunctions;
+    
+    String toJson() const {
+        String json = "{";
+        json += "\"code_string\":\"" + codeString + "\",";
+        json += "\"supported_functions\":\"" + supportedFunctions + "\"";
+        json += "}";
+        return json;
+    }
 };
 
 struct DecodedTextData {
     String text;
+    
+    String toJson() const {
+        String json = "{";
+        json += "\"text\":\"" + text + "\"";
+        json += "}";
+        return json;
+    }
 };
 
 // Структуры для сенсоров
@@ -251,6 +285,8 @@ struct ErrorCollection {
 struct HeaterStatus {
     WebastoState state = WebastoState::OFF;
     ConnectionState connection = ConnectionState::DISCONNECTED;
+
+    bool isConnected() const { return connection ==  ConnectionState::CONNECTED; }
     
     String getStateName(WebastoState state) const {
         switch(state) {

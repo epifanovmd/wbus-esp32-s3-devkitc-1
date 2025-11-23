@@ -75,17 +75,17 @@ public:
         , busManager(busMngr)
     {
         // Подписываемся на события получения ответов
-        eventBus.subscribe(EventType::COMMAND_RECEIVED,
-            [this](const Event& event) {
-                handleEventResponse(event);
-            });
+        // eventBus.subscribe(EventType::COMMAND_RECEIVED,
+        //     [this](const Event& event) {
+        //         handleEventResponse(event);
+        //     });
     }
     
     // =========================================================================
-    // ОСНОВНЫЕ МЕТОДЫ ДОБАВЛЕНИЯ КОМАНД (аналоги оригинальных QueueMap)
+    // ОСНОВНЫЕ МЕТОДЫ ДОБАВЛЕНИЯ КОМАНД
     // =========================================================================
     
-    // Добавить команду в конец очереди (аналог QueueMap::add)
+    // Добавить команду в конец очереди
     bool addCommand(const String& command, std::function<void(String, String)> callback = nullptr, bool loop = false) {
         if (queue.size() >= 30) {
             Serial.println("❌ Очередь переполнена");
@@ -98,8 +98,6 @@ public:
         }
         
         queue.push(Command(command, CommandPriority::PRIORITY_NORMAL, callback, loop));
-        
-        // Serial.println("📋 Команда добавлена в очередь: " + command);
         
         return true;
     }
@@ -126,8 +124,6 @@ public:
         }
         
         queue = std::move(tempQueue);
-        
-        Serial.println("🚀 Приоритетная команда добавлена: " + command);
         
         return true;
     }
@@ -178,19 +174,6 @@ public:
                     state = ProcessingState::RETRY;
                 }
                 break;
-        }
-    }
-    
-    void handleEventResponse(const Event& event) {
-        const auto& responseEvent = static_cast<const TypedEvent<CommandReceivedEvent>&>(event);
-
-        if (state == ProcessingState::SENDING) {
-            _completeCurrentCommand(responseEvent.data.response, responseEvent.data.success);
-            
-            // Обработка NAK ответов
-            if (errorsDecoder.isNakResponse(responseEvent.data.response)) {
-                _processNakResponse(responseEvent.data.response);
-            }
         }
     }
     
@@ -321,6 +304,7 @@ private:
         if (busManager.sendCommand(command.data)) {
             state = ProcessingState::SENDING;
             timeoutTimer.reset();
+            eventBus.publish<CommandSentEvent>(EventType::COMMAND_SENT, { command.data });
         } else {
             Serial.println();
             Serial.println("❌ Ошибка отправки команды: " + command.data);
@@ -341,37 +325,30 @@ private:
         if (success && command.loop && !response.isEmpty()) {
             queue.push(command);
         }
-        
-        // Событие о получении ответа
-        // eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {command.data, response, success});
 
         if (success) {
-       
+          eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, { command.data, response });
         } else {
             Serial.println();
             Serial.println("❌ Ошибка выполнения: " + command.data);
+            eventBus.publish<CommandSentErrorEvent>(EventType::COMMAND_SENT_ERRROR, { command.data });
         }
         
         // Сброс состояния
         state = ProcessingState::IDLE;
         currentRetries = 0;
-        
-        // Если очередь пуста - сообщаем
-        if (queue.empty()) {
-            Serial.println();
-            Serial.println("ℹ️  Очередь команд пуста");
-        }
     }
     
     void _handleTimeout() {
         currentRetries++;
         Command command = queue.top();
 
-        if (currentRetries >= MAX_RETRIES) {
-            Serial.println();
-            Serial.print("❌ Попытка " + String(currentRetries) + " – " + command.data);
+        if (currentRetries > MAX_RETRIES) {
             _completeCurrentCommand("", false);
+            clear();
         } else {
+            eventBus.publish<ConnectionTimeoutEvent>(EventType::COMMAND_SENT_TIMEOUT, { currentRetries, command.data });
+            Serial.println();
             Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(MAX_RETRIES) + ": " + command.data);
             
             // Как в оригинале - BREAK сигнал перед повторной отправкой

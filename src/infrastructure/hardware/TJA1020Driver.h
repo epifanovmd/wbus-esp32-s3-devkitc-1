@@ -68,7 +68,6 @@ public:
     }
     
     void wakeUp() override {
-        // Реализация из оригинального wakeUpTJA1020()
         digitalWrite(NSLP_PIN, HIGH);
         delay(10);
 
@@ -88,12 +87,9 @@ public:
 
         sendBreakSignal(false);
         delay(50);
-        
-        Serial.println("🔔 TJA1020 break");
     }
     
     void sleep() override {
-        // Реализация из оригинального sleepTJA1020()
         digitalWrite(TX_TJA_PIN, HIGH);
         delay(10);
         
@@ -148,11 +144,9 @@ public:
         if (set) {
             // BREAK set - удерживаем линию в LOW (как в оригинале)
             serial.write(0x00); // Отправляем нулевой байт для BREAK
-            Serial.println("🔧 BREAK signal SET");
         } else {
             // BREAK reset - отпускаем линию
             serial.flush(); // Очищаем буфер
-            Serial.println("🔧 BREAK signal RESET");
         }
     }
     
@@ -174,10 +168,8 @@ private:
         if (connectionState != newState) {
             ConnectionState oldState = connectionState;
             connectionState = newState;
-            eventBus.publish<ConnectionStateChangedEvent>(
-                EventType::CONNECTION_STATE_CHANGED,
-                {oldState, newState, "Hardware state change"}
-            );
+
+            // eventBus.publish<ConnectionStateChangedEvent>(EventType::CONNECTION_STATE_CHANGED, {oldState, newState});
         }
     }
 };

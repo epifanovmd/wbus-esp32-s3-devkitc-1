@@ -12,11 +12,11 @@ private:
     CommandManager& commandManager;
 
     OperationalMeasurements operationalMeasurements;
-    FuelSettings fuelSettings;
     OnOffFlags onOffFlags;
     StatusFlags statusFlags;
     OperatingState operatingState;
     SubsystemsStatus subsystemsStatus;
+    FuelSettings fuelSettings;
 
 public:
     SensorManager(EventBus& bus, CommandManager& cmdManager) 
@@ -38,29 +38,11 @@ public:
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     operationalMeasurements = WBusSensorsDecoder::decodeOperationalInfo(rx);
-                    // eventBus.publish<SensorDataUpdatedEvent>(EventType::SENSOR_DATA_UPDATED, {operationalMeasurements});
-                    
-                    // Отправляем в WebSocket
-                    // eventBus.publish(EventType::OPERATIONAL_DATA_UPDATED, "SensorManager");
+                    eventBus.publish< OperationalMeasurements >(EventType::SENSOR_OPERATIONAL_INFO, operationalMeasurements);
 
                         if (callback)
                         {
                             callback(tx, rx, &operationalMeasurements);
-                        } 
-                }
-            }, loop);
-    }
-    
-    void requestFuelSettings(bool loop = false, std::function<void(String tx, String rx, FuelSettings* fuel)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_FUEL_SETTINGS,
-            [this, callback](String tx, String rx) {
-                if (!rx.isEmpty()) {
-                    fuelSettings = WBusSensorsDecoder::decodeFuelSettings(rx);
-                    // eventBus.publish(EventType::FUEL_SETTINGS_UPDATED, "SensorManager");
-
-                        if (callback)
-                        {
-                            callback(tx, rx, &fuelSettings);
                         } 
                 }
             }, loop);
@@ -71,7 +53,7 @@ public:
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     onOffFlags = WBusSensorsDecoder::decodeOnOffFlags(rx);
-                    // eventBus.publish(EventType::ON_OFF_FLAGS_UPDATED, "SensorManager");
+                    eventBus.publish< OnOffFlags >(EventType::SENSOR_ON_OFF_FLAGS, onOffFlags);
 
                         if (callback)
                         {
@@ -86,7 +68,7 @@ public:
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     statusFlags = WBusSensorsDecoder::decodeStatusFlags(rx);
-                    // eventBus.publish(EventType::STATUS_FLAGS_UPDATED, "SensorManager");
+                    eventBus.publish< StatusFlags >(EventType::SENSOR_STATUS_FLAGS, statusFlags);
 
                         if (callback)
                         {
@@ -101,7 +83,7 @@ public:
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     operatingState = WBusSensorsDecoder::decodeOperatingState(rx);
-                    // eventBus.publish(EventType::OPERATING_STATE_UPDATED, "SensorManager");
+                    eventBus.publish< OperatingState >(EventType::SENSOR_OPERATIONG_STATE, operatingState);
 
                         if (callback)
                         {
@@ -116,7 +98,7 @@ public:
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     subsystemsStatus = WBusSensorsDecoder::decodeSubsystemsStatus(rx);
-                    // eventBus.publish(EventType::SUBSYSTEMS_STATUS_UPDATED, "SensorManager");
+                    eventBus.publish< SubsystemsStatus >(EventType::SENSOR_SUBSYSTEM_STATE, subsystemsStatus);
 
                         if (callback)
                         {
@@ -126,6 +108,20 @@ public:
             }, loop);
     }
     
+    void requestFuelSettings(bool loop = false, std::function<void(String tx, String rx, FuelSettings* fuel)> callback = nullptr) override {
+        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_FUEL_SETTINGS,
+            [this, callback](String tx, String rx) {
+                if (!rx.isEmpty()) {
+                    fuelSettings = WBusSensorsDecoder::decodeFuelSettings(rx);
+                    eventBus.publish< FuelSettings >(EventType::FUEL_SETTINGS, fuelSettings);
+
+                        if (callback)
+                        {
+                            callback(tx, rx, &fuelSettings);
+                        } 
+                }
+            }, loop);
+    }
 
     OperationalMeasurements getOperationalMeasurementsData() override { return operationalMeasurements; }
     FuelSettings getFuelSettingsData() override { return fuelSettings; }
