@@ -58,9 +58,6 @@ public:
 
         setConnectionState(ConnectionState::CONNECTING);
 
-        Serial.println();
-        Serial.println("🔌 Начинаем подключение к Webasto...");
-
         busManager.sendBreak();
         delay(100);
 
@@ -84,9 +81,6 @@ public:
         commandManager.clear();
         commandManager.setInterval(150);
         setConnectionState(ConnectionState::DISCONNECTED);
-        
-        Serial.println();
-        Serial.println("🔌 Отключение от Webasto выполнено");
     }
     
     // =========================================================================
@@ -381,8 +375,6 @@ public:
 private:
     void handleDiagnosticResponse(String tx, String rx) {
         if (!rx.isEmpty()) {
-            Serial.println();
-            Serial.println("✅ Подключение к Webasto установлено");
             setConnectionState(ConnectionState::CONNECTED);
 
 
@@ -400,8 +392,6 @@ private:
             startSensorMonitoring();
             errorsManager.checkErrors(true); // "F4 03 56 01 A0"
         } else {
-            Serial.println();
-            Serial.println("❌ Ошибка подключения к Webasto");
             setConnectionState(ConnectionState::CONNECTION_FAILED);
         }
     }

@@ -229,10 +229,8 @@ private:
         if (currentButtonState == false && lastButtonState == true) {
             if (heaterController.isConnected()) {
                 heaterController.disconnect();
-                Serial.println("🔌 Disconnected by button");
             } else {
                 heaterController.connect();
-                Serial.println("🔌 Connected by button");
             }
             
             delay(50); // Debounce
