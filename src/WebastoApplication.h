@@ -167,21 +167,21 @@ private:
     void setupEventHandlers() {
         HeaterStatus status;
 
-        eventBus.subscribe(EventType::TX_RECEIVED,
-            [](const Event& event) {
-                const auto& txEvent = static_cast<const TypedEvent<TxReceivedEvent>&>(event);
+        // eventBus.subscribe(EventType::TX_RECEIVED,
+        //     [](const Event& event) {
+        //         const auto& txEvent = static_cast<const TypedEvent<TxReceivedEvent>&>(event);
 
-                Serial.println();
-                Serial.print("📤 TX: " + txEvent.data.tx);
-            });
+        //         Serial.println();
+        //         Serial.print("📤 TX: " + txEvent.data.tx);
+        //     });
 
-        eventBus.subscribe(EventType::RX_RECEIVED,
-            [](const Event& event) {
-                const auto& rxEvent = static_cast<const TypedEvent<RxReceivedEvent>&>(event);
+        // eventBus.subscribe(EventType::RX_RECEIVED,
+        //     [](const Event& event) {
+        //         const auto& rxEvent = static_cast<const TypedEvent<RxReceivedEvent>&>(event);
 
-                Serial.println();
-                Serial.print("📨 RX: " + rxEvent.data.rx);
-            });
+        //         Serial.println();
+        //         Serial.print("📨 RX: " + rxEvent.data.rx);
+        //     });
 
         eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,
             [this, status](const Event& event) {
@@ -199,8 +199,6 @@ private:
         if (!keepAliveCommand.isEmpty() && busDriver.isConnected()) {
             heaterController.checkWebastoStatus();
             commandManager.addCommand(keepAliveCommand, [this](String tx, String rx) {
-                Serial.println();
-                Serial.print("KEEP_ALLIVE_SENT: tx: " + tx + ", rx: " + rx);
                 eventBus.publish(EventType::KEEP_ALLIVE_SENT);
             });
         }

@@ -164,47 +164,47 @@ private:
 
         switch (byteNum) {
             case 0: // Byte 0
-                if (byteVal & 0x08) result += "  • Простое вкл/выкл\n";
-                if (byteVal & 0x10) result += "  • Паркинг-нагрев\n";
-                if (byteVal & 0x20) result += "  • Дополнительный нагрев\n";
-                if (byteVal & 0x40) result += "  • Вентиляция\n";
-                if (byteVal & 0x80) result += "  • Boost режим\n";
+                if (byteVal & 0x08) result += "Простое вкл/выкл, ";
+                if (byteVal & 0x10) result += "Паркинг-нагрев, ";
+                if (byteVal & 0x20) result += "Дополнительный нагрев, ";
+                if (byteVal & 0x40) result += "Вентиляция, ";
+                if (byteVal & 0x80) result += "Boost режим, ";
                 break;
 
             case 1: // Byte 1
-                if (byteVal & 0x02) result += "  • Внешнее управление цирк. насосом\n";
-                if (byteVal & 0x04) result += "  • Вентилятор горения (CAV)\n";
-                if (byteVal & 0x08) result += "  • Свеча накаливания\n";
-                if (byteVal & 0x10) result += "  • Топливный насос (FP)\n";
-                if (byteVal & 0x20) result += "  • Циркуляционный насос (CP)\n";
-                if (byteVal & 0x40) result += "  • Реле вентилятора автомобиля (VFR)\n";
-                if (byteVal & 0x80) result += "  • Желтый LED\n";
+                if (byteVal & 0x02) result += "Внешнее управление цирк. насосом, ";
+                if (byteVal & 0x04) result += "Вентилятор горения (CAV), ";
+                if (byteVal & 0x08) result += "Свеча накаливания, ";
+                if (byteVal & 0x10) result += "Топливный насос (FP), ";
+                if (byteVal & 0x20) result += "Циркуляционный насос (CP), ";
+                if (byteVal & 0x40) result += "Реле вентилятора автомобиля (VFR), ";
+                if (byteVal & 0x80) result += "Желтый LED, ";
                 break;
 
             case 2: // Byte 2
-                if (byteVal & 0x01) result += "  • Зеленый LED\n";
-                if (byteVal & 0x02) result += "  • Искровой разрядник (нет свечи)\n";
-                if (byteVal & 0x04) result += "  • Соленоидный клапан\n";
-                if (byteVal & 0x08) result += "  • Индикатор вспомогательного привода\n";
-                if (byteVal & 0x10) result += "  • Сигнал генератора D+\n";
-                if (byteVal & 0x20) result += "  • Вентилятор в RPM (не в %)\n";
+                if (byteVal & 0x01) result += "Зеленый LED, ";
+                if (byteVal & 0x02) result += "Искровой разрядник (нет свечи), ";
+                if (byteVal & 0x04) result += "Соленоидный клапан, ";
+                if (byteVal & 0x08) result += "Индикатор вспомогательного привода, ";
+                if (byteVal & 0x10) result += "Сигнал генератора D+, ";
+                if (byteVal & 0x20) result += "Вентилятор в RPM (не в %), ";
                 break;
 
             case 3: // Byte 3
-                if (byteVal & 0x02) result += "  • Калибровка CO2\n";
-                if (byteVal & 0x08) result += "  • Индикатор работы (OI)\n";
+                if (byteVal & 0x02) result += "Калибровка CO2, ";
+                if (byteVal & 0x08) result += "Индикатор работы (OI), ";
                 break;
 
             case 4: // Byte 4
-                if (byteVal & 0x10) result += "  • Мощность в ваттах (иначе в %)\n";
-                if (byteVal & 0x40) result += "  • Индикатор пламени (FI)\n";
-                if (byteVal & 0x80) result += "  • Подогрев форсунки\n";
+                if (byteVal & 0x10) result += "Мощность в ваттах (иначе в %), ";
+                if (byteVal & 0x40) result += "Индикатор пламени (FI), ";
+                if (byteVal & 0x80) result += "Подогрев форсунки, ";
                 break;
 
             case 5: // Byte 5
-                if (byteVal & 0x20) result += "  • Флаг зажигания (T15)\n";
-                if (byteVal & 0x40) result += "  • Доступны температурные пороги\n";
-                if (byteVal & 0x80) result += "  • Чтение подогрева топлива\n";
+                if (byteVal & 0x20) result += "Флаг зажигания (T15), ";
+                if (byteVal & 0x40) result += "Доступны температурные пороги, ";
+                if (byteVal & 0x80) result += "Чтение подогрева топлива, ";
                 break;
 
             case 6: // Byte 6
