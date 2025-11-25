@@ -54,50 +54,6 @@ struct CommandReceivedEvent {
     }
 };
 
-struct CommandSentEvent {
-    String tx;
-    
-    String toJson() const {
-        String json = "{";
-        json += "\"tx\":\"" + tx + "\"";
-        json += "}";
-        return json;
-    }
-};
-
-struct CommandSentErrorEvent {
-    String tx;
-    
-    String toJson() const {
-        String json = "{";
-        json += "\"tx\":\"" + tx + "\"";
-        json += "}";
-        return json;
-    }
-};
-
-struct RxReceivedEvent {
-    String rx;
-    
-    String toJson() const {
-        String json = "{";
-        json += "\"rx\":\"" + rx + "\"";
-        json += "}";
-        return json;
-    }
-};
-
-struct TxReceivedEvent {
-    String tx;
-    
-    String toJson() const {
-        String json = "{";
-        json += "\"tx\":\"" + tx + "\"";
-        json += "}";
-        return json;
-    }
-};
-
 struct HeaterStateChangedEvent {
     WebastoState oldState;
     WebastoState newState;

@@ -169,18 +169,14 @@ private:
 
         // eventBus.subscribe(EventType::TX_RECEIVED,
         //     [](const Event& event) {
-        //         const auto& txEvent = static_cast<const TypedEvent<TxReceivedEvent>&>(event);
-
         //         Serial.println();
-        //         Serial.print("📤 TX: " + txEvent.data.tx);
+        //         Serial.print("📤 TX: " + event.source);
         //     });
 
         // eventBus.subscribe(EventType::RX_RECEIVED,
         //     [](const Event& event) {
-        //         const auto& rxEvent = static_cast<const TypedEvent<RxReceivedEvent>&>(event);
-
         //         Serial.println();
-        //         Serial.print("📨 RX: " + rxEvent.data.rx);
+        //         Serial.print("📨 RX: " + event.source);
         //     });
 
         eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,

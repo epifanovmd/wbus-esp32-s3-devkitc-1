@@ -84,8 +84,7 @@ private:
         
         eventBus.subscribe(EventType::COMMAND_SENT,
             [this](const Event& event) {
-                const auto& sentEvent = static_cast<const TypedEvent<CommandSentEvent>&>(event);
-                broadcastJson(EventType::COMMAND_SENT, sentEvent.data.toJson());
+                broadcastJson(EventType::COMMAND_SENT, "\"" + event.source + "\"");
             });
 
         eventBus.subscribe(EventType::COMMAND_SENT_TIMEOUT,
@@ -96,8 +95,7 @@ private:
 
         eventBus.subscribe(EventType::COMMAND_SENT_ERRROR,
             [this](const Event& event) {
-                const auto& errorEvent = static_cast<const TypedEvent<CommandSentErrorEvent>&>(event);
-                broadcastJson(EventType::COMMAND_SENT_ERRROR, errorEvent.data.toJson());
+                broadcastJson(EventType::COMMAND_SENT_ERRROR, "\"" + event.source + "\"");
             });
 
         eventBus.subscribe(EventType::COMMAND_RECEIVED,
@@ -112,14 +110,12 @@ private:
         
         eventBus.subscribe(EventType::TX_RECEIVED,
             [this](const Event& event) {
-                const auto& txEvent = static_cast<const TypedEvent<TxReceivedEvent>&>(event);
-                broadcastJson(EventType::TX_RECEIVED, txEvent.data.toJson());
+                broadcastJson(EventType::TX_RECEIVED, "\"" + event.source + "\"");
             });
 
         eventBus.subscribe(EventType::RX_RECEIVED,
             [this](const Event& event) {
-                const auto& rxEvent = static_cast<const TypedEvent<RxReceivedEvent>&>(event);
-                broadcastJson(EventType::RX_RECEIVED, rxEvent.data.toJson());
+                broadcastJson(EventType::RX_RECEIVED, "\"" + event.source + "\"");
             });
 
         // =========================================================================
@@ -128,16 +124,12 @@ private:
         
         eventBus.subscribe(EventType::WBUS_VERSION,
             [this](const Event& event) {
-                const auto& versionEvent = static_cast<const TypedEvent<String>&>(event);
-                String json = "{\"version\":\"" + versionEvent.data + "\"}";
-                broadcastJson(EventType::WBUS_VERSION, json);
+                broadcastJson(EventType::WBUS_VERSION, "\"" + String(event.source) + "\"");
             });
 
         eventBus.subscribe(EventType::DEVICE_NAME,
             [this](const Event& event) {
-                const auto& nameEvent = static_cast<const TypedEvent<String>&>(event);
-                String json = "{\"name\":\"" + nameEvent.data + "\"}";
-                broadcastJson(EventType::DEVICE_NAME, json);
+                broadcastJson(EventType::DEVICE_NAME, "\"" + String(event.source) + "\"");
             });
 
         eventBus.subscribe(EventType::WBUS_CODE,
@@ -148,9 +140,7 @@ private:
 
         eventBus.subscribe(EventType::DEVICE_ID,
             [this](const Event& event) {
-                const auto& idEvent = static_cast<const TypedEvent<String>&>(event);
-                String json = "{\"device_id\":\"" + idEvent.data + "\"}";
-                broadcastJson(EventType::DEVICE_ID, json);
+                broadcastJson(EventType::DEVICE_ID, "\"" + String(event.source) + "\"");
             });
 
         eventBus.subscribe(EventType::CONTRALLER_MANUFACTURE_DATE,
@@ -167,16 +157,12 @@ private:
 
         eventBus.subscribe(EventType::CUSTOMER_ID,
             [this](const Event& event) {
-                const auto& customerEvent = static_cast<const TypedEvent<String>&>(event);
-                String json = "{\"customer_id\":\"" + customerEvent.data + "\"}";
-                broadcastJson(EventType::CUSTOMER_ID, json);
+                broadcastJson(EventType::CUSTOMER_ID, "\"" + String(event.source) + "\"");
             });
 
         eventBus.subscribe(EventType::SERIAL_NUMBER,
             [this](const Event& event) {
-                const auto& serialEvent = static_cast<const TypedEvent<String>&>(event);
-                String json = "{\"serial_number\":\"" + serialEvent.data + "\"}";
-                broadcastJson(EventType::SERIAL_NUMBER, json);
+                broadcastJson(EventType::SERIAL_NUMBER, "\"" + String(event.source) + "\"");
             });
 
         // =========================================================================

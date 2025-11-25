@@ -261,7 +261,7 @@ private:
         if (busManager.sendCommand(command.data)) {
             state = ProcessingState::SENDING;
             timeoutTimer.reset();
-            eventBus.publish<CommandSentEvent>(EventType::COMMAND_SENT, { command.data });
+            eventBus.publish(EventType::COMMAND_SENT, command.data);
         } else {
             Serial.println();
             Serial.println("❌ Ошибка отправки команды: " + command.data);
@@ -288,7 +288,7 @@ private:
         } else {
             Serial.println();
             Serial.println("❌ Ошибка выполнения: " + command.data);
-            eventBus.publish<CommandSentErrorEvent>(EventType::COMMAND_SENT_ERRROR, { command.data });
+            eventBus.publish(EventType::COMMAND_SENT_ERRROR, command.data);
         }
         
         // Сброс состояния

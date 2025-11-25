@@ -131,16 +131,12 @@ class CommanReceiver {
           if (receivedData.isReceivingRx) {
             receivedData.completeRxReception();
             handleRxPacket(getRxData());
-            eventBus.publish < RxReceivedEvent > (EventType::RX_RECEIVED, {
-              getRxData()
-            });
+            eventBus.publish(EventType::RX_RECEIVED, getRxData());
           }
           if (receivedData.isReceivingTx) {
             receivedData.completeTxReception();
             currentTx = getTxData();
-            eventBus.publish < TxReceivedEvent > (EventType::TX_RECEIVED, {
-              getTxData()
-            });
+            eventBus.publish(EventType::TX_RECEIVED, getTxData());
           }
           receivedData.bytesToRead = 0;
           receivedData.bytesRead = 0;
