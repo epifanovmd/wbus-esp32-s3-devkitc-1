@@ -422,9 +422,6 @@ private:
     void updateHeaterStateFromStatusFlags(String tx, String rx, StatusFlags* status) {
         WebastoState newState = determineStateFromFlags(status);
 
-        Serial.println();
-        Serial.print(status->toJson());
-        
         if (newState != currentStatus.state) {
             setState(newState);
         }
