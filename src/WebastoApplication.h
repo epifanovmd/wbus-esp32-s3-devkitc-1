@@ -190,6 +190,14 @@ private:
                 Serial.println();
                 Serial.print(status.getConnectionName(connectionEvent.data.oldState) + " ––> " + status.getConnectionName(connectionEvent.data.newState));
             });
+
+        eventBus.subscribe(EventType::HEATER_STATE_CHANGED,
+            [this, status](const Event& event) {
+    
+                const auto& connectionEvent = static_cast<const TypedEvent<HeaterStateChangedEvent>&>(event);
+            Serial.println();
+            Serial.print("🔄 Состояние изменено: " + status.getStateName(connectionEvent.data.oldState) + " → " + status.getStateName(connectionEvent.data.newState));
+            });
     }
     
     void processKeepAlive() {

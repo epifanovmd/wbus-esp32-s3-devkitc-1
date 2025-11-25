@@ -450,9 +450,6 @@ private:
             currentStatus.state = newState;
             
             eventBus.publish<HeaterStateChangedEvent>(EventType::HEATER_STATE_CHANGED,{oldState, newState});
-            
-            Serial.println();
-            Serial.print("🔄 Состояние изменено: " + getStateName(oldState) + " → " + getStateName(newState));
         }
     }
     
