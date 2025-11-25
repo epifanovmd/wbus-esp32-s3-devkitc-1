@@ -35,13 +35,11 @@ public:
     }
     
     void initialize() override {
-         Serial.println();
+        Serial.println();
         Serial.println("✅ Heater Controller initialized");
         neopixelWrite(RGB_PIN, 0, 0, 0);
 
         eventBus.subscribe(EventType::COMMAND_SENT_ERRROR, [this](const Event& event) {
-            Serial.println();
-            Serial.print("COMMAND_SENT_ERRROR");
             setState(WebastoState::OFF);
             setConnectionState(ConnectionState::DISCONNECTED);
         });
@@ -97,11 +95,17 @@ public:
     
     void startParkingHeat(int minutes = 60) override {
         String command = WBusProtocol::createParkHeatCommand(minutes);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command, 
+        commandManager.addCommand(command, 
             [this, minutes](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    setState(WebastoState::PARKING_HEAT);
+                    if (!isConnected())
+                    {
+                        setState(WebastoState::PARKING_HEAT);
+                    }
+
                     Serial.println();
                     Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
                 } else {
@@ -113,11 +117,17 @@ public:
     
     void startVentilation(int minutes = 60) override {
         String command = WBusProtocol::createVentilateCommand(minutes);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, minutes](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    setState(WebastoState::VENTILATION);
+                    if (!isConnected())
+                    {
+                        setState(WebastoState::VENTILATION);
+                    }
+
                     Serial.println();
                     Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
                 } else {
@@ -129,11 +139,17 @@ public:
     
     void startSupplementalHeat(int minutes = 60) override {
         String command = WBusProtocol::createSuppHeatCommand(minutes);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, minutes](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    setState(WebastoState::SUPP_HEAT);
+                    if (!isConnected())
+                    {
+                        setState(WebastoState::SUPP_HEAT);
+                    }
+
                     Serial.println();
                     Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
                 } else {
@@ -145,11 +161,17 @@ public:
     
     void startBoostMode(int minutes = 60) override {
         String command = WBusProtocol::createBoostCommand(minutes);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, minutes](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    setState(WebastoState::BOOST);
+                    if (!isConnected())
+                    {
+                        setState(WebastoState::BOOST);
+                    }
+
                     Serial.println();
                     Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
                 } else {
@@ -161,11 +183,17 @@ public:
     
     void controlCirculationPump(bool enable) override {
         String command = WBusProtocol::createCircPumpCommand(enable);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, enable](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    setState(WebastoState::CIRC_PUMP);
+                    if (!isConnected())
+                    {
+                        setState(WebastoState::CIRC_PUMP);
+                    }
+
                     Serial.println();
                     Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
                 } else {
@@ -176,7 +204,9 @@ public:
     }
     
     void shutdown() override {
-        commandManager.addPriorityCommand(WBusProtocol::CMD_SHUTDOWN,
+        breakIfNeeded();
+
+        commandManager.addCommand(WBusProtocol::CMD_SHUTDOWN,
             [this](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     Serial.println();
@@ -194,8 +224,10 @@ public:
     
     void testCombustionFan(int seconds, int powerPercent) override {
         String command = WBusProtocol::createTestCAFCommand(seconds, powerPercent);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, seconds, powerPercent](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     eventBus.publish(EventType::TEST_COMBUSTION_FAN_STARTED);
@@ -211,8 +243,10 @@ public:
     
     void testFuelPump(int seconds, int frequencyHz) override {
         String command = WBusProtocol::createTestFuelPumpCommand(seconds, frequencyHz);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, seconds, frequencyHz](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     eventBus.publish(EventType::TEST_FUEL_PUMP_STARTED);
@@ -228,8 +262,10 @@ public:
     
     void testGlowPlug(int seconds, int powerPercent) override {
         String command = WBusProtocol::createTestGlowPlugCommand(seconds, powerPercent);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, seconds, powerPercent](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     eventBus.publish(EventType::TEST_GLOW_PLUG_STARTED);
@@ -245,8 +281,10 @@ public:
     
     void testCirculationPump(int seconds, int powerPercent) override {
         String command = WBusProtocol::createTestCircPumpCommand(seconds, powerPercent);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, seconds, powerPercent](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     eventBus.publish(EventType::TEST_CIRCULATION_PUMP_STARTED);
@@ -262,8 +300,10 @@ public:
     
     void testVehicleFan(int seconds) override {
         String command = WBusProtocol::createTestVehicleFanCommand(seconds);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, seconds](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     eventBus.publish(EventType::TEST_VEHICLE_FAN_STARTED);
@@ -279,8 +319,10 @@ public:
     
     void testSolenoidValve(int seconds) override {
         String command = WBusProtocol::createTestSolenoidCommand(seconds);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, seconds](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     eventBus.publish(EventType::TEST_SOLENOID_STARTED);
@@ -296,8 +338,10 @@ public:
     
     void testFuelPreheating(int seconds, int powerPercent) override {
         String command = WBusProtocol::createTestFuelPreheatCommand(seconds, powerPercent);
+
+        breakIfNeeded();
         
-        commandManager.addPriorityCommand(command,
+        commandManager.addCommand(command,
             [this, seconds, powerPercent](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     Serial.println();
@@ -312,18 +356,26 @@ public:
     }
 
     void checkWebastoStatus() {
+        breakIfNeeded();
+
         sensorManager.requestOnOffFlags(false, [this](String tx, String rx, OnOffFlags* onOff) {
-            Serial.println();
-            Serial.print(onOff->toJson());
-            updateHeaterStateFromSensors(onOff);
+            updateHeaterStateFromOnOffFlags(tx, rx, onOff);
         });
         sensorManager.requestStatusFlags(false, [this](String tx, String rx, StatusFlags* status) {
-            updateHeaterStateFromFlags(status);
+            updateHeaterStateFromStatusFlags(tx, rx, status);
         });
     }
 
     HeaterStatus getStatus() const override {
         return currentStatus;
+    }
+
+    void breakIfNeeded() {
+        if (!isConnected())
+        {
+            busManager.sendBreak();
+        }
+        
     }
 
 private:
@@ -335,18 +387,18 @@ private:
 
 
             // Успешное подключение - запрашиваем остальную информацию
-            deviceInfoManager.requestDeviceID();
-            deviceInfoManager.requestControllerManufactureDate();
-            deviceInfoManager.requestHeaterManufactureDate();
-            deviceInfoManager.requestCustomerID();
-            deviceInfoManager.requestSerialNumber();
+            deviceInfoManager.requestDeviceID(); // "F4 03 51 01 A7"
+            deviceInfoManager.requestControllerManufactureDate(); // "F4 03 51 04 A2"
+            deviceInfoManager.requestHeaterManufactureDate(); // "F4 03 51 05 A3"
+            deviceInfoManager.requestCustomerID(); // "F4 03 51 07 A1"
+            deviceInfoManager.requestSerialNumber(); // "F4 03 51 09 AF"
 
             // Настраиваем интервал очереди как в оригинале
             commandManager.setInterval(200);
 
             // Запускаем периодический опрос сенсоров
             startSensorMonitoring();
-            errorsManager.checkErrors(true);
+            errorsManager.checkErrors(true); // "F4 03 56 01 A0"
         } else {
             Serial.println();
             Serial.println("❌ Ошибка подключения к Webasto");
@@ -355,23 +407,30 @@ private:
     }
 
     void startSensorMonitoring() {
-        sensorManager.requestOperationalInfo(true);
-        sensorManager.requestOnOffFlags(true);
-        sensorManager.requestStatusFlags(true);
-        sensorManager.requestOperatingState(true);
-        sensorManager.requestSubsystemsStatus(true);
-        sensorManager.requestFuelSettings();
+        sensorManager.requestOperationalInfo(true); // "F4 03 50 05 A2"
+        sensorManager.requestOnOffFlags(true, [this](String tx, String rx, OnOffFlags* onOff) {
+            updateHeaterStateFromOnOffFlags(tx, rx, onOff); // "F4 03 50 03 A4"
+        });
+        sensorManager.requestStatusFlags(true, [this](String tx, String rx, StatusFlags* status) {
+            updateHeaterStateFromStatusFlags(tx, rx, status); // "F4 03 50 02 A5"
+        });
+        sensorManager.requestOperatingState(true); // "F4 03 50 06 A1"
+        sensorManager.requestSubsystemsStatus(true); // "F4 03 50 0F A8"
+        sensorManager.requestFuelSettings(); // "F4 03 50 04 A3"
     }
 
-    void updateHeaterStateFromFlags(StatusFlags* flags) {
-        WebastoState newState = determineStateFromFlags(flags);
+    void updateHeaterStateFromStatusFlags(String tx, String rx, StatusFlags* status) {
+        WebastoState newState = determineStateFromFlags(status);
+
+        Serial.println();
+        Serial.print(status->toJson());
         
         if (newState != currentStatus.state) {
             setState(newState);
         }
     }
 
-    void updateHeaterStateFromSensors(OnOffFlags* onOff) {
+    void updateHeaterStateFromOnOffFlags(String tx, String rx, OnOffFlags* onOff) {
         // Дополнительная логика определения состояния на основе активных компонентов
         if (currentStatus.state == WebastoState::CIRC_PUMP && 
             !onOff->circulationPump) {
@@ -394,9 +453,9 @@ private:
             currentStatus.state = newState;
             
             eventBus.publish<HeaterStateChangedEvent>(EventType::HEATER_STATE_CHANGED,{oldState, newState});
-            commandManager.clear();
             
-            Serial.println("🔄 Состояние изменено: " + getStateName(oldState) + " → " + getStateName(newState));
+            Serial.println();
+            Serial.print("🔄 Состояние изменено: " + getStateName(oldState) + " → " + getStateName(newState));
         }
     }
     

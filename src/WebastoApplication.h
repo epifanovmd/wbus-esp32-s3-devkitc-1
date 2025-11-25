@@ -10,7 +10,7 @@
 #include "application/HeaterController.h"
 #include "application/DeviceInfoManager.h"
 #include "application/ErrorsManager.h"
-#include "application/CommanReceiver.h"
+#include "application/CommandReceiver.h"
 #include "common/Utils.h"
 #include "common/Constants.h"
 
@@ -197,13 +197,10 @@ private:
         String keepAliveCommand = getKeepAliveCommandForState(status.state);
         
         if (!keepAliveCommand.isEmpty() && busDriver.isConnected()) {
-            if (!status.isConnected())
-            {
-                busDriver.sendBreak();
-            }
-
             heaterController.checkWebastoStatus();
             commandManager.addCommand(keepAliveCommand, [this](String tx, String rx) {
+                Serial.println();
+                Serial.print("KEEP_ALLIVE_SENT: tx: " + tx + ", rx: " + rx);
                 eventBus.publish(EventType::KEEP_ALLIVE_SENT);
             });
         }
@@ -261,6 +258,7 @@ private:
             } else if (command == "errors" || command == "err") {
                 errorsManager.printErrors();
             } else if (command == "clear" || command == "clr") {
+                heaterController.breakIfNeeded();
                 errorsManager.resetErrors();
             } else if (command == "queue") {
                 commandManager.printQueue();
@@ -268,7 +266,7 @@ private:
                 printHelp();
             } else {
                 // Прямая отправка команды в очередь
-                busDriver.sendBreak();
+                heaterController.breakIfNeeded();
                 commandManager.addCommand(command);
             }
         }

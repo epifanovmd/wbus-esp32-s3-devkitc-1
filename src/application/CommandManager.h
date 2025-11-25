@@ -3,7 +3,7 @@
 #include <functional>
 #include <queue>
 #include <vector>
-#include "./CommanReceiver.h"
+#include "./CommandReceiver.h"
 #include "../common/Timer.h"
 #include "../core/EventBus.h"
 #include "../core/ConfigManager.h"
@@ -11,13 +11,6 @@
 #include "../infrastructure/protocol/WBusErrorsDecoder.h"
 #include "../interfaces/IBusManager.h"
 #include "../domain/Events.h"
-
-// Приоритеты команд (как в оригинальном коде)
-enum class CommandPriority {
-    PRIORITY_HIGH = 1,    // Для немедленного выполнения
-    PRIORITY_NORMAL = 2,  // Стандартный приоритет  
-    PRIORITY_LOW = 3      // Фоновые задачи
-};
 
 // Состояния обработки (аналог WBusQueueState из оригинала)
 enum class ProcessingState {
@@ -34,26 +27,18 @@ Timer breakTimer(50, false);
 
 struct Command {
     String data;
-    CommandPriority priority;
     std::function<void(String tx, String rx)> callback;
     bool loop = false; // Зацикленное выполнение (для периодических запросов)
     
-    Command() : data(""), priority(CommandPriority::PRIORITY_NORMAL), 
-                callback(nullptr) {}
+    Command() : data(""), callback(nullptr) {}
     
-    Command(const String& cmd, CommandPriority prio = CommandPriority::PRIORITY_NORMAL, 
-            std::function<void(String, String)> cb = nullptr, bool lp = false)
-        : data(cmd), priority(prio), callback(cb), loop(lp) {}
-    
-    // Для priority_queue - меньший приоритетный номер = выше приоритет
-    bool operator<(const Command& other) const {
-        return static_cast<int>(priority) > static_cast<int>(other.priority);
-    }
+    Command(const String& cmd, std::function<void(String, String)> cb = nullptr, bool lp = false)
+        : data(cmd), callback(cb), loop(lp) {}
 };
 
 class CommandManager {
 private:
-    std::priority_queue<Command> queue;
+    std::queue<Command> queue;
 
     EventBus& eventBus;
     const BusConfig& config;
@@ -91,39 +76,12 @@ public:
             Serial.println("❌ Очередь переполнена");
             return false;
         }
-        
-        // Проверяем нет ли уже такой команды в очереди (как в оригинале)
+
         if (containsCommand(command)) {
             return false;
         }
         
-        queue.push(Command(command, CommandPriority::PRIORITY_NORMAL, callback, loop));
-        
-        return true;
-    }
-    
-    // Добавить команду в начало очереди (аналог QueueMap::addPriority)
-    bool addPriorityCommand(const String& command, std::function<void(String, String)> callback = nullptr, bool loop = false) {
-        if (queue.size() >= 30) {
-            Serial.println("❌ Очередь переполнена");
-            return false;
-        }
-        
-        if (containsCommand(command)) {
-            return false;
-        }
-        
-        // Создаем временную очередь для перестановки приоритетов
-        std::priority_queue<Command> tempQueue;
-        tempQueue.push(Command(command, CommandPriority::PRIORITY_HIGH, callback, loop));
-        
-        // Переносим все существующие команды
-        while (!queue.empty()) {
-            tempQueue.push(queue.top());
-            queue.pop();
-        }
-        
-        queue = std::move(tempQueue);
+        queue.push(Command(command, callback, loop));
         
         return true;
     }
@@ -182,11 +140,11 @@ public:
     // =========================================================================
     
     bool removeCommand(const String& command) {
-        std::priority_queue<Command> tempQueue;
+        std::queue<Command> tempQueue;
         bool found = false;
         
         while (!queue.empty()) {
-            Command cmd = queue.top();
+            Command cmd = queue.front();
             queue.pop();
             
             if (cmd.data == command) {
@@ -202,10 +160,10 @@ public:
     }
     
     bool containsCommand(const String& command) {
-        std::priority_queue<Command> tempQueue = queue;
+        std::queue<Command> tempQueue = queue;
         
         while (!tempQueue.empty()) {
-            if (tempQueue.top().data == command) {
+            if (tempQueue.front().data == command) {
                 return true;
             }
             tempQueue.pop();
@@ -263,18 +221,17 @@ public:
         }
         
         // Показываем команды в очереди
-        std::priority_queue<Command> tempQueue = queue;
+        std::queue<Command> tempQueue = queue;
         int index = 0;
         
         while (!tempQueue.empty()) {
-            Command cmd = tempQueue.top();
+            Command cmd = tempQueue.front();
             Serial.print("   ");
             Serial.print(index);
             Serial.print(": ");
             Serial.print(cmd.data);
             Serial.print(cmd.callback ? " [с колбэком]" : " [без колбэка]");
             if (cmd.loop) Serial.print(" [зациклена]");
-            if (cmd.priority == CommandPriority::PRIORITY_HIGH) Serial.print(" [ВЫСОКИЙ ПРИОРИТЕТ]");
             Serial.println();
             
             tempQueue.pop();
@@ -290,7 +247,7 @@ private:
     void _sendCurrentCommand() {
         if (queue.empty()) return;
         
-        Command command = queue.top();
+        Command command = queue.front();
         
         // Валидация пакета (как в оригинале)
         WBusPacket packet = WBusProtocol::parseHexStringToPacket(command.data);
@@ -313,7 +270,7 @@ private:
     }
     
     void _completeCurrentCommand(const String& response, bool success) {
-        Command command = queue.top();
+        Command command = queue.front();
         queue.pop();
 
         // Вызываем колбэк если есть
@@ -341,7 +298,7 @@ private:
     
     void _handleTimeout() {
         currentRetries++;
-        Command command = queue.top();
+        Command command = queue.front();
 
         if (currentRetries > MAX_RETRIES) {
             _completeCurrentCommand("", false);

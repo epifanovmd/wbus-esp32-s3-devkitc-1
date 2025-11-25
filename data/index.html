@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webasto W-Bus Controller</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🚗 Webasto W-Bus Controller</h1>
+            <div class="status-bar">
+                <div class="status-item" id="connectionStatus">
+                    <span class="status-label">Connection:</span>
+                    <span class="status-value" id="connectionValue">DISCONNECTED</span>
+                </div>
+                <div class="status-item" id="heaterStatus">
+                    <span class="status-label">Heater:</span>
+                    <span class="status-value" id="heaterValue">OFF</span>
+                </div>
+                <div class="status-item" id="websocketStatus">
+                    <span class="status-label">WebSocket:</span>
+                    <span class="status-value" id="websocketValue">Disconnected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Connection Controls -->
+        <section class="card">
+            <h2>🔌 Connection Management</h2>
+            <div class="controls-row">
+                <button id="connectBtn" class="btn btn-primary">Connect to Webasto</button>
+                <button id="disconnectBtn" class="btn btn-secondary">Disconnect</button>
+                <button id="refreshBtn" class="btn btn-info">Refresh Status</button>
+                <a href="/monitor.html" class="btn btn-warning">Message Monitor</a>
+            </div>
+        </section>
+
+        <!-- Operating Modes -->
+        <section class="card">
+            <h2>🔥 Operating Modes</h2>
+            <div class="controls-grid">
+                <div class="mode-control">
+                    <h3>Parking Heat</h3>
+                    <input type="number" id="parkingMinutes" value="60" min="1" max="240" class="input">
+                    <span>minutes</span>
+                    <button class="btn btn-success mode-btn" data-mode="parking">Start</button>
+                </div>
+                <div class="mode-control">
+                    <h3>Ventilation</h3>
+                    <input type="number" id="ventilationMinutes" value="60" min="1" max="240" class="input">
+                    <span>minutes</span>
+                    <button class="btn btn-success mode-btn" data-mode="ventilation">Start</button>
+                </div>
+                <div class="mode-control">
+                    <h3>Supplemental Heat</h3>
+                    <input type="number" id="supplementalMinutes" value="60" min="1" max="240" class="input">
+                    <span>minutes</span>
+                    <button class="btn btn-success mode-btn" data-mode="supplemental">Start</button>
+                </div>
+                <div class="mode-control">
+                    <h3>Boost Mode</h3>
+                    <input type="number" id="boostMinutes" value="30" min="1" max="60" class="input">
+                    <span>minutes</span>
+                    <button class="btn btn-warning mode-btn" data-mode="boost">Start</button>
+                </div>
+            </div>
+            <div class="controls-row">
+                <button id="shutdownBtn" class="btn btn-danger">🛑 Emergency Shutdown</button>
+                <div class="pump-control">
+                    <label>Circulation Pump:</label>
+                    <button id="pumpOnBtn" class="btn btn-success">ON</button>
+                    <button id="pumpOffBtn" class="btn btn-secondary">OFF</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Device Information -->
+        <section class="card">
+            <h2>📋 Device Information</h2>
+            <div class="info-grid" id="deviceInfo">
+                <div class="info-item">
+                    <span class="info-label">W-Bus Version:</span>
+                    <span class="info-value" id="wbusVersion">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Device Name:</span>
+                    <span class="info-value" id="deviceName">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Device ID:</span>
+                    <span class="info-value" id="deviceId">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Serial Number:</span>
+                    <span class="info-value" id="serialNumber">-</span>
+                </div>
+            </div>
+            <button id="refreshDeviceInfo" class="btn btn-info">Refresh Device Info</button>
+        </section>
+
+        <!-- Sensor Data -->
+        <section class="card">
+            <h2>🌡️ Sensor Data</h2>
+            <div class="sensors-grid">
+                <div class="sensor-card">
+                    <h3>Temperature</h3>
+                    <div class="sensor-value" id="temperature">- °C</div>
+                </div>
+                <div class="sensor-card">
+                    <h3>Voltage</h3>
+                    <div class="sensor-value" id="voltage">- V</div>
+                </div>
+                <div class="sensor-card">
+                    <h3>Heating Power</h3>
+                    <div class="sensor-value" id="heatingPower">- W</div>
+                </div>
+                <div class="sensor-card">
+                    <h3>Flame</h3>
+                    <div class="sensor-value" id="flameStatus">-</div>
+                </div>
+            </div>
+            <button id="refreshSensors" class="btn btn-info">Refresh Sensors</button>
+        </section>
+
+        <!-- Component Status -->
+        <section class="card">
+            <h2>⚙️ Component Status</h2>
+            <div class="components-grid" id="componentsGrid">
+                <!-- Components will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Error Management -->
+        <section class="card">
+            <h2>🚨 Error Management</h2>
+            <div class="errors-section">
+                <div id="errorCount" class="error-count">No errors detected</div>
+                <div class="controls-row">
+                    <button id="checkErrorsBtn" class="btn btn-warning">Check Errors</button>
+                    <button id="clearErrorsBtn" class="btn btn-danger">Clear Errors</button>
+                </div>
+                <div id="errorsList" class="errors-list"></div>
+            </div>
+        </section>
+
+        <!-- Component Testing -->
+        <section class="card">
+            <h2>🔧 Component Testing</h2>
+            <div class="testing-grid">
+                <div class="test-control">
+                    <h3>Combustion Fan</h3>
+                    <input type="number" id="fanSeconds" value="5" min="1" max="30" class="input-small">
+                    <span>sec,</span>
+                    <input type="number" id="fanPower" value="50" min="0" max="100" class="input-small">
+                    <span>%</span>
+                    <button class="btn btn-test" data-component="combustion-fan">Test</button>
+                </div>
+                <div class="test-control">
+                    <h3>Fuel Pump</h3>
+                    <input type="number" id="pumpSeconds" value="5" min="1" max="30" class="input-small">
+                    <span>sec,</span>
+                    <input type="number" id="pumpFreq" value="10" min="1" max="50" class="input-small">
+                    <span>Hz</span>
+                    <button class="btn btn-test" data-component="fuel-pump">Test</button>
+                </div>
+                <div class="test-control">
+                    <h3>Glow Plug</h3>
+                    <input type="number" id="glowSeconds" value="5" min="1" max="30" class="input-small">
+                    <span>sec,</span>
+                    <input type="number" id="glowPower" value="75" min="0" max="100" class="input-small">
+                    <span>%</span>
+                    <button class="btn btn-test" data-component="glow-plug">Test</button>
+                </div>
+                <div class="test-control">
+                    <h3>Circulation Pump</h3>
+                    <input type="number" id="circSeconds" value="5" min="1" max="30" class="input-small">
+                    <span>sec,</span>
+                    <input type="number" id="circPower" value="100" min="0" max="100" class="input-small">
+                    <span>%</span>
+                    <button class="btn btn-test" data-component="circulation-pump">Test</button>
+                </div>
+                <div class="test-control">
+                    <h3>Vehicle Fan</h3>
+                    <input type="number" id="vehicleSeconds" value="5" min="1" max="30" class="input-small">
+                    <span>sec</span>
+                    <button class="btn btn-test" data-component="vehicle-fan">Test</button>
+                </div>
+                <div class="test-control">
+                    <h3>Solenoid Valve</h3>
+                    <input type="number" id="solenoidSeconds" value="5" min="1" max="30" class="input-small">
+                    <span>sec</span>
+                    <button class="btn btn-test" data-component="solenoid">Test</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Messages -->
+        <section class="card">
+            <h2>📨 Live Messages</h2>
+            <div class="messages-container">
+                <div id="messageLog" class="message-log"></div>
+                <button id="clearMessages" class="btn btn-secondary">Clear Messages</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

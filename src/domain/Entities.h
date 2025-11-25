@@ -326,7 +326,7 @@ struct HeaterStatus {
         String json = "{";
         json += "\"heater_state\":\"" + getStateName() + "\",";
         json += "\"connection_state\":\"" + getConnectionName() + "\",";
-        json += "\"is_connected\":" + String(connection == ConnectionState::CONNECTED ? "true" : "false") + ",";
+        json += "\"is_connected\":" + String(isConnected() ? "true" : "false") + ",";
         json += "}";
         return json;
     }
