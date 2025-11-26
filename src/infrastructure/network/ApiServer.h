@@ -17,16 +17,7 @@ private:
     ErrorsManager& errorsManager;
     HeaterController& heaterController;
     uint16_t port;
-    
-    // Буфер для мониторинга сообщений
-    struct MessageLog {
-        String timestamp;
-        String direction; // "TX" или "RX"
-        String data;
-        String description;
-    };
-    std::vector<MessageLog> messageLogs;
-    const int MAX_MESSAGES = 1000;
+
     
 public:
     ApiServer(DeviceInfoManager& deviceInfoMngr, SensorManager& sensorMngr, 
@@ -90,10 +81,6 @@ private:
         server.on("/api/sensors/data", HTTP_GET, [this]() { handleGetSensorsData(); });
         server.on("/api/errors", HTTP_GET, [this]() { handleGetErrors(); });
         server.on("/api/errors/clear", HTTP_POST, [this]() { handleClearErrors(); });
-        
-        // API endpoints - Мониторинг сообщений
-        server.on("/api/messages", HTTP_GET, [this]() { handleGetMessages(); });
-        server.on("/api/messages/clear", HTTP_POST, [this]() { handleClearMessages(); });
         
         server.onNotFound([this]() { handleNotFound(); });
     }
@@ -240,28 +227,6 @@ private:
         server.send(200, "application/json", "{\"status\":\"cleared\"}");
     }
     
-    void handleGetMessages() {
-        DynamicJsonDocument doc(4096);
-        JsonArray messages = doc.to<JsonArray>();
-        
-        for (const auto& msg : messageLogs) {
-            JsonObject message = messages.createNestedObject();
-            message["timestamp"] = msg.timestamp;
-            message["direction"] = msg.direction;
-            message["data"] = msg.data;
-            message["description"] = msg.description;
-        }
-        
-        String json;
-        serializeJson(doc, json);
-        server.send(200, "application/json", json);
-    }
-    
-    void handleClearMessages() {
-        messageLogs.clear();
-        server.send(200, "application/json", "{\"status\":\"cleared\"}");
-    }
-    
     void handleNotFound() {
         server.send(404, "application/json", 
             "{\"error\":\"not_found\",\"uri\":\"" + server.uri() + "\"}");
@@ -284,8 +249,6 @@ private:
         Serial.println("  GET  /api/sensors/data    - Get sensors data");
         Serial.println("  GET  /api/errors          - Get errors list");
         Serial.println("  POST /api/errors/clear    - Clear errors");
-        Serial.println("  GET  /api/messages        - Get message log");
-        Serial.println("  POST /api/messages/clear  - Clear message log");
         Serial.println();
     }
 };

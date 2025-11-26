@@ -55,24 +55,18 @@ class MessageMonitor {
     handleWebSocketMessage(message) {
         if (message.type === 'TX_RECEIVED' || message.type === 'COMMAND_SENT') {
             this.addMessage({
-                timestamp: new Date().toISOString(),
                 direction: 'TX',
                 data: message.data.rx || message.data.tx,
-                description: 'Command sent to Webasto'
             });
         } else if (message.type === 'RX_RECEIVED' || message.type === 'COMMAND_RECEIVED') {
             this.addMessage({
-                timestamp: new Date().toISOString(),
                 direction: 'RX', 
                 data: message.data.rx,
-                description: 'Response from Webasto'
             });
         } else if (message.type === 'COMMAND_SENT_ERRROR') {
             this.addMessage({
-                timestamp: new Date().toISOString(),
                 direction: 'ERROR',
                 data: message.data.tx,
-                description: 'Command failed'
             });
         }
     }
@@ -136,7 +130,6 @@ class MessageMonitor {
             const row = document.createElement('div');
             row.className = 'table-row';
             row.innerHTML = `
-                <div>${new Date(msg.timestamp).toLocaleTimeString()}</div>
                 <div class="direction-${msg.direction.toLowerCase()}">${msg.direction}</div>
                 <div class="message-hex">${msg.data}</div>
                 <div>${msg.description}</div>
@@ -158,14 +151,12 @@ class MessageMonitor {
     }
 
     exportToCSV() {
-        const headers = ['Timestamp', 'Direction', 'Message', 'Description'];
+        const headers = ['Direction', 'Message'];
         const csvContent = [
             headers.join(','),
             ...this.messages.map(msg => [
-                msg.timestamp,
                 msg.direction,
                 `"${msg.data}"`,
-                `"${msg.description}"`
             ].join(','))
         ].join('\n');
         

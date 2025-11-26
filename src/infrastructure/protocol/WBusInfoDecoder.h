@@ -6,15 +6,14 @@
 
 class WBusInfoDecoder {
 public:
-    static DecodedVersion decodeWBusVersion(const String& response) {
-        DecodedVersion result = {"", 0, 0};
+    static DecodedTextData decodeWBusVersion(const String& response) {
+        DecodedTextData result = {""};
         
         String versionData = extractDataFromResponse(response, "d10a", 2);
         if (versionData.length() == 2) {
             uint8_t versionByte = Utils::hexStringToByte(versionData);
-            result.major = (versionByte >> 4) & 0x0F;
-            result.minor = versionByte & 0x0F;
-            result.versionString = String(result.major) + "." + String(result.minor);
+
+            result.text = String((versionByte >> 4) & 0x0F) + "." + String(versionByte & 0x0F);
         }
         
         return result;

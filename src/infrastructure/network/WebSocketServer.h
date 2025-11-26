@@ -82,10 +82,10 @@ private:
         // СОБЫТИЯ КОМАНД И ОТВЕТОВ
         // =========================================================================
         
-        eventBus.subscribe(EventType::COMMAND_SENT,
-            [this](const Event& event) {
-                broadcastJson(EventType::COMMAND_SENT, "\"" + event.source + "\"");
-            });
+        // eventBus.subscribe(EventType::COMMAND_SENT,
+        //     [this](const Event& event) {
+        //         broadcastJson(EventType::COMMAND_SENT, "\"" + event.source + "\"");
+        //     });
 
         eventBus.subscribe(EventType::COMMAND_SENT_TIMEOUT,
             [this](const Event& event) {
@@ -98,11 +98,11 @@ private:
                 broadcastJson(EventType::COMMAND_SENT_ERRROR, "\"" + event.source + "\"");
             });
 
-        eventBus.subscribe(EventType::COMMAND_RECEIVED,
-            [this](const Event& event) {
-                const auto& receivedEvent = static_cast<const TypedEvent<CommandReceivedEvent>&>(event);
-                broadcastJson(EventType::COMMAND_RECEIVED, receivedEvent.data.toJson());
-            });
+        // eventBus.subscribe(EventType::COMMAND_RECEIVED,
+        //     [this](const Event& event) {
+        //         const auto& receivedEvent = static_cast<const TypedEvent<CommandReceivedEvent>&>(event);
+        //         broadcastJson(EventType::COMMAND_RECEIVED, receivedEvent.data.toJson());
+        //     });
 
         // =========================================================================
         // СОБЫТИЯ ПЕРЕХВАТА K-LINE ПАКЕТОВ

@@ -9,7 +9,7 @@ public:
     virtual ~IDeviceInfoManager() = default;
     
     virtual void requestAllInfo(bool loop = false) = 0;
-    virtual void requestWBusVersion(bool loop = false, std::function<void(String, String, DecodedVersion*)> callback = nullptr) = 0;
+    virtual void requestWBusVersion(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) = 0;
     virtual void requestDeviceName(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) = 0;
     virtual void requestWBusCode(bool loop = false, std::function<void(String, String, DecodedWBusCode*)> callback = nullptr) = 0;
     virtual void requestDeviceID(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) = 0;

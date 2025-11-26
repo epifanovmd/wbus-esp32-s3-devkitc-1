@@ -42,21 +42,6 @@ struct DecodedManufactureDate {
     }
 };
 
-struct DecodedVersion {
-    String versionString;
-    uint8_t major;
-    uint8_t minor;
-    
-    String toJson() const {
-        String json = "{";
-        json += "\"version_string\":\"" + versionString + "\",";
-        json += "\"major\":" + String(major) + ",";
-        json += "\"minor\":" + String(minor);
-        json += "}";
-        return json;
-    }
-};
-
 struct DecodedWBusCode {
     String codeString;
     String supportedFunctions;
@@ -288,19 +273,19 @@ struct HeaterStatus {
 
     bool isConnected() const { return connection ==  ConnectionState::CONNECTED; }
     
-    String getStateName(WebastoState state) const {
+    static String getStateName(WebastoState state) {
         switch(state) {
-            case WebastoState::OFF: return "🔴 Выключен";
-            case WebastoState::READY: return "🟢 Готов";
-            case WebastoState::PARKING_HEAT: return "🔥 Паркинг-нагрев";
-            case WebastoState::VENTILATION: return "💨 Вентиляция";
-            case WebastoState::SUPP_HEAT: return "🔥 Доп. нагрев";
-            case WebastoState::BOOST: return "⚡ Boost";
-            case WebastoState::CIRC_PUMP: return "💧 Цирк. насос";
-            case WebastoState::STARTUP: return "🚀 Запуск";
-            case WebastoState::SHUTDOWN: return "🛑 Выключение";
-            case WebastoState::ERROR: return "❌ Ошибка";
-            default: return "❓ Неизвестно";
+            case WebastoState::OFF: return "OFF";
+            case WebastoState::READY: return "READY";
+            case WebastoState::PARKING_HEAT: return "PARKING_HEAT";
+            case WebastoState::VENTILATION: return "VENTILATION";
+            case WebastoState::SUPP_HEAT: return "SUPP_HEAT";
+            case WebastoState::BOOST: return "BOOST";
+            case WebastoState::CIRC_PUMP: return "CIRC_PUMP";
+            case WebastoState::STARTUP: return "STARTUP";
+            case WebastoState::SHUTDOWN: return "SHUTDOWN";
+            case WebastoState::ERROR: return "ERROR";
+            default: return "OFF";
         }
     }
 
@@ -308,13 +293,13 @@ struct HeaterStatus {
         return getStateName(state);
     }
     
-    String getConnectionName(ConnectionState connection) const {
+    static String getConnectionName(ConnectionState connection) {
         switch(connection) {
-            case ConnectionState::DISCONNECTED: return "❌ Отключен";
-            case ConnectionState::CONNECTING: return "🟡 Подключение...";
-            case ConnectionState::CONNECTED: return "✅ Подключен";
-            case ConnectionState::CONNECTION_FAILED: return "🔴 Ошибка";
-            default: return "❓ Неизвестно";
+            case ConnectionState::DISCONNECTED: return "DISCONNECTED";
+            case ConnectionState::CONNECTING: return "CONNECTING";
+            case ConnectionState::CONNECTED: return "CONNECTED";
+            case ConnectionState::CONNECTION_FAILED: return "CONNECTION_FAILED";
+            default: return "DISCONNECTED";
         }
     }
 

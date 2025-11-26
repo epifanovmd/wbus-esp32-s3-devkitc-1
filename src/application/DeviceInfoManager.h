@@ -36,11 +36,11 @@ class DeviceInfoManager: public IDeviceInfoManager {
       requestSerialNumber(loop);
     }
 
-    void requestWBusVersion(bool loop = false, std:: function < void(String, String, DecodedVersion * ) > callback = nullptr) override {
+    void requestWBusVersion(bool loop = false, std:: function < void(String, String, DecodedTextData * ) > callback = nullptr) override {
       commandManager.addCommand(WBusProtocol::CMD_READ_INFO_WBUS_VERSION, [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
-          DecodedVersion version = WBusInfoDecoder::decodeWBusVersion(rx);
-          wbusVersion = version.versionString;
+          DecodedTextData version = WBusInfoDecoder::decodeWBusVersion(rx);
+          wbusVersion = version.text;
           // Serial.println("✅ W-Bus Version: " + wbusVersion);
           eventBus.publish(EventType::WBUS_VERSION, wbusVersion);
 
