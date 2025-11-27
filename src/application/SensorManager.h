@@ -2,7 +2,12 @@
 #pragma once
 #include "../interfaces/ISensorManager.h"
 #include "../core/EventBus.h"
-#include "../infrastructure/protocol/WBusSensorsDecoder.h"
+#include "../infrastructure/protocol/WBusFuelSettingsDecoder.h"
+#include "../infrastructure/protocol/WBusOnOffFlagsDecoder.h"
+#include "../infrastructure/protocol/WBusOperatingStateDecoder.h"
+#include "../infrastructure/protocol/WBusOperationalInfoDecoder.h"
+#include "../infrastructure/protocol/WBusStatusFlagsDecoder.h"
+#include "../infrastructure/protocol/WBusSubSystemsDecoder.h"
 #include "../application/CommandManager.h"
 #include "../domain/Events.h" 
 
@@ -37,7 +42,7 @@ public:
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_OPERATIONAL,
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    operationalMeasurements = WBusSensorsDecoder::decodeOperationalInfo(rx);
+                    operationalMeasurements = WBusOperationalInfoDecoder::decode(rx);
                     eventBus.publish< OperationalMeasurements >(EventType::SENSOR_OPERATIONAL_INFO, operationalMeasurements);
 
                         if (callback)
@@ -52,7 +57,7 @@ public:
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_ON_OFF_FLAGS,
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    onOffFlags = WBusSensorsDecoder::decodeOnOffFlags(rx);
+                    onOffFlags = WBusOnOffFlagsDecoder::decode(rx);
                     eventBus.publish< OnOffFlags >(EventType::SENSOR_ON_OFF_FLAGS, onOffFlags);
 
                         if (callback)
@@ -67,7 +72,7 @@ public:
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_STATUS_FLAGS,
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    statusFlags = WBusSensorsDecoder::decodeStatusFlags(rx);
+                    statusFlags = WBusStatusFlagsDecoder::decode(rx);
                     eventBus.publish< StatusFlags >(EventType::SENSOR_STATUS_FLAGS, statusFlags);
 
                         if (callback)
@@ -82,8 +87,8 @@ public:
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_OPERATING_STATE,
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    operatingState = WBusSensorsDecoder::decodeOperatingState(rx);
-                    eventBus.publish< OperatingState >(EventType::SENSOR_OPERATIONG_STATE, operatingState);
+                    operatingState = WBusOperatingStateDecoder::decode(rx);
+                    eventBus.publish< OperatingState >(EventType::SENSOR_OPERATING_STATE, operatingState);
 
                         if (callback)
                         {
@@ -97,7 +102,7 @@ public:
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_SUBSYSTEMS_STATUS,
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    subsystemsStatus = WBusSensorsDecoder::decodeSubsystemsStatus(rx);
+                    subsystemsStatus = WBusSubSystemsDecoder::decode(rx);
                     eventBus.publish< SubsystemsStatus >(EventType::SENSOR_SUBSYSTEM_STATE, subsystemsStatus);
 
                         if (callback)
@@ -112,7 +117,7 @@ public:
         commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_FUEL_SETTINGS,
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
-                    fuelSettings = WBusSensorsDecoder::decodeFuelSettings(rx);
+                    fuelSettings = WBusFuelSettingsDecoder::decode(rx);
                     eventBus.publish< FuelSettings >(EventType::FUEL_SETTINGS, fuelSettings);
 
                         if (callback)

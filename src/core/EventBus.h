@@ -56,7 +56,7 @@ enum class EventType
     SENSOR_OPERATIONAL_INFO,
     SENSOR_ON_OFF_FLAGS,
     SENSOR_STATUS_FLAGS,
-    SENSOR_OPERATIONG_STATE,
+    SENSOR_OPERATING_STATE,
     SENSOR_SUBSYSTEM_STATE,
     FUEL_SETTINGS,
 };
@@ -195,8 +195,8 @@ public:
             return "SENSOR_ON_OFF_FLAGS";
         case EventType::SENSOR_STATUS_FLAGS:
             return "SENSOR_STATUS_FLAGS";
-        case EventType::SENSOR_OPERATIONG_STATE:
-            return "SENSOR_OPERATIONG_STATE";
+        case EventType::SENSOR_OPERATING_STATE:
+            return "SENSOR_OPERATING_STATE";
         case EventType::SENSOR_SUBSYSTEM_STATE:
             return "SENSOR_SUBSYSTEM_STATE";
         case EventType::FUEL_SETTINGS:

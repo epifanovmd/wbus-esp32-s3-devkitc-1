@@ -207,10 +207,10 @@ private:
                 broadcastJson(EventType::SENSOR_STATUS_FLAGS, statusEvent.data.toJson());
             });
 
-        eventBus.subscribe(EventType::SENSOR_OPERATIONG_STATE,
+        eventBus.subscribe(EventType::SENSOR_OPERATING_STATE,
             [this](const Event& event) {
                 const auto& stateEvent = static_cast<const TypedEvent<OperatingState>&>(event);
-                broadcastJson(EventType::SENSOR_OPERATIONG_STATE, stateEvent.data.toJson());
+                broadcastJson(EventType::SENSOR_OPERATING_STATE, stateEvent.data.toJson());
             });
 
         eventBus.subscribe(EventType::SENSOR_SUBSYSTEM_STATE,
