@@ -55,6 +55,6 @@ struct WBusCommand
     {
         uint8_t header = data[0];
 
-        return header == TXHEADER && header == RXHEADER;
+        return header == TXHEADER || header == RXHEADER;
     }
 };
