@@ -2,7 +2,7 @@
 #include "../../interfaces/IBusManager.h"
 #include "../../core/EventBus.h"
 #include "../../core/ConfigManager.h"
-#include "../protocol/WBusProtocol.h"
+#include "./domain/Entities.h"
 #include "../../domain/Events.h"
 #include "../../common/Constants.h"
 
@@ -107,33 +107,19 @@ public:
         return isAwakeFlag;
     }
     
-    bool sendCommand(const String& command) override {
+    bool sendCommand(uint8_t *data, size_t length) override {
         if (!isAwakeFlag) {
             Serial.println("❌ TJA1020 is sleeping");
             return false;
         }
         
-        WBusPacket packet = WBusProtocol::parseHexStringToPacket(command);
-        if (!WBusProtocol::validateWbusPacket(packet)) {
-            Serial.println("❌ Invalid W-Bus packet");
-            return false;
+        for (int i = 0; i < length; i++) {
+            serial.write(data[i]);
         }
         
-        for (int i = 0; i < packet.byteCount; i++) {
-            serial.write(packet.data[i]);
-        }
-        
-        serial.flush(); // Ensure data is sent
+        serial.flush();
         
         return true;
-    }
-    
-    bool sendCommand(const String& command, std::function<void(String, String)> callback) override {
-        bool result = sendCommand(command);
-        if (callback) {
-            callback(command, result ? "sent" : "failed");
-        }
-        return result;
     }
     
     // =========================================================================

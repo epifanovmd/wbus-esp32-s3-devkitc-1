@@ -11,8 +11,7 @@ public:
     virtual bool isConnected() const = 0;
     virtual ConnectionState getConnectionState() const = 0;
     
-    virtual bool sendCommand(const String& command) = 0;
-    virtual bool sendCommand(const String& command, std::function<void(String, String)> callback) = 0;
+    virtual bool sendCommand(uint8_t *data, size_t length) = 0;
     
     virtual void sendBreak() = 0;
     virtual void wakeUp() = 0;

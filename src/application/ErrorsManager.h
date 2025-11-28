@@ -3,6 +3,7 @@
 #include "../interfaces/IErrorsManager.h"
 #include "../core/EventBus.h"
 #include "../infrastructure/protocol/WBusErrorsDecoder.h"
+#include "../infrastructure/protocol/WBusCommandBuilder.h"
 #include "../application/CommandManager.h"
 
 class ErrorsManager: public IErrorsManager {
@@ -16,7 +17,7 @@ class ErrorsManager: public IErrorsManager {
   commandManager(cmdManager) {}
 
   void checkErrors(bool loop = false, std:: function < void(String, String, ErrorCollection * ) > callback = nullptr) override {
-    commandManager.addCommand(WBusProtocol::CMD_READ_ERRORS_LIST,
+    commandManager.addCommand(WBusCommandBuilder::createReadErrors(),
       [this, loop, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           currentErrors = errorsDecoder.decodeErrorPacket(rx);
@@ -33,7 +34,7 @@ class ErrorsManager: public IErrorsManager {
   }
 
   void resetErrors(std:: function < void(String, String) > callback = nullptr) override {
-    commandManager.addCommand(WBusProtocol::CMD_CLEAR_ERRORS,
+    commandManager.addCommand(WBusCommandBuilder::createReadErrors(),
       [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           currentErrors.clear();

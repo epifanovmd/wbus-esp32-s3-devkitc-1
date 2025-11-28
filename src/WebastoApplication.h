@@ -13,6 +13,7 @@
 #include "application/CommandReceiver.h"
 #include "common/Utils.h"
 #include "common/Constants.h"
+#include "infrastructure/protocol/WBusCommandBuilder.h"
 
 Timer keepAliveTimer(15000);
 
@@ -167,17 +168,17 @@ private:
     void setupEventHandlers() {
         HeaterStatus status;
 
-        // eventBus.subscribe(EventType::TX_RECEIVED,
-        //     [](const Event& event) {
-        //         Serial.println();
-        //         Serial.print("📤 TX: " + event.source);
-        //     });
+        eventBus.subscribe(EventType::TX_RECEIVED,
+            [](const Event& event) {
+                Serial.println();
+                Serial.print("📤 TX: " + event.source);
+            });
 
-        // eventBus.subscribe(EventType::RX_RECEIVED,
-        //     [](const Event& event) {
-        //         Serial.println();
-        //         Serial.print("📨 RX: " + event.source);
-        //     });
+        eventBus.subscribe(EventType::RX_RECEIVED,
+            [](const Event& event) {
+                Serial.println();
+                Serial.print("📨 RX: " + event.source);
+            });
 
         eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,
             [this, status](const Event& event) {
@@ -210,11 +211,11 @@ private:
     
     String getKeepAliveCommandForState(WebastoState state) {
         switch (state) {
-            case WebastoState::PARKING_HEAT: return WBusProtocol::CMD_KEEPALIVE_PARKING;
-            case WebastoState::VENTILATION: return WBusProtocol::CMD_KEEPALIVE_VENT;
-            case WebastoState::SUPP_HEAT: return WBusProtocol::CMD_KEEPALIVE_SUPP_HEAT;
-            case WebastoState::CIRC_PUMP: return WBusProtocol::CMD_KEEPALIVE_CIRC_PUMP;
-            case WebastoState::BOOST: return WBusProtocol::CMD_KEEPALIVE_BOOST;
+            case WebastoState::PARKING_HEAT: return WBusCommandBuilder::createKeepAliveParking();
+            case WebastoState::VENTILATION: return WBusCommandBuilder::createKeepAliveVentilation();
+            case WebastoState::SUPP_HEAT: return WBusCommandBuilder::createKeepAliveSupplemental();
+            case WebastoState::CIRC_PUMP: return WBusCommandBuilder::createKeepAliveCirculationPump();
+            case WebastoState::BOOST: return WBusCommandBuilder::createKeepAliveBoost();
             default: return "";
         }
     }
@@ -262,6 +263,8 @@ private:
                 errorsManager.resetErrors();
             } else if (command == "queue") {
                 commandManager.printQueue();
+            } else if (command == "test") {
+                WBusCommandBuilder::generateAndPrintAllCommands();
             } else if (command == "help" || command == "h") {
                 printHelp();
             } else {

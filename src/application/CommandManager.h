@@ -7,7 +7,7 @@
 #include "../common/Timer.h"
 #include "../core/EventBus.h"
 #include "../core/ConfigManager.h"
-#include "../infrastructure/protocol/WBusProtocol.h"
+#include "../infrastructure/protocol/WBusCommand.h"
 #include "../infrastructure/protocol/WBusErrorsDecoder.h"
 #include "../interfaces/IBusManager.h"
 #include "../domain/Events.h"
@@ -248,17 +248,17 @@ private:
         if (queue.empty()) return;
         
         Command command = queue.front();
+
+        WBusCommand wBusCommand(command.data);
         
         // Валидация пакета (как в оригинале)
-        WBusPacket packet = WBusProtocol::parseHexStringToPacket(command.data);
-        if (!WBusProtocol::validateWbusPacket(packet)) {
-            Serial.println();
-            Serial.println("❌ Неверный пакет: " + command.data);
+        // WBusPacket packet = WBusProtocol::parseHexStringToPacket(command.data);
+        if (!wBusCommand.isValid()) {
             _completeCurrentCommand("", false);
             return;
         }
         
-        if (busManager.sendCommand(command.data)) {
+        if (busManager.sendCommand(wBusCommand.data, wBusCommand.byteCount)) {
             state = ProcessingState::SENDING;
             timeoutTimer.reset();
             eventBus.publish(EventType::COMMAND_SENT, command.data);

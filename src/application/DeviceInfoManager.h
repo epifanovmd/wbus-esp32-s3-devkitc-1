@@ -2,6 +2,7 @@
 #pragma once
 #include "../interfaces/IDeviceInfoManager.h"
 #include "../core/EventBus.h"
+#include "../infrastructure/protocol/WBusCommandBuilder.h"
 #include "../infrastructure/protocol/WBusInfoDecoder.h"
 #include "../application/CommandManager.h"
 
@@ -37,7 +38,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
     }
 
     void requestWBusVersion(bool loop = false, std:: function < void(String, String, DecodedTextData * ) > callback = nullptr) override {
-      commandManager.addCommand(WBusProtocol::CMD_READ_INFO_WBUS_VERSION, [this, callback](String tx, String rx) {
+      commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_VERSION), [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           DecodedTextData version = WBusInfoDecoder::decodeWBusVersion(rx);
           wbusVersion = version.text;
@@ -52,7 +53,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
     }
 
     void requestDeviceName(bool loop = false, std:: function < void(String, String, DecodedTextData * ) > callback = nullptr) override {
-      commandManager.addCommand(WBusProtocol::CMD_READ_INFO_DEVICE_NAME, [this, callback](String tx, String rx) {
+      commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_NAME), [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           DecodedTextData name = WBusInfoDecoder::decodeDeviceName(rx);
           deviceName = name.text;
@@ -67,7 +68,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
     }
 
     void requestWBusCode(bool loop = false, std:: function < void(String, String, DecodedWBusCode * ) > callback = nullptr) override {
-      commandManager.addCommand(WBusProtocol::CMD_READ_INFO_WBUS_CODE, [this, callback](String tx, String rx) {
+      commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_CODE), [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           DecodedWBusCode code = WBusInfoDecoder::decodeWBusCode(rx);
           wbusCode = code.codeString;
@@ -83,7 +84,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
     }
 
     void requestDeviceID(bool loop = false, std:: function < void(String, String, DecodedTextData * ) > callback = nullptr) override {
-      commandManager.addCommand(WBusProtocol::CMD_READ_INFO_DEVICE_ID, [this, callback](String tx, String rx) {
+      commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_ID), [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           DecodedTextData deviceId = WBusInfoDecoder::decodeDeviceID(rx);
           deviceID = deviceId.text;
@@ -98,7 +99,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
     }
 
     void requestControllerManufactureDate(bool loop = false, std:: function < void(String, String, DecodedManufactureDate * ) > callback = nullptr) override {
-      commandManager.addCommand(WBusProtocol::CMD_READ_INFO_CTRL_MFG_DATE, [this, callback](String tx, String rx) {
+      commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CTRL_MFG_DATE), [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           DecodedManufactureDate date = WBusInfoDecoder::decodeControllerManufactureDate(rx);
           controllerManufactureDate = date.dateString;
@@ -113,7 +114,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
     }
 
     void requestHeaterManufactureDate(bool loop = false, std:: function < void(String, String, DecodedManufactureDate * ) > callback = nullptr) override {
-      commandManager.addCommand(WBusProtocol::CMD_READ_INFO_HEATER_MFG_DATE, [this, callback](String tx, String rx) {
+      commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_HEATER_MFG_DATE), [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           DecodedManufactureDate date = WBusInfoDecoder::decodeHeaterManufactureDate(rx);
           heaterManufactureDate = date.dateString;
@@ -128,7 +129,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
     }
 
     void requestCustomerID(bool loop = false, std:: function < void(String, String, DecodedTextData * ) > callback = nullptr) override {
-      commandManager.addCommand(WBusProtocol::CMD_READ_INFO_CUSTOMER_ID, [this, callback](String tx, String rx) {
+      commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CUSTOMER_ID), [this, callback](String tx, String rx) {
           if (!rx.isEmpty()) {
             DecodedTextData customer = WBusInfoDecoder::decodeCustomerID(rx);
             customerID = customer.text;
@@ -143,7 +144,7 @@ class DeviceInfoManager: public IDeviceInfoManager {
       }
 
       void requestSerialNumber(bool loop = false, std:: function < void(String, String, DecodedTextData * ) > callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_INFO_SERIAL_NUMBER, [this, callback](String tx, String rx) {
+        commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_SERIAL_NUMBER), [this, callback](String tx, String rx) {
           if (!rx.isEmpty()) {
             DecodedTextData serial = WBusInfoDecoder::decodeSerialNumber(rx);
             serialNumber = serial.text;

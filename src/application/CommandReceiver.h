@@ -21,21 +21,21 @@ struct KLineReceivedData {
   KLineReceptionStates rx_reception_state = KLineReceptionStates::IDLE;
   KLineReceptionStates tx_reception_state = KLineReceptionStates::IDLE;
 
-  void startTxReception(byte headerByte) {
+  void startTxReception(uint8_t headerByte) {
     isReceivingTx = true;
     txString = "";
     bytesRead = 1;
     txString += Utils::byteToHexString(headerByte) + " ";
   }
 
-  void startRxReception(byte headerByte) {
+  void startRxReception(uint8_t headerByte) {
     isReceivingRx = true;
     rxString = "";
     bytesRead = 1;
     rxString += Utils::byteToHexString(headerByte) + " ";
   }
 
-  void addByte(byte readByte) {
+  void addByte(uint8_t readByte) {
     if (bytesRead == 1) {
       bytesToRead = readByte;
     }
@@ -115,7 +115,7 @@ class CommanReceiver {
     receivedData.resetState(); // Сбрасываем состояние при каждом вызове
 
     while (serial.available()) {
-      byte readByte = serial.read();
+      uint8_t readByte = serial.read();
 
       if (!receivedData.isReceiving()) {
         if (readByte == RXHEADER) {

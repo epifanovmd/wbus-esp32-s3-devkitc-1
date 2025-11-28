@@ -5,9 +5,9 @@
 class Utils
 {
 public:
-    static byte calculateChecksum(byte *data, int length)
+    static uint8_t calculateChecksum(const uint8_t *data, size_t length)
     {
-        byte checksum = 0;
+        uint8_t checksum = 0;
         for (int i = 0; i < length; i++)
         {
             checksum ^= data[i];
@@ -28,19 +28,30 @@ public:
         return true;
     }
 
-    static String byteToHexString(byte b)
+    static String byteToHexString(uint8_t b)
     {
         return (b < 0x10) ? "0" + String(b, HEX) : String(b, HEX);
     }
 
-    static byte hexStringToByte(const String &hexStr)
-    {
-        return (byte)strtol(hexStr.c_str(), NULL, 16);
+    static String bytesToHexString(const uint8_t* data, size_t length) {
+        String result = "";
+        for (size_t i = 0; i < length; i++) {
+            if (i > 0) result += " ";
+
+            result += byteToHexString(data[i]);
+        }
+        result.toUpperCase();
+        return result;
     }
 
-    static byte *hexStringToByteArray(const String &hexString, int &byteCount)
+    static uint8_t hexStringToByte(const String &hexStr)
     {
-        static byte data[32];
+        return (uint8_t)strtol(hexStr.c_str(), NULL, 16);
+    }
+
+    static uint8_t *hexStringToByteArray(const String &hexString, int &byteCount)
+    {
+        static uint8_t data[32];
         byteCount = 0;
 
         String cleanString = hexString;
@@ -57,16 +68,30 @@ public:
         return data;
     }
 
-    static void printHex(byte value, bool newLine)
-    {
-        if (value < 0x10)
-            Serial.print("0");
-        Serial.print(value, HEX);
-        if (newLine)
-            Serial.println();
-        else
-            Serial.print(" ");
+    static bool validateChecksum(const String& hexData) {
+        String cleanData = hexData;
+        cleanData.replace(" ", "");
+        
+        if (!isHexString(cleanData) || cleanData.length() < 4) {
+            return false;
+        }
+        
+        int byteCount;
+        uint8_t* data = hexStringToByteArray(cleanData, byteCount);
+        
+        if (byteCount < 2) return false;
+        
+        uint8_t calculatedChecksum = calculateChecksum(data, byteCount - 1);
+        return calculatedChecksum == data[byteCount - 1];
     }
+
+    static bool validateChecksum(const uint8_t* data, size_t length) {
+        if (length < 2) return false;
+        
+        uint8_t calculatedChecksum = calculateChecksum(data, length - 1);
+        return calculatedChecksum == data[length - 1];
+    }
+
     static bool validateASCPacketStructure(const String &response, uint8_t expectedCommand, uint8_t expectedIndex, int minLength)
     {
         String cleanData = response;

@@ -2,7 +2,6 @@
 #include "../interfaces/IHeaterController.h"
 #include "../core/EventBus.h"
 #include "../core/ConfigManager.h"
-#include "../infrastructure/protocol/WBusProtocol.h"
 #include "../application/CommandManager.h"
 #include "../application/DeviceInfoManager.h"
 #include "../application/SensorManager.h"
@@ -67,7 +66,7 @@ public:
         deviceInfoManager.requestWBusCode();
 
         // Запускаем диагностику
-        commandManager.addCommand(WBusProtocol::CMD_DIAGNOSTIC,
+        commandManager.addCommand(WBusCommandBuilder::createDiagnostic(),
             [this](String tx, String rx) {
                 handleDiagnosticResponse(tx, rx);
             });
@@ -88,7 +87,7 @@ public:
     // =========================================================================
     
     void startParkingHeat(int minutes = 60) override {
-        String command = WBusProtocol::createParkHeatCommand(minutes);
+        String command = WBusCommandBuilder::createParkHeat(minutes);
 
         breakIfNeeded();
         
@@ -110,7 +109,7 @@ public:
     }
     
     void startVentilation(int minutes = 60) override {
-        String command = WBusProtocol::createVentilateCommand(minutes);
+        String command = WBusCommandBuilder::createVentilation(minutes);
 
         breakIfNeeded();
         
@@ -132,7 +131,7 @@ public:
     }
     
     void startSupplementalHeat(int minutes = 60) override {
-        String command = WBusProtocol::createSuppHeatCommand(minutes);
+        String command = WBusCommandBuilder::createSupplementalHeat(minutes);
 
         breakIfNeeded();
         
@@ -154,7 +153,7 @@ public:
     }
     
     void startBoostMode(int minutes = 60) override {
-        String command = WBusProtocol::createBoostCommand(minutes);
+        String command = WBusCommandBuilder::createBoostMode(minutes);
 
         breakIfNeeded();
         
@@ -176,7 +175,7 @@ public:
     }
     
     void controlCirculationPump(bool enable) override {
-        String command = WBusProtocol::createCircPumpCommand(enable);
+        String command = WBusCommandBuilder::createCirculationPumpControl(enable);
 
         breakIfNeeded();
         
@@ -200,7 +199,7 @@ public:
     void shutdown() override {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusProtocol::CMD_SHUTDOWN,
+        commandManager.addCommand(WBusCommandBuilder::createShutdown(),
             [this](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     Serial.println();
@@ -217,7 +216,7 @@ public:
     // =========================================================================
     
     void testCombustionFan(int seconds, int powerPercent) override {
-        String command = WBusProtocol::createTestCAFCommand(seconds, powerPercent);
+        String command = WBusCommandBuilder::createTestCombustionFan(seconds, powerPercent);
 
         breakIfNeeded();
         
@@ -236,7 +235,7 @@ public:
     }
     
     void testFuelPump(int seconds, int frequencyHz) override {
-        String command = WBusProtocol::createTestFuelPumpCommand(seconds, frequencyHz);
+        String command = WBusCommandBuilder::createTestFuelPump(seconds, frequencyHz);
 
         breakIfNeeded();
         
@@ -255,7 +254,7 @@ public:
     }
     
     void testGlowPlug(int seconds, int powerPercent) override {
-        String command = WBusProtocol::createTestGlowPlugCommand(seconds, powerPercent);
+        String command = WBusCommandBuilder::createTestGlowPlug(seconds, powerPercent);
 
         breakIfNeeded();
         
@@ -274,7 +273,7 @@ public:
     }
     
     void testCirculationPump(int seconds, int powerPercent) override {
-        String command = WBusProtocol::createTestCircPumpCommand(seconds, powerPercent);
+        String command = WBusCommandBuilder::createTestCirculationPump(seconds, powerPercent);
 
         breakIfNeeded();
         
@@ -293,7 +292,7 @@ public:
     }
     
     void testVehicleFan(int seconds) override {
-        String command = WBusProtocol::createTestVehicleFanCommand(seconds);
+        String command = WBusCommandBuilder::createTestVehicleFan(seconds);
 
         breakIfNeeded();
         
@@ -312,7 +311,7 @@ public:
     }
     
     void testSolenoidValve(int seconds) override {
-        String command = WBusProtocol::createTestSolenoidCommand(seconds);
+        String command = WBusCommandBuilder::createTestSolenoidValve(seconds);
 
         breakIfNeeded();
         
@@ -331,7 +330,7 @@ public:
     }
     
     void testFuelPreheating(int seconds, int powerPercent) override {
-        String command = WBusProtocol::createTestFuelPreheatCommand(seconds, powerPercent);
+        String command = WBusCommandBuilder::createTestFuelPreheating(seconds, powerPercent);
 
         breakIfNeeded();
         

@@ -2,6 +2,7 @@
 #pragma once
 #include "../interfaces/ISensorManager.h"
 #include "../core/EventBus.h"
+#include "../infrastructure/protocol/WBusCommandBuilder.h"
 #include "../infrastructure/protocol/WBusFuelSettingsDecoder.h"
 #include "../infrastructure/protocol/WBusOnOffFlagsDecoder.h"
 #include "../infrastructure/protocol/WBusOperatingStateDecoder.h"
@@ -39,7 +40,7 @@ public:
     }
     
     void requestOperationalInfo(bool loop = false, std::function<void(String tx, String rx, OperationalMeasurements* measurements)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_OPERATIONAL,
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OPERATIONAL),
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     operationalMeasurements = WBusOperationalInfoDecoder::decode(rx);
@@ -54,7 +55,7 @@ public:
     }
     
     void requestOnOffFlags(bool loop = false, std::function<void(String tx, String rx, OnOffFlags* onOff)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_ON_OFF_FLAGS,
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_ON_OFF_FLAGS),
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     onOffFlags = WBusOnOffFlagsDecoder::decode(rx);
@@ -69,7 +70,7 @@ public:
     }
     
     void requestStatusFlags(bool loop = false, std::function<void(String tx, String rx, StatusFlags* status)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_STATUS_FLAGS,
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_STATUS_FLAGS),
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     statusFlags = WBusStatusFlagsDecoder::decode(rx);
@@ -84,7 +85,7 @@ public:
     }
     
     void requestOperatingState(bool loop = false, std::function<void(String tx, String rx, OperatingState* state)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_OPERATING_STATE,
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OPERATING_STATE),
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     operatingState = WBusOperatingStateDecoder::decode(rx);
@@ -99,7 +100,7 @@ public:
     }
     
     void requestSubsystemsStatus(bool loop = false, std::function<void(String tx, String rx, SubsystemsStatus* subsystems)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_SUBSYSTEMS_STATUS,
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_SUBSYSTEMS_STATUS),
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     subsystemsStatus = WBusSubSystemsDecoder::decode(rx);
@@ -114,7 +115,7 @@ public:
     }
     
     void requestFuelSettings(bool loop = false, std::function<void(String tx, String rx, FuelSettings* fuel)> callback = nullptr) override {
-        commandManager.addCommand(WBusProtocol::CMD_READ_SENSOR_FUEL_SETTINGS,
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_FUEL_SETTINGS),
             [this, callback](String tx, String rx) {
                 if (!rx.isEmpty()) {
                     fuelSettings = WBusFuelSettingsDecoder::decode(rx);

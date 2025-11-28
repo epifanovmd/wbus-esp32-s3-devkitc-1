@@ -9,8 +9,8 @@ constexpr int NWAKE_PIN = 6;    // Wake-up input (active LOW)
 constexpr int RXD_PULLUP = 8;   // Пин для подтяжки RXD (open-drain)
 
 // Конфигурация Webasto W-Bus
-constexpr byte TXHEADER = 0xF4;  // WTT -> Нагреватель
-constexpr byte RXHEADER = 0x4F;  // Нагреватель -> WTT 
+constexpr uint8_t TXHEADER = 0xF4;  // WTT -> Нагреватель
+constexpr uint8_t RXHEADER = 0x4F;  // Нагреватель -> WTT 
 constexpr int MESSAGE_BUFFER_SIZE = 64;
 constexpr int BAUD_RATE = 2400;
 constexpr int SERIAL_CONFIG = SERIAL_8E1;  // 8 бит, Even parity, 1 стоп-бит
