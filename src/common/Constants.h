@@ -11,7 +11,7 @@ constexpr int RXD_PULLUP = 8;   // Пин для подтяжки RXD (open-drai
 // Конфигурация Webasto W-Bus
 constexpr uint8_t TXHEADER = 0xF4;  // WTT -> Нагреватель
 constexpr uint8_t RXHEADER = 0x4F;  // Нагреватель -> WTT 
-constexpr int MESSAGE_BUFFER_SIZE = 64;
+constexpr int MESSAGE_BUFFER_SIZE = 32;
 constexpr int BAUD_RATE = 2400;
 constexpr int SERIAL_CONFIG = SERIAL_8E1;  // 8 бит, Even parity, 1 стоп-бит
 constexpr int RX_TJA_PIN = 18;
