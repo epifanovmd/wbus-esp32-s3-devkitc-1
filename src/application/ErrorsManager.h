@@ -39,6 +39,7 @@ class ErrorsManager: public IErrorsManager {
         if (!rx.isEmpty()) {
           currentErrors.clear();
         //   Serial.println("✅ Errors cleared successfully");
+          eventBus.publish < ErrorCollection > (EventType::WBUS_ERRORS, currentErrors);
           eventBus.publish(EventType::WBUS_CLEAR_ERRORS_SUCCESS);
 
           if (callback) {

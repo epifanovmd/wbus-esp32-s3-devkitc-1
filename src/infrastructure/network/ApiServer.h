@@ -48,12 +48,6 @@ public:
 
 private:
     void setupEndpoints() {
-        // Статические файлы
-        server.on("/", HTTP_GET, [this]() { serveFile("/index.html", "text/html"); });
-        server.on("/style.css", HTTP_GET, [this]() { serveFile("/style.css", "text/css"); });
-        server.on("/script.js", HTTP_GET, [this]() { serveFile("/script.js", "application/javascript"); });
-        server.on("/monitor.html", HTTP_GET, [this]() { serveFile("/monitor.html", "text/html"); });
-        
         // API endpoints - Управление подключением
         server.on("/api/connect", HTTP_POST, [this]() { handleConnect(); });
         server.on("/api/disconnect", HTTP_POST, [this]() { handleDisconnect(); });
@@ -82,18 +76,58 @@ private:
         server.on("/api/errors", HTTP_GET, [this]() { handleGetErrors(); });
         server.on("/api/errors/clear", HTTP_POST, [this]() { handleClearErrors(); });
         
-        server.onNotFound([this]() { handleNotFound(); });
+        server.onNotFound([this]() { handleFiles(); });
     }
-
-    void serveFile(const String& path, const String& contentType) {
+    
+   void handleFiles() {
+        String path = server.uri();
+        
+        // Если запрос корневой, отдаем index.html
+        if (path == "/") {
+            path = "/index.html";
+        }
+        
+        Serial.println("📁 File request: " + path);
+        
+        // Проверяем существование файла
+        if (!LittleFS.exists(path)) {
+            Serial.println("❌ File not found: " + path);
+            server.send(404, "application/json", 
+                "{\"error\":\"not_found\",\"uri\":\"" + server.uri() + "\",\"path\":\"" + path + "\"}");
+            return;
+        }
+        
+        // Определяем Content-Type
+        String contentType = getContentType(path);
+        Serial.println("📄 Content-Type: " + contentType + " for " + path);
+        
+        // Открываем и отправляем файл
         File file = LittleFS.open(path, "r");
         if (!file) {
-            server.send(404, "text/plain", "File not found");
+            server.send(500, "text/plain", "Error opening file");
             return;
         }
         
         server.streamFile(file, contentType);
         file.close();
+    }
+    
+    // Определение Content-Type по расширению файла
+    String getContentType(String filename) {
+        if (filename.endsWith(".html")) return "text/html";
+        if (filename.endsWith(".css")) return "text/css";
+        if (filename.endsWith(".js")) return "application/javascript";
+        if (filename.endsWith(".json")) return "application/json";
+        if (filename.endsWith(".png")) return "image/png";
+        if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) return "image/jpeg";
+        if (filename.endsWith(".gif")) return "image/gif";
+        if (filename.endsWith(".ico")) return "image/x-icon";
+        if (filename.endsWith(".svg")) return "image/svg+xml";
+        if (filename.endsWith(".woff")) return "font/woff";
+        if (filename.endsWith(".woff2")) return "font/woff2";
+        if (filename.endsWith(".ttf")) return "font/ttf";
+        if (filename.endsWith(".txt")) return "text/plain";
+        return "application/octet-stream";
     }
     
     // =========================================================================
@@ -236,7 +270,7 @@ private:
         Serial.println();
         Serial.println("🌐 Available API Endpoints:");
         Serial.println("  GET  /                    - Web interface");
-        Serial.println("  GET  /monitor.html        - Message monitor");
+        Serial.println("  GET  /assets/*            - Static files (CSS, JS, images)");
         Serial.println("  POST /api/connect         - Connect to Webasto");
         Serial.println("  POST /api/disconnect      - Disconnect from Webasto");
         Serial.println("  GET  /api/status          - Get system status");
