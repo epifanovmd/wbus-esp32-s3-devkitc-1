@@ -34,7 +34,7 @@ class ErrorsManager: public IErrorsManager {
   }
 
   void resetErrors(std:: function < void(String, String) > callback = nullptr) override {
-    commandManager.addCommand(WBusCommandBuilder::createReadErrors(),
+    commandManager.addCommand(WBusCommandBuilder::createClearErrors(),
       [this, callback](String tx, String rx) {
         if (!rx.isEmpty()) {
           currentErrors.clear();
