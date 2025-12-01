@@ -127,22 +127,6 @@ public:
         
         delay(1);
     }
-    
-    void printStatus() {
-        HeaterStatus status = heaterController.getStatus();
-        
-        Serial.println();
-        Serial.println("📊 Current Status:");
-        Serial.println("  Heater: " + status.getStateName());
-        Serial.println("  Connection: " + status.getConnectionName());
-        Serial.println("  Pending commands: " + String(commandManager.getPendingCount()));
-        Serial.println("  Waiting response: " + String(commandManager.isWaitingForResponse() ? "Yes" : "No"));
-        Serial.println("  WebSocket clients: " + String(webSocketServer.isWebSocketConnected() ? "Connected" : "None"));
-        
-        if (commandManager.isWaitingForResponse()) {
-            Serial.println("  Current TX: " + commandManager.getCurrentTx());
-        }
-    }
 
 private:
     void setupWiFi() {
@@ -245,9 +229,7 @@ private:
             command.trim();
             command.toLowerCase();
             
-            if (command == "status") {
-                printStatus();
-            } else if (command == "connect" || command == "con") {
+            if (command == "connect" || command == "con") {
                 heaterController.connect();
             } else if (command == "disconnect" || command == "dc") {
                 heaterController.disconnect();
@@ -255,17 +237,6 @@ private:
                 heaterController.startParkingHeat();
             } else if (command == "stop") {
                 heaterController.shutdown();
-            } else if (command == "info" || command == "i") {
-                deviceInfoManager.printInfo();
-            } else if (command == "errors" || command == "err") {
-                errorsManager.printErrors();
-            } else if (command == "clear" || command == "clr") {
-                heaterController.breakIfNeeded();
-                errorsManager.resetErrors();
-            } else if (command == "queue") {
-                commandManager.printQueue();
-            } else if (command == "test") {
-                WBusCommandBuilder::generateAndPrintAllCommands();
             } else if (command == "mode") {
                 snifferManager.toggleSnifferMode();
             } else if (command == "help" || command == "h") {
@@ -280,16 +251,10 @@ private:
     
     void printHelp() {
         Serial.println("\n📋 КОМАНДЫ УПРАВЛЕНИЯ:");
-        Serial.println("status        - текущий статус");
         Serial.println("connect/con   - подключение к Webasto");
         Serial.println("disconnect/dc - отключение от Webasto");
         Serial.println("start         - запустить паркинг-нагрев");
         Serial.println("stop          - остановить");
-        Serial.println("info/i        - информация о Webasto");
-        Serial.println("errors/err    - чтение ошибок");
-        Serial.println("clear/clr     - стереть ошибки");
-        Serial.println("log           - вкл/выкл логирование");
-        Serial.println("queue         - показать очередь команд");
         Serial.println("help/h        - эта справка");
         Serial.println();
         Serial.println("🌐 Web Interface: http://" + WiFi.softAPIP().toString());
