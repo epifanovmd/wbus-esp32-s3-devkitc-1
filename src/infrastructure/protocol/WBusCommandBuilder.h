@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "./TestComponentDataConverter.h"
 #include "../../common/Utils.h"
 
 class WBusCommandBuilder
@@ -78,22 +79,38 @@ public:
     static const uint8_t TEST_SOLENOID_VALVE = 0x09;
     static const uint8_t TEST_FUEL_PREHEATING = 0x0F;
 
-    static String getCommandName(uint8_t command) {
-        switch (command) {
-            case CMD_SHUTDOWN: return "SHUTDOWN";
-            case CMD_PARK_HEAT: return "PARK_HEAT";
-            case CMD_VENTILATE: return "VENTILATION";
-            case CMD_SUPP_HEAT: return "SUPP_HEAT";
-            case CMD_CIRC_PUMP_CTRL: return "CIRC_PUMP_CTRL";
-            case CMD_BOOST_MODE: return "BOOST_MODE";
-            case CMD_DIAGNOSTIC: return "DIAGNOSTIC";
-            case CMD_TEST_COMPONENT: return "TEST_COMPONENT";
-            case CMD_READ_SENSOR: return "READ_SENSOR";
-            case CMD_READ_INFO: return "READ_INFO";
-            case CMD_READ_CONFIG: return "READ_CONFIG";
-            case CMD_READ_ERRORS: return "READ_ERRORS";
-            case CMD_CO2_CALIBRATION: return "CO2_CALIBRATION";
-            default: return "UNKNOWN_0x" + String(command, HEX);
+    static String getCommandName(uint8_t command)
+    {
+        switch (command)
+        {
+        case CMD_SHUTDOWN:
+            return "SHUTDOWN";
+        case CMD_PARK_HEAT:
+            return "PARK_HEAT";
+        case CMD_VENTILATE:
+            return "VENTILATION";
+        case CMD_SUPP_HEAT:
+            return "SUPP_HEAT";
+        case CMD_CIRC_PUMP_CTRL:
+            return "CIRC_PUMP_CTRL";
+        case CMD_BOOST_MODE:
+            return "BOOST_MODE";
+        case CMD_DIAGNOSTIC:
+            return "DIAGNOSTIC";
+        case CMD_TEST_COMPONENT:
+            return "TEST_COMPONENT";
+        case CMD_READ_SENSOR:
+            return "READ_SENSOR";
+        case CMD_READ_INFO:
+            return "READ_INFO";
+        case CMD_READ_CONFIG:
+            return "READ_CONFIG";
+        case CMD_READ_ERRORS:
+            return "READ_ERRORS";
+        case CMD_CO2_CALIBRATION:
+            return "CO2_CALIBRATION";
+        default:
+            return "UNKNOWN_0x" + String(command, HEX);
         }
     }
 
@@ -346,25 +363,25 @@ public:
 
     static String createParkHeat(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 255);
+        minutes = constrain(minutes, 1, 60);
         return createCommandWithByte(CMD_PARK_HEAT, minutes);
     }
 
     static String createVentilation(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 255);
+        minutes = constrain(minutes, 1, 60);
         return createCommandWithByte(CMD_VENTILATE, minutes);
     }
 
     static String createSupplementalHeat(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 255);
+        minutes = constrain(minutes, 1, 60);
         return createCommandWithByte(CMD_SUPP_HEAT, minutes);
     }
 
     static String createBoostMode(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 255);
+        minutes = constrain(minutes, 1, 60);
         return createCommandWithByte(CMD_BOOST_MODE, minutes);
     }
 
@@ -462,62 +479,51 @@ public:
         return createCommand(CMD_TEST_COMPONENT, 0, data, 4);
     }
 
-    // Конвертеры величин
-    static uint16_t percentToMagnitude(uint8_t percent)
-    {
-        percent = constrain(percent, 0, 100);
-
-        float value_f = (percent * 510.0f) / 100.0f;
-        uint16_t value = static_cast<uint16_t>(value_f + 0.5f);
-
-        return value;
-    }
-
-    static uint16_t frequencyToMagnitude(uint8_t frequencyHz)
-    {
-        return frequencyHz * 20; // 1 Гц = 20 единиц
-    }
-
-    // Специализированные функции тестирования
+    // Специализированные функции тестирования с использованием новых конвертеров
     static String createTestCombustionFan(uint8_t seconds, uint8_t powerPercent)
     {
         powerPercent = constrain(powerPercent, 0, 100);
-
-        float value_f = (powerPercent * 510.0f) / 100.0f;
-        uint16_t value = static_cast<uint16_t>(value_f + 0.5f);
-
-        return createTestCommand(TEST_COMBUSTION_FAN, seconds, value);
+        uint16_t magnitude = TestComponentConverter::combustionFanPercentToMagnitude(powerPercent);
+        return createTestCommand(TEST_COMBUSTION_FAN, seconds, magnitude);
     }
 
     static String createTestFuelPump(uint8_t seconds, uint8_t frequencyHz)
     {
-        return createTestCommand(TEST_FUEL_PUMP, seconds, frequencyToMagnitude(frequencyHz));
+        frequencyHz = constrain(frequencyHz, 0, 50);
+        uint16_t magnitude = TestComponentConverter::fuelPumpHzToMagnitude(frequencyHz);
+        return createTestCommand(TEST_FUEL_PUMP, seconds, magnitude);
     }
 
     static String createTestGlowPlug(uint8_t seconds, uint8_t powerPercent)
     {
         powerPercent = constrain(powerPercent, 0, 100);
-
-        return createTestCommand(TEST_GLOW_PLUG, seconds, static_cast<uint16_t>((powerPercent * 200UL) / 100UL));
+        uint16_t magnitude = TestComponentConverter::glowPlugPercentToMagnitude(powerPercent);
+        return createTestCommand(TEST_GLOW_PLUG, seconds, magnitude);
     }
 
     static String createTestCirculationPump(uint8_t seconds, uint8_t powerPercent)
     {
-        return createTestCommand(TEST_CIRCULATION_PUMP, seconds, powerPercent * 2);
+        powerPercent = constrain(powerPercent, 0, 100);
+        uint16_t magnitude = TestComponentConverter::circulationPumpPercentToMagnitude(powerPercent);
+        return createTestCommand(TEST_CIRCULATION_PUMP, seconds, magnitude);
     }
 
     static String createTestVehicleFan(uint8_t seconds)
     {
-        return createTestCommand(TEST_VEHICLE_FAN, seconds, 0x0001); // всегда 0x0001 для реле
+        uint16_t magnitude = TestComponentConverter::vehicleFanToMagnitude();
+        return createTestCommand(TEST_VEHICLE_FAN, seconds, magnitude);
     }
 
     static String createTestSolenoidValve(uint8_t seconds)
     {
-        return createTestCommand(TEST_SOLENOID_VALVE, seconds, 0x0001); // всегда 0x0001 для соленоида
+        uint16_t magnitude = TestComponentConverter::solenoidValveToMagnitude();
+        return createTestCommand(TEST_SOLENOID_VALVE, seconds, magnitude);
     }
 
     static String createTestFuelPreheating(uint8_t seconds, uint8_t powerPercent)
     {
-        return createTestCommand(TEST_FUEL_PREHEATING, seconds, percentToMagnitude(powerPercent));
+        powerPercent = constrain(powerPercent, 0, 100);
+        uint16_t magnitude = TestComponentConverter::fuelPreheatingPercentToMagnitude(powerPercent);
+        return createTestCommand(TEST_FUEL_PREHEATING, seconds, magnitude);
     }
 };

@@ -17,29 +17,41 @@ private:
     ErrorsManager &errorsManager;
     HeaterController &heaterController;
 
-    bool snifferModeEnabled = false;
-    String lastProcessedTx;
+    bool snifferModeEnabled = true;
 
 public:
     SnifferManager(EventBus &bus, DeviceInfoManager &deviceInfoMngr,
                    SensorManager &sensorMngr, ErrorsManager &errorsMngr, HeaterController &heaterCtrl)
         : eventBus(bus), deviceInfoManager(deviceInfoMngr), sensorManager(sensorMngr), errorsManager(errorsMngr), heaterController(heaterCtrl)
     {
-        eventBus.subscribe(EventType::TX_RECEIVED,
+        eventBus.subscribe(EventType::COMMAND_RECEIVED,
                            [this](const Event &event)
                            {
                                if (snifferModeEnabled)
                                {
-                                   processTxPacket(event.source);
-                               }
-                           });
+                                   const auto &cmdEvent = static_cast<const TypedEvent<CommandReceivedEvent> &>(event);
 
-        eventBus.subscribe(EventType::RX_RECEIVED,
-                           [this](const Event &event)
-                           {
-                               if (snifferModeEnabled)
-                               {
-                                   processRxPacket(event.source);
+                                   String tx = cmdEvent.data.tx;
+                                   String rx = cmdEvent.data.rx;
+
+                                   uint8_t txCommand = Utils::extractByteFromString(tx, 2);
+                                   uint8_t rxCommandAsc = Utils::extractByteFromString(rx, 2);
+                                   uint8_t rxCommand = rxCommandAsc & 0x7F;
+
+                                   if (txCommand == rxCommand)
+                                   {
+                                       Serial.println();
+                                       Serial.print("📨 SNIFF RX: " + rx);
+                                       Serial.print(" [ACK: 0x" + String(rxCommand, HEX) + "]");
+
+                                       // // Автоматически определяем и вызываем соответствующий обработчик
+                                       bool processed = autoProcessResponse(rxCommand, tx, rx);
+
+                                       if (!processed)
+                                       {
+                                           Serial.print(" [UNKNOWN]");
+                                       }
+                                   }
                                }
                            });
     }
@@ -56,66 +68,8 @@ public:
         return snifferModeEnabled;
     }
 
-    // Обработка исходящих команд (TX)
-    void processTxPacket(const String &tx)
-    {
-        String cleanTx = tx;
-        cleanTx.replace(" ", "");
-
-        if (cleanTx.length() < 8)
-        {
-            return;
-        }
-
-        // Структура пакета: [HEADER][LENGTH][COMMAND][DATA...][CHECKSUM]
-        // HEADER занимает 2 символа (1 байт), LENGTH - 2 символа (1 байт)
-        // COMMAND начинается с 4-го символа (индекс 4)
-        uint8_t command = Utils::hexStringToByte(cleanTx.substring(4, 6));
-
-        Serial.println();
-        Serial.print("📤 SNIFF TX: " + tx);
-        Serial.print(" [CMD: 0x" + String(command, HEX) + "]");
-
-        // Определяем тип команды для логирования
-        String commandType = identifyCommandType(command);
-        if (!commandType.isEmpty())
-        {
-            Serial.print(" [" + commandType + "]");
-        }
-    }
-
-    // Обработка входящих ответов (RX)
-    void processRxPacket(const String &rx)
-    {
-        String cleanRx = rx;
-        cleanRx.replace(" ", "");
-
-        if (cleanRx.length() < 8)
-        {
-            return;
-        }
-
-        // Структура ответа: [HEADER][LENGTH][COMMAND_ACK][DATA...][CHECKSUM]
-        // HEADER занимает 2 символа, LENGTH - 2 символа
-        // COMMAND_ACK начинается с 4-го символа (индекс 4)
-        uint8_t responseCommand = Utils::hexStringToByte(cleanRx.substring(4, 6));
-        uint8_t originalCommand = responseCommand & 0x7F; // Сбрасываем бит ACK
-
-        Serial.println();
-        Serial.print("📨 SNIFF RX: " + rx);
-        Serial.print(" [ACK: 0x" + String(originalCommand, HEX) + "]");
-
-        // // Автоматически определяем и вызываем соответствующий обработчик
-        bool processed = autoProcessResponse(originalCommand, cleanRx, rx);
-
-        if (!processed)
-        {
-            Serial.print(" [UNKNOWN]");
-        }
-    }
-
     // Автоматическая обработка ответов на основе команды
-    bool autoProcessResponse(uint8_t command, const String &cleanRx, const String &originalRx)
+    bool autoProcessResponse(uint8_t command, const String &tx, const String &rx)
     {
         switch (command)
         {
@@ -124,7 +78,7 @@ public:
         // =========================================================================
         case WBusCommandBuilder::CMD_READ_INFO:
         {
-            return processInfoResponse(cleanRx, originalRx);
+            return processInfoResponse(tx, rx);
         }
 
         // =========================================================================
@@ -132,7 +86,7 @@ public:
         // =========================================================================
         case WBusCommandBuilder::CMD_READ_SENSOR:
         {
-            return processSensorResponse(cleanRx, originalRx);
+            return processSensorResponse(tx, rx);
         }
 
         // =========================================================================
@@ -140,68 +94,57 @@ public:
         // =========================================================================
         case WBusCommandBuilder::CMD_READ_ERRORS:
         {
-            return processErrorResponse(cleanRx, originalRx);
+            return processErrorResponse(tx, rx);
         }
 
-        case WBusCommandBuilder::ERROR_READ_DETAILS:
-        {
-            if (cleanRx.length() >= 12)
-            {
-                uint8_t errorCode = Utils::hexStringToByte(cleanRx.substring(8, 10));
-                errorsManager.handleErrorDetailsResponse(lastProcessedTx, originalRx, errorCode);
-                return true;
-            }
-            return false;
-        }
+            // =========================================================================
+            // ОБРАБОТКА КОМАНД УПРАВЛЕНИЯ
+            // =========================================================================
 
-        // =========================================================================
-        // ОБРАБОТКА КОМАНД ДИАГНОСТИКИ И УПРАВЛЕНИЯ
-        // =========================================================================
-
-        // case WBusCommandBuilder::CMD_DIAGNOSTIC: {
-        //     heaterController.handleDiagnosticResponse(lastProcessedTx, originalRx);
-        //     return true;
-        // }
+            // case WBusCommandBuilder::CMD_DIAGNOSTIC: {
+            //     heaterController.handleDiagnosticResponse(lastProcessedTx, originalRx);
+            //     return true;
+            // }
 
         case WBusCommandBuilder::CMD_SHUTDOWN:
         {
-            heaterController.handleShutdownResponse(lastProcessedTx, originalRx);
+            heaterController.handleShutdownResponse(tx, rx);
             return true;
         }
 
         case WBusCommandBuilder::CMD_PARK_HEAT:
         {
             // Для команд управления извлекаем параметры из последнего TX
-            int minutes = extractMinutesFromTx(lastProcessedTx);
-            heaterController.handleStartParkingHeatResponse(lastProcessedTx, originalRx, minutes);
+            int minutes = Utils::extractByteFromString(tx, 5);
+            heaterController.handleStartParkingHeatResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_VENTILATE:
         {
-            int minutes = extractMinutesFromTx(lastProcessedTx);
-            heaterController.handleStartVentilationResponse(lastProcessedTx, originalRx, minutes);
+            int minutes = Utils::extractByteFromString(tx, 5);
+            heaterController.handleStartVentilationResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_SUPP_HEAT:
         {
-            int minutes = extractMinutesFromTx(lastProcessedTx);
-            heaterController.handleStartSupplementalHeatResponse(lastProcessedTx, originalRx, minutes);
+            int minutes = Utils::extractByteFromString(tx, 5);
+            heaterController.handleStartSupplementalHeatResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_BOOST_MODE:
         {
-            int minutes = extractMinutesFromTx(lastProcessedTx);
-            heaterController.handleStartBoostModeResponse(lastProcessedTx, originalRx, minutes);
+            int minutes = Utils::extractByteFromString(tx, 5);
+            heaterController.handleStartBoostModeResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_CIRC_PUMP_CTRL:
         {
-            bool enable = extractBoolFromTx(lastProcessedTx);
-            heaterController.handleControlCirculationPumpResponse(lastProcessedTx, originalRx, enable);
+            bool enable = Utils::extractByteFromString(tx, 5) != 0x00;
+            heaterController.handleControlCirculationPumpResponse(tx, rx, enable);
             return true;
         }
 
@@ -210,7 +153,7 @@ public:
         // =========================================================================
         case WBusCommandBuilder::CMD_TEST_COMPONENT:
         {
-            return processTestComponentResponse(cleanRx, originalRx);
+            return processTestComponentResponse(tx, rx);
         }
 
         default:
@@ -220,45 +163,42 @@ public:
 
 private:
     // Обработка ответов на команды чтения информации (0x51)
-    bool processInfoResponse(const String &cleanRx, const String &originalRx)
+    bool processInfoResponse(const String &tx, const String &rx)
     {
-        if (cleanRx.length() < 8)
-            return false;
-
-        uint8_t infoIndex = Utils::hexStringToByte(cleanRx.substring(6, 8));
+        uint8_t infoIndex = Utils::extractByteFromString(tx, 3);
 
         switch (infoIndex)
         {
         case WBusCommandBuilder::INFO_WBUS_VERSION:
-            deviceInfoManager.handleWBusVersionResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleWBusVersionResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::INFO_DEVICE_NAME:
-            deviceInfoManager.handleDeviceNameResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleDeviceNameResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::INFO_WBUS_CODE:
-            deviceInfoManager.handleWBusCodeResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleWBusCodeResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::INFO_DEVICE_ID:
-            deviceInfoManager.handleDeviceIDResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleDeviceIDResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::INFO_CTRL_MFG_DATE:
-            deviceInfoManager.handleControllerManufactureDateResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleControllerManufactureDateResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::INFO_HEATER_MFG_DATE:
-            deviceInfoManager.handleHeaterManufactureDateResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleHeaterManufactureDateResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::INFO_CUSTOMER_ID:
-            deviceInfoManager.handleCustomerIDResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleCustomerIDResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::INFO_SERIAL_NUMBER:
-            deviceInfoManager.handleSerialNumberResponse(lastProcessedTx, originalRx);
+            deviceInfoManager.handleSerialNumberResponse(tx, rx);
             return true;
 
         default:
@@ -267,53 +207,50 @@ private:
     }
 
     // Обработка ответов на команды чтения сенсоров (0x50)
-    bool processSensorResponse(const String &cleanRx, const String &originalRx)
+    bool processSensorResponse(const String &tx, const String &rx)
     {
-        if (cleanRx.length() < 8)
-            return false;
-
-        uint8_t sensorIndex = Utils::hexStringToByte(cleanRx.substring(6, 8));
+        uint8_t sensorIndex = Utils::extractByteFromString(tx, 3);
 
         switch (sensorIndex)
         {
         case WBusCommandBuilder::SENSOR_OPERATIONAL:
-            sensorManager.handleOperationalInfoResponse(lastProcessedTx, originalRx);
+            sensorManager.handleOperationalInfoResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_ON_OFF_FLAGS:
-            sensorManager.handleOnOffFlagsResponse(lastProcessedTx, originalRx);
+            sensorManager.handleOnOffFlagsResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_STATUS_FLAGS:
-            sensorManager.handleStatusFlagsResponse(lastProcessedTx, originalRx);
+            sensorManager.handleStatusFlagsResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_OPERATING_STATE:
-            sensorManager.handleOperatingStateResponse(lastProcessedTx, originalRx);
+            sensorManager.handleOperatingStateResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_SUBSYSTEMS_STATUS:
-            sensorManager.handleSubsystemsStatusResponse(lastProcessedTx, originalRx);
+            sensorManager.handleSubsystemsStatusResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_FUEL_SETTINGS:
-            sensorManager.handleFuelSettingsResponse(lastProcessedTx, originalRx);
-            return true;
-
-        case WBusCommandBuilder::SENSOR_FUEL_PREWARMING:
-            sensorManager.handleFuelPrewarmingResponse(lastProcessedTx, originalRx);
+            sensorManager.handleFuelSettingsResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_OPERATING_TIMES:
-            sensorManager.handleOperatingTimesResponse(lastProcessedTx, originalRx);
+            sensorManager.handleOperatingTimesResponse(tx, rx);
+            return true;
+
+        case WBusCommandBuilder::SENSOR_FUEL_PREWARMING:
+            sensorManager.handleFuelPrewarmingResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_BURNING_DURATION:
-            sensorManager.handleBurningDurationResponse(lastProcessedTx, originalRx);
+            sensorManager.handleBurningDurationResponse(tx, rx);
             return true;
 
         case WBusCommandBuilder::SENSOR_START_COUNTERS:
-            sensorManager.handleStartCountersResponse(lastProcessedTx, originalRx);
+            sensorManager.handleStartCountersResponse(tx, rx);
             return true;
 
         default:
@@ -322,21 +259,25 @@ private:
     }
 
     // Обработка ответов на команды ошибок (0x56)
-    bool processErrorResponse(const String &cleanRx, const String &originalRx)
+    bool processErrorResponse(const String &tx, const String &rx)
     {
-        if (cleanRx.length() < 8)
-            return false;
-
-        uint8_t errorIndex = Utils::hexStringToByte(cleanRx.substring(6, 8));
+        uint8_t errorIndex = Utils::extractByteFromString(tx, 3);
 
         switch (errorIndex)
         {
         case WBusCommandBuilder::ERROR_READ_LIST:
-            errorsManager.handleCheckErrorsResponse(lastProcessedTx, originalRx);
+            errorsManager.handleCheckErrorsResponse(tx, rx);
             return true;
 
+        case WBusCommandBuilder::ERROR_READ_DETAILS:
+        {
+            uint8_t errorCode = Utils::extractByteFromString(rx, 4);
+            errorsManager.handleErrorDetailsResponse(tx, rx, errorCode);
+            return true;
+        }
+
         case WBusCommandBuilder::ERROR_CLEAR:
-            errorsManager.handleResetErrorsResponse(lastProcessedTx, originalRx);
+            errorsManager.handleResetErrorsResponse(tx, rx);
             return true;
 
         default:
@@ -345,127 +286,68 @@ private:
     }
 
     // Обработка ответов на команды тестирования компонентов (0x45)
-    bool processTestComponentResponse(const String &cleanRx, const String &originalRx)
+    bool processTestComponentResponse(const String &tx, const String &rx)
     {
-        // Для тестовых команд анализируем исходный TX для извлечения параметров
-        String cleanTx = lastProcessedTx;
-        cleanTx.replace(" ", "");
+        auto testInfo = TestComponentConverter::decodeTestCommand(tx);
 
-        if (cleanTx.length() < 16)
-            return false; // Минимальная длина тестовой команды
+        // Если декодер не смог разобрать команду
+        if (testInfo.component == 0)
+        {
+            return false;
+        }
 
-        uint8_t component = Utils::hexStringToByte(cleanTx.substring(8, 10));
-        uint8_t seconds = Utils::hexStringToByte(cleanTx.substring(10, 12));
-
-        // Для компонентов с мощностью/частотой извлекаем дополнительные параметры
-        uint16_t magnitude = (Utils::hexStringToByte(cleanTx.substring(12, 14)) << 8) |
-                             Utils::hexStringToByte(cleanTx.substring(14, 16));
-
-        switch (component)
+        // Обрабатываем в зависимости от компонента
+        switch (testInfo.component)
         {
         case WBusCommandBuilder::TEST_COMBUSTION_FAN:
         {
-            int powerPercent = magnitude / 2;
-            heaterController.handleTestCombustionFanResponse(lastProcessedTx, originalRx, seconds, powerPercent);
+            int powerPercent = TestComponentConverter::combustionFanMagnitudeToPercent(testInfo.magnitude);
+            heaterController.handleTestCombustionFanResponse(tx, rx, testInfo.seconds, powerPercent);
             return true;
         }
 
         case WBusCommandBuilder::TEST_FUEL_PUMP:
         {
-            int frequencyHz = magnitude / 20;
-            heaterController.handleTestFuelPumpResponse(lastProcessedTx, originalRx, seconds, frequencyHz);
+            int frequencyHz = TestComponentConverter::fuelPumpMagnitudeToHz(testInfo.magnitude);
+            heaterController.handleTestFuelPumpResponse(tx, rx, testInfo.seconds, frequencyHz);
             return true;
         }
 
         case WBusCommandBuilder::TEST_GLOW_PLUG:
         {
-            int powerPercent = magnitude / 2;
-            heaterController.handleTestGlowPlugResponse(lastProcessedTx, originalRx, seconds, powerPercent);
+            int powerPercent = TestComponentConverter::glowPlugMagnitudeToPercent(testInfo.magnitude);
+            heaterController.handleTestGlowPlugResponse(tx, rx, testInfo.seconds, powerPercent);
             return true;
         }
 
         case WBusCommandBuilder::TEST_CIRCULATION_PUMP:
         {
-            int powerPercent = magnitude / 2;
-            heaterController.handleTestCirculationPumpResponse(lastProcessedTx, originalRx, seconds, powerPercent);
+            int powerPercent = TestComponentConverter::circulationPumpMagnitudeToPercent(testInfo.magnitude);
+            heaterController.handleTestCirculationPumpResponse(tx, rx, testInfo.seconds, powerPercent);
             return true;
         }
 
         case WBusCommandBuilder::TEST_VEHICLE_FAN:
         {
-            heaterController.handleTestVehicleFanResponse(lastProcessedTx, originalRx, seconds);
+            heaterController.handleTestVehicleFanResponse(tx, rx, testInfo.seconds);
             return true;
         }
 
         case WBusCommandBuilder::TEST_SOLENOID_VALVE:
         {
-            heaterController.handleTestSolenoidValveResponse(lastProcessedTx, originalRx, seconds);
+            heaterController.handleTestSolenoidValveResponse(tx, rx, testInfo.seconds);
             return true;
         }
 
         case WBusCommandBuilder::TEST_FUEL_PREHEATING:
         {
-            int powerPercent = magnitude / 2;
-            heaterController.handleTestFuelPreheatingResponse(lastProcessedTx, originalRx, seconds, powerPercent);
+            int powerPercent = TestComponentConverter::fuelPreheatingMagnitudeToPercent(testInfo.magnitude);
+            heaterController.handleTestFuelPreheatingResponse(tx, rx, testInfo.seconds, powerPercent);
             return true;
         }
 
         default:
             return false;
-        }
-    }
-
-    // Вспомогательные методы для извлечения параметров из TX
-    int extractMinutesFromTx(const String &tx)
-    {
-        String cleanTx = tx;
-        cleanTx.replace(" ", "");
-        if (cleanTx.length() >= 10)
-        {
-            return Utils::hexStringToByte(cleanTx.substring(8, 10));
-        }
-        return 60; // Значение по умолчанию
-    }
-
-    bool extractBoolFromTx(const String &tx)
-    {
-        String cleanTx = tx;
-        cleanTx.replace(" ", "");
-        if (cleanTx.length() >= 8)
-        {
-            return Utils::hexStringToByte(cleanTx.substring(8, 10)) == 0x01;
-        }
-        return false;
-    }
-
-    String identifyCommandType(uint8_t command)
-    {
-        switch (command)
-        {
-        case WBusCommandBuilder::CMD_READ_INFO:
-            return "READ_INFO";
-        case WBusCommandBuilder::CMD_READ_SENSOR:
-            return "READ_SENSOR";
-        case WBusCommandBuilder::CMD_READ_ERRORS:
-            return "READ_ERRORS";
-        case WBusCommandBuilder::CMD_DIAGNOSTIC:
-            return "DIAGNOSTIC";
-        case WBusCommandBuilder::CMD_SHUTDOWN:
-            return "SHUTDOWN";
-        case WBusCommandBuilder::CMD_PARK_HEAT:
-            return "PARK_HEAT";
-        case WBusCommandBuilder::CMD_VENTILATE:
-            return "VENTILATION";
-        case WBusCommandBuilder::CMD_SUPP_HEAT:
-            return "SUPP_HEAT";
-        case WBusCommandBuilder::CMD_BOOST_MODE:
-            return "BOOST_MODE";
-        case WBusCommandBuilder::CMD_CIRC_PUMP_CTRL:
-            return "CIRC_PUMP";
-        case WBusCommandBuilder::CMD_TEST_COMPONENT:
-            return "TEST_COMPONENT";
-        default:
-            return "";
         }
     }
 };
