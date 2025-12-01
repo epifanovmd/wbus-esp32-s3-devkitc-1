@@ -11,6 +11,7 @@
 #include "application/DeviceInfoManager.h"
 #include "application/ErrorsManager.h"
 #include "application/CommandReceiver.h"
+#include "application/SnifferManager.h"
 #include "common/Utils.h"
 #include "common/Constants.h"
 #include "infrastructure/protocol/WBusCommandBuilder.h"
@@ -35,6 +36,7 @@ private:
     SensorManager sensorManager;
     ErrorsManager errorsManager;
     HeaterController heaterController;
+    SnifferManager snifferManager;
     
     // Сетевой слой
     WebSocketServer webSocketServer;
@@ -59,6 +61,7 @@ public:
         , sensorManager(eventBus, commandManager)
         , errorsManager(eventBus, commandManager)
         , heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager)
+        , snifferManager(eventBus, commandManager, deviceInfoManager, sensorManager, errorsManager, heaterController)
         , webSocketServer(eventBus, configManager.getConfig().network.wsPort)
         , apiServer(deviceInfoManager, sensorManager, errorsManager, heaterController, configManager.getConfig().network.webPort) 
     {
@@ -254,8 +257,6 @@ private:
                 heaterController.shutdown();
             } else if (command == "info" || command == "i") {
                 deviceInfoManager.printInfo();
-            } else if (command == "sensors") {
-                sensorManager.printSensorData();
             } else if (command == "errors" || command == "err") {
                 errorsManager.printErrors();
             } else if (command == "clear" || command == "clr") {
@@ -265,6 +266,8 @@ private:
                 commandManager.printQueue();
             } else if (command == "test") {
                 WBusCommandBuilder::generateAndPrintAllCommands();
+            } else if (command == "mode") {
+                snifferManager.toggleSnifferMode();
             } else if (command == "help" || command == "h") {
                 printHelp();
             } else {
@@ -283,7 +286,6 @@ private:
         Serial.println("start         - запустить паркинг-нагрев");
         Serial.println("stop          - остановить");
         Serial.println("info/i        - информация о Webasto");
-        Serial.println("sensors       - данные датчиков");
         Serial.println("errors/err    - чтение ошибок");
         Serial.println("clear/clr     - стереть ошибки");
         Serial.println("log           - вкл/выкл логирование");

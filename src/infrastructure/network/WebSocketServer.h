@@ -225,6 +225,30 @@ private:
                 broadcastJson(EventType::FUEL_SETTINGS, fuelEvent.data.toJson());
             });
 
+        eventBus.subscribe(EventType::SENSOR_OPERATING_TIMES,
+            [this](const Event& event) {
+                const auto& operatingTimes = static_cast<const TypedEvent<OperatingTimes>&>(event);
+                broadcastJson(EventType::SENSOR_OPERATING_TIMES, operatingTimes.data.toJson());
+            });
+
+        eventBus.subscribe(EventType::FUEL_PREWARMING,
+            [this](const Event& event) {
+                const auto& fuelPrewarming = static_cast<const TypedEvent<FuelPrewarming>&>(event);
+                broadcastJson(EventType::FUEL_PREWARMING, fuelPrewarming.data.toJson());
+            });
+
+        eventBus.subscribe(EventType::BURNING_DURATION_STATS,
+            [this](const Event& event) {
+                const auto& burningDurationEvent = static_cast<const TypedEvent<BurningDuration>&>(event);
+                broadcastJson(EventType::BURNING_DURATION_STATS, burningDurationEvent.data.toJson());
+            });
+
+        eventBus.subscribe(EventType::START_COUNTERS,
+            [this](const Event& event) {
+                const auto& startCounters = static_cast<const TypedEvent<StartCounters>&>(event);
+                broadcastJson(EventType::START_COUNTERS, startCounters.data.toJson());
+            });
+
         // =========================================================================
         // СОБЫТИЯ ТЕСТИРОВАНИЯ КОМПОНЕНТОВ
         // =========================================================================
