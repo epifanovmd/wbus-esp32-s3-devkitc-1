@@ -27,34 +27,9 @@ public:
         result.vehicleFanRelay = (flags & 0x10) != 0;
         result.nozzleStockHeating = (flags & 0x20) != 0;
         result.flameIndicator = (flags & 0x40) != 0;
-        result.activeComponents = buildActiveComponentsString(result);
 
         return result;
     }
 
 private:
-    static String buildActiveComponentsString(const OnOffFlags &flags)
-    {
-        String components = "";
-        if (flags.combustionAirFan)
-            components += "Вентилятор горения, ";
-        if (flags.glowPlug)
-            components += "Свеча накаливания, ";
-        if (flags.fuelPump)
-            components += "Топливный насос, ";
-        if (flags.circulationPump)
-            components += "Циркуляционный насос, ";
-        if (flags.vehicleFanRelay)
-            components += "Вентилятор автомобиля, ";
-        if (flags.nozzleStockHeating)
-            components += "Подогрев форсунки, ";
-        if (flags.flameIndicator)
-            components += "Индикатор пламени, ";
-
-        if (components.length() > 0)
-        {
-            return components.substring(0, components.length() - 2);
-        }
-        return "нет активных";
-    }
 };

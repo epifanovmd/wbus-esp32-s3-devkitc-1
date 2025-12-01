@@ -205,6 +205,14 @@ public:
             return "SENSOR_SUBSYSTEM_STATE";
         case EventType::FUEL_SETTINGS:
             return "FUEL_SETTINGS";
+        case EventType::SENSOR_OPERATING_TIMES:
+            return "SENSOR_OPERATING_TIMES";
+        case EventType::FUEL_PREWARMING:
+            return "FUEL_PREWARMING";
+        case EventType::BURNING_DURATION_STATS:
+            return "BURNING_DURATION_STATS";
+        case EventType::START_COUNTERS:
+            return "START_COUNTERS";
 
         default:
             return "UNKNOWN_EVENT";

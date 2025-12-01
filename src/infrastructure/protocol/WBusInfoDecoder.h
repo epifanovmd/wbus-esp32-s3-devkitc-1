@@ -6,27 +6,27 @@
 
 class WBusInfoDecoder {
 public:
-    static DecodedTextData decodeWBusVersion(const String& response) {
-        DecodedTextData result = {""};
+    static String decodeWBusVersion(const String& response) {
+        String result = "";
         
         String versionData = extractDataFromResponse(response, "d10a", 2);
         if (versionData.length() == 2) {
             uint8_t versionByte = Utils::hexStringToByte(versionData);
 
-            result.text = String((versionByte >> 4) & 0x0F) + "." + String(versionByte & 0x0F);
+            result = String((versionByte >> 4) & 0x0F) + "." + String(versionByte & 0x0F);
         }
         
         return result;
     }
     
-    static DecodedTextData decodeDeviceName(const String& response) {
-        DecodedTextData result = {""};
+    static String decodeDeviceName(const String& response) {
+        String result = "";
         
         String nameData = extractDataFromResponse(response, "d10b");
         if (nameData.length() > 0) {
             String text = hexToString(nameData);
             text.trim();
-            result.text = text;
+            result = text;
         }
         
         return result;
@@ -44,12 +44,12 @@ public:
         return result;
     }
     
-    static DecodedTextData decodeDeviceID(const String& response) {
-        DecodedTextData result = {""};
+    static String decodeDeviceID(const String& response) {
+        String result = "";
         
         String idData = extractDataFromResponse(response, "d101");
         if (idData.length() > 0) {
-            result.text = idData;
+            result = idData;
         }
         
         return result;
@@ -63,23 +63,23 @@ public:
         return decodeManufactureDate(response, "d104");
     }
     
-    static DecodedTextData decodeCustomerID(const String& response) {
-        DecodedTextData result = {""};
+    static String decodeCustomerID(const String& response) {
+        String result = "";
         
         String data = extractDataFromResponse(response, "d107");
         if (data.length() > 0) {
-            result.text = hexToString(data);
+            result = hexToString(data);
         }
         
         return result;
     }
     
-    static DecodedTextData decodeSerialNumber(const String& response) {
-        DecodedTextData result = {""};
+    static String decodeSerialNumber(const String& response) {
+        String result = "";
         
         String data = extractDataFromResponse(response, "d109");
         if (data.length() >= 10) {
-            result.text = data.substring(0, 10);
+            result = data.substring(0, 10);
         }
         
         return result;

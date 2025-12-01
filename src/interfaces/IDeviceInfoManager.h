@@ -9,14 +9,14 @@ public:
     virtual ~IDeviceInfoManager() = default;
     
     virtual void requestAllInfo(bool loop = false) = 0;
-    virtual void requestWBusVersion(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) = 0;
-    virtual void requestDeviceName(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) = 0;
+    virtual void requestWBusVersion(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) = 0;
+    virtual void requestDeviceName(bool loop = false, std::function<void(String, String, String*)> callback = nullptr) = 0;
     virtual void requestWBusCode(bool loop = false, std::function<void(String, String, DecodedWBusCode*)> callback = nullptr) = 0;
-    virtual void requestDeviceID(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) = 0;
+    virtual void requestDeviceID(bool loop = false, std::function<void(String, String, String*)> callback = nullptr) = 0;
     virtual void requestControllerManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate*)> callback = nullptr) = 0;
     virtual void requestHeaterManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate*)> callback = nullptr) = 0;
-    virtual void requestCustomerID(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) = 0;
-    virtual void requestSerialNumber(bool loop = false, std::function<void(String, String, DecodedTextData*)> callback = nullptr) = 0;
+    virtual void requestCustomerID(bool loop = false, std::function<void(String, String, String*)> callback = nullptr) = 0;
+    virtual void requestSerialNumber(bool loop = false, std::function<void(String, String, String*)> callback = nullptr) = 0;
     
     // Геттеры как в оригинальном коде
     virtual String getWBusVersionData() const = 0;

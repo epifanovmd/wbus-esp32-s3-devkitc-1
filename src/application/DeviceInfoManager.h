@@ -40,13 +40,13 @@ public:
     requestSerialNumber(loop);
   }
 
-  void requestWBusVersion(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+  void requestWBusVersion(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
   {
     commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_VERSION), [this, callback](String tx, String rx)
                               { handleWBusVersionResponse(tx, rx, callback); }, loop);
   }
 
-  void requestDeviceName(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+  void requestDeviceName(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
   {
     commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_NAME), [this, callback](String tx, String rx)
                               { handleDeviceNameResponse(tx, rx, callback); }, loop);
@@ -58,7 +58,7 @@ public:
                               { handleWBusCodeResponse(tx, rx, callback); }, loop);
   }
 
-  void requestDeviceID(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+  void requestDeviceID(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
   {
     commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_ID), [this, callback](String tx, String rx)
                               { handleDeviceIDResponse(tx, rx, callback); }, loop);
@@ -76,13 +76,13 @@ public:
                               { handleHeaterManufactureDateResponse(tx, rx, callback); }, loop);
   }
 
-  void requestCustomerID(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+  void requestCustomerID(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
   {
     commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CUSTOMER_ID), [this, callback](String tx, String rx)
                               { handleCustomerIDResponse(tx, rx, callback); }, loop);
   }
 
-  void requestSerialNumber(bool loop = false, std::function<void(String, String, DecodedTextData *)> callback = nullptr) override
+  void requestSerialNumber(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
   {
     commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_SERIAL_NUMBER), [this, callback](String tx, String rx)
                               { handleSerialNumberResponse(tx, rx, callback); }, loop);
@@ -92,32 +92,30 @@ public:
   // ПУБЛИЧНЫЕ МЕТОДЫ ОБРАБОТКИ ОТВЕТОВ (для использования извне)
   // =========================================================================
 
-  void handleWBusVersionResponse(String tx, String rx, std::function<void(String, String, DecodedTextData *)> callback = nullptr)
+  void handleWBusVersionResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
   {
     if (!rx.isEmpty())
     {
-      DecodedTextData version = WBusInfoDecoder::decodeWBusVersion(rx);
-      wbusVersion = version.text;
+      wbusVersion = WBusInfoDecoder::decodeWBusVersion(rx);
       eventBus.publish(EventType::WBUS_VERSION, wbusVersion);
 
       if (callback)
       {
-        callback(tx, rx, &version);
+        callback(tx, rx, &wbusVersion);
       }
     }
   }
 
-  void handleDeviceNameResponse(String tx, String rx, std::function<void(String, String, DecodedTextData *)> callback = nullptr)
+  void handleDeviceNameResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
   {
     if (!rx.isEmpty())
     {
-      DecodedTextData name = WBusInfoDecoder::decodeDeviceName(rx);
-      deviceName = name.text;
+      deviceName = WBusInfoDecoder::decodeDeviceName(rx);
       eventBus.publish(EventType::DEVICE_NAME, deviceName);
 
       if (callback)
       {
-        callback(tx, rx, &name);
+        callback(tx, rx, &deviceName);
       }
     }
   }
@@ -138,17 +136,16 @@ public:
     }
   }
 
-  void handleDeviceIDResponse(String tx, String rx, std::function<void(String, String, DecodedTextData *)> callback = nullptr)
+  void handleDeviceIDResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
   {
     if (!rx.isEmpty())
     {
-      DecodedTextData deviceId = WBusInfoDecoder::decodeDeviceID(rx);
-      deviceID = deviceId.text;
+      deviceID = WBusInfoDecoder::decodeDeviceID(rx);
       eventBus.publish(EventType::DEVICE_ID, deviceID);
 
       if (callback)
       {
-        callback(tx, rx, &deviceId);
+        callback(tx, rx, &deviceID);
       }
     }
   }
@@ -183,32 +180,31 @@ public:
     }
   }
 
-  void handleCustomerIDResponse(String tx, String rx, std::function<void(String, String, DecodedTextData *)> callback = nullptr)
+  void handleCustomerIDResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
   {
     if (!rx.isEmpty())
     {
-      DecodedTextData customer = WBusInfoDecoder::decodeCustomerID(rx);
-      customerID = customer.text;
+      customerID = WBusInfoDecoder::decodeCustomerID(rx);
       eventBus.publish(EventType::CUSTOMER_ID, customerID);
 
       if (callback)
       {
-        callback(tx, rx, &customer);
+        callback(tx, rx, &customerID);
       }
     }
   }
 
-  void handleSerialNumberResponse(String tx, String rx, std::function<void(String, String, DecodedTextData *)> callback = nullptr)
+  void handleSerialNumberResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
   {
     if (!rx.isEmpty())
     {
-      DecodedTextData serial = WBusInfoDecoder::decodeSerialNumber(rx);
-      serialNumber = serial.text;
+
+      serialNumber = WBusInfoDecoder::decodeSerialNumber(rx);
       eventBus.publish(EventType::SERIAL_NUMBER, serialNumber);
 
       if (callback)
       {
-        callback(tx, rx, &serial);
+        callback(tx, rx, &serialNumber);
       }
     }
   }

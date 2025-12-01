@@ -40,46 +40,10 @@ public:
 
             // Байт 4
             result.ignitionSignal = (data[8] & 0x01) != 0;
-
-            result.statusSummary = buildStatusSummaryString(result);
-            result.operationMode = determineOperationMode(result);
         }
 
         return result;
     }
 
 private:
-    static String buildStatusSummaryString(const StatusFlags &flags)
-    {
-        String summary = "";
-        if (flags.mainSwitch)
-            summary += "Включен, ";
-        if (flags.ignitionSignal)
-            summary += "Зажигание, ";
-        if (flags.generatorSignal)
-            summary += "Генератор, ";
-        if (flags.summerMode)
-            summary += "Лето, ";
-        if (flags.externalControl)
-            summary += "Внешнее управление, ";
-
-        if (summary.length() > 0)
-        {
-            return summary.substring(0, summary.length() - 2);
-        }
-        return "базовый статус";
-    }
-
-    static String determineOperationMode(const StatusFlags &flags)
-    {
-        if (flags.parkingHeatRequest)
-            return "🚗 Паркинг-нагрев";
-        if (flags.supplementalHeatRequest)
-            return "🔥 Дополнительный нагрев";
-        if (flags.ventilationRequest)
-            return "💨 Вентиляция";
-        if (flags.boostMode)
-            return "⚡ Boost режим";
-        return "💤 Ожидание";
-    }
 };

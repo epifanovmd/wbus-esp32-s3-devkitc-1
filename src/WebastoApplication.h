@@ -61,7 +61,7 @@ public:
         , sensorManager(eventBus, commandManager)
         , errorsManager(eventBus, commandManager)
         , heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager)
-        , snifferManager(eventBus, commandManager, deviceInfoManager, sensorManager, errorsManager, heaterController)
+        , snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController)
         , webSocketServer(eventBus, configManager.getConfig().network.wsPort)
         , apiServer(deviceInfoManager, sensorManager, errorsManager, heaterController, configManager.getConfig().network.webPort) 
     {

@@ -1,7 +1,6 @@
 #pragma once
 #include <Arduino.h>
 #include "../core/EventBus.h"
-#include "../application/CommandManager.h"
 #include "../application/DeviceInfoManager.h"
 #include "../application/SensorManager.h"
 #include "../application/ErrorsManager.h"
@@ -13,7 +12,6 @@ class SnifferManager
 {
 private:
     EventBus &eventBus;
-    CommandManager &commandManager;
     DeviceInfoManager &deviceInfoManager;
     SensorManager &sensorManager;
     ErrorsManager &errorsManager;
@@ -23,9 +21,9 @@ private:
     String lastProcessedTx;
 
 public:
-    SnifferManager(EventBus &bus, CommandManager &cmdManager, DeviceInfoManager &deviceInfoMngr,
+    SnifferManager(EventBus &bus, DeviceInfoManager &deviceInfoMngr,
                    SensorManager &sensorMngr, ErrorsManager &errorsMngr, HeaterController &heaterCtrl)
-        : eventBus(bus), commandManager(cmdManager), deviceInfoManager(deviceInfoMngr), sensorManager(sensorMngr), errorsManager(errorsMngr), heaterController(heaterCtrl)
+        : eventBus(bus), deviceInfoManager(deviceInfoMngr), sensorManager(sensorMngr), errorsManager(errorsMngr), heaterController(heaterCtrl)
     {
         eventBus.subscribe(EventType::TX_RECEIVED,
                            [this](const Event &event)
@@ -156,13 +154,14 @@ public:
             return false;
         }
 
-            // =========================================================================
-            // ОБРАБОТКА КОМАНД ДИАГНОСТИКИ И УПРАВЛЕНИЯ
-            // =========================================================================
-            // case WBusCommandBuilder::CMD_DIAGNOSTIC: {
-            //     heaterController.handleDiagnosticResponse(lastProcessedTx, originalRx);
-            //     return true;
-            // }
+        // =========================================================================
+        // ОБРАБОТКА КОМАНД ДИАГНОСТИКИ И УПРАВЛЕНИЯ
+        // =========================================================================
+
+        // case WBusCommandBuilder::CMD_DIAGNOSTIC: {
+        //     heaterController.handleDiagnosticResponse(lastProcessedTx, originalRx);
+        //     return true;
+        // }
 
         case WBusCommandBuilder::CMD_SHUTDOWN:
         {
