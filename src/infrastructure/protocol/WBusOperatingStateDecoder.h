@@ -16,8 +16,9 @@ public:
             return result;
         }
 
+        uint8_t data[MESSAGE_BUFFER_SIZE];
         int byteCount;
-        uint8_t *data = Utils::hexStringToByteArray(response, byteCount);
+        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
         // Правильные смещения согласно структуре пакета:
         // [4F][Len][D0][06][StateCode][StateNum][Flags][Unknown...]

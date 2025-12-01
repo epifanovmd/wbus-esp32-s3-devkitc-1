@@ -16,8 +16,9 @@ public:
       return result;
     }
 
+    uint8_t data[MESSAGE_BUFFER_SIZE];
     int byteCount;
-    uint8_t *data = Utils::hexStringToByteArray(response, byteCount);
+    Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
     result.fuelType = data[4];
     result.maxHeatingTime = data[5];

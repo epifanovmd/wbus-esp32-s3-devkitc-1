@@ -52,23 +52,36 @@ public:
         return (uint8_t)strtol(hexStr.c_str(), NULL, 16);
     }
 
-    static uint8_t *hexStringToByteArray(const String &hexString, int &byteCount)
+    static bool hexStringToByteArray(const String &hexString, uint8_t *buffer, size_t bufferSize, int &byteCount)
     {
-        static uint8_t data[32];
         byteCount = 0;
-
         String cleanString = hexString;
         cleanString.replace(" ", "");
 
-        for (int i = 0; i < cleanString.length(); i += 2)
+        size_t maxBytes = (cleanString.length() + 1) / 2; // Округление вверх
+        if (maxBytes > bufferSize)
         {
-            if (byteCount < 32 && i + 2 <= cleanString.length())
+            return false;
+        }
+
+        for (size_t i = 0; i < cleanString.length(); i += 2)
+        {
+            if (byteCount >= bufferSize)
             {
-                data[byteCount++] = hexStringToByte(cleanString.substring(i, i + 2));
+                return false;
+            }
+
+            if (i + 2 <= cleanString.length())
+            {
+                buffer[byteCount++] = hexStringToByte(cleanString.substring(i, i + 2));
+            }
+            else
+            {
+                buffer[byteCount++] = hexStringToByte(cleanString.substring(i, i + 1) + "0");
             }
         }
 
-        return data;
+        return true;
     }
 
     static bool validateChecksum(const String &hexData)
@@ -81,8 +94,9 @@ public:
             return false;
         }
 
+        uint8_t data[MESSAGE_BUFFER_SIZE];
         int byteCount;
-        uint8_t *data = hexStringToByteArray(cleanData, byteCount);
+        Utils::hexStringToByteArray(cleanData, data, sizeof(data), byteCount);
 
         if (byteCount < 2)
             return false;

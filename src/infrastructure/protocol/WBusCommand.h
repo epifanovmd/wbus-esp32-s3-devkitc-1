@@ -6,18 +6,17 @@
 struct WBusCommand
 {
     uint8_t data[MESSAGE_BUFFER_SIZE];
-    size_t byteCount;
+    int byteCount;
 
     WBusCommand(String &command)
     {
         command.trim();
         command.toUpperCase();
 
-        int tempByteCount;
-        uint8_t *byteArray = Utils::hexStringToByteArray(command, tempByteCount);
-
-        byteCount = min(tempByteCount, MESSAGE_BUFFER_SIZE);
-        memcpy(data, byteArray, byteCount);
+        if (!Utils::hexStringToByteArray(command, data, MESSAGE_BUFFER_SIZE, byteCount)) {
+            byteCount = 0;
+            Serial.println("❌ Ошибка: Команда слишком длинная для буфера");
+        }
     }
 
     WBusCommand(const uint8_t *inputData, size_t length)

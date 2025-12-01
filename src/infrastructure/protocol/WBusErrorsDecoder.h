@@ -106,8 +106,9 @@ public:
     {
         ErrorCollection result;
 
+        uint8_t data[MESSAGE_BUFFER_SIZE];
         int byteCount;
-        uint8_t *data = Utils::hexStringToByteArray(packet, byteCount);
+        Utils::hexStringToByteArray(packet, data, sizeof(data), byteCount);
 
         if (packet.length() < 8 || data[2] != 0xD6 || data[3] != 0x01)
         {

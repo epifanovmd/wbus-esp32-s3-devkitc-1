@@ -12,8 +12,9 @@ public:
             return result;
         }
 
+        uint8_t data[MESSAGE_BUFFER_SIZE];
         int byteCount;
-        uint8_t *data = Utils::hexStringToByteArray(response, byteCount);
+        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
         if (byteCount >= 29) { // 4 байта заголовок + 25 байт данных
             // SH 0-33% (байты 4-9)
