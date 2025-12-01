@@ -173,14 +173,14 @@ private:
 
         eventBus.subscribe(EventType::TX_RECEIVED,
             [](const Event& event) {
-                Serial.println();
-                Serial.print("📤 TX: " + event.source);
+                // Serial.println();
+                // Serial.print("📤 TX: " + event.source);
             });
 
         eventBus.subscribe(EventType::RX_RECEIVED,
             [](const Event& event) {
-                Serial.println();
-                Serial.print("📨 RX: " + event.source);
+                // Serial.println();
+                // Serial.print("📨 RX: " + event.source);
             });
 
         eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,

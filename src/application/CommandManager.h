@@ -21,7 +21,7 @@ enum class ProcessingState {
     BREAK_RESET        // BREAK сигнал сброшен
 };
 
-Timer queueTimer(150);
+Timer queueTimer(100);
 Timer timeoutTimer(2000, false);
 Timer breakTimer(50, false);
 

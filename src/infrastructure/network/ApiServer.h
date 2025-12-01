@@ -256,32 +256,32 @@ private:
 
     void handleStartParking()
     {
-        int minutes;
-        parseJsonMinutesParam(minutes, 60);
+        int minutes = server.hasArg("minutes") ? server.arg("minutes").toInt() : 60;
+
         heaterController.startParkingHeat(minutes);
         server.send(200, "application/json", "{\"status\":\"started\",\"mode\":\"parking\",\"minutes\":" + String(minutes) + "}");
     }
 
     void handleStartVentilation()
     {
-        int minutes;
-        parseJsonMinutesParam(minutes, 60);
+        int minutes = server.hasArg("minutes") ? server.arg("minutes").toInt() : 60;
+
         heaterController.startVentilation(minutes);
         server.send(200, "application/json", "{\"status\":\"started\",\"mode\":\"ventilation\",\"minutes\":" + String(minutes) + "}");
     }
 
     void handleStartSupplemental()
     {
-        int minutes;
-        parseJsonMinutesParam(minutes, 60);
+        int minutes = server.hasArg("minutes") ? server.arg("minutes").toInt() : 60;
+
         heaterController.startSupplementalHeat(minutes);
         server.send(200, "application/json", "{\"status\":\"started\",\"mode\":\"supplemental\",\"minutes\":" + String(minutes) + "}");
     }
 
     void handleStartBoost()
     {
-        int minutes;
-        parseJsonMinutesParam(minutes, 60);
+        int minutes = server.hasArg("minutes") ? server.arg("minutes").toInt() : 60;
+
         heaterController.startBoostMode(minutes);
         server.send(200, "application/json", "{\"status\":\"started\",\"mode\":\"boost\",\"minutes\":" + String(minutes) + "}");
     }

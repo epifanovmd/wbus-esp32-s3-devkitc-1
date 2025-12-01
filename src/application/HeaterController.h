@@ -299,9 +299,6 @@ public:
             deviceInfoManager.requestCustomerID();
             deviceInfoManager.requestSerialNumber();
 
-            // Настраиваем интервал очереди как в оригинале
-            commandManager.setInterval(200);
-
             // Запускаем периодический опрос сенсоров
             startSensorMonitoring();
             errorsManager.checkErrors(true);
