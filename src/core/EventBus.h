@@ -51,6 +51,7 @@ enum class EventType
     WBUS_ERRORS,
     WBUS_CLEAR_ERRORS_SUCCESS,
     WBUS_CLEAR_ERRORS_FAILED,
+    COMMAND_NAK_RESPONSE,
 
     // события датчиков
     SENSOR_OPERATIONAL_INFO,
@@ -213,6 +214,8 @@ public:
             return "BURNING_DURATION_STATS";
         case EventType::START_COUNTERS:
             return "START_COUNTERS";
+        case EventType::COMMAND_NAK_RESPONSE:
+            return "COMMAND_NAK_RESPONSE";
 
         default:
             return "UNKNOWN_EVENT";

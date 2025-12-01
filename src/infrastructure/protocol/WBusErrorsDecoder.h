@@ -5,16 +5,19 @@
 #include "../../domain/Entities.h"
 #include "../../common/Utils.h"
 
-class WBusErrorsDecoder {
+class WBusErrorsDecoder
+{
 private:
     std::map<uint8_t, String> errorCodes;
 
 public:
-    WBusErrorsDecoder() {
+    WBusErrorsDecoder()
+    {
         initializeErrorCodes();
     }
 
-    void initializeErrorCodes() {
+    void initializeErrorCodes()
+    {
         // Базовые ошибки системы
         errorCodes[0x00] = "Нет ошибок";
         errorCodes[0x01] = "Ошибка блока управления";
@@ -82,93 +85,59 @@ public:
         errorCodes[0x87] = "Постоянная блокировка подогревателя";
     }
 
-    String getErrorDescription(uint8_t errorCode) {
-        if (errorCodes.find(errorCode) != errorCodes.end()) {
+    String getErrorDescription(uint8_t errorCode)
+    {
+        if (errorCodes.find(errorCode) != errorCodes.end())
+        {
             return errorCodes[errorCode];
-        } else {
+        }
+        else
+        {
             return "Неизвестная ошибка, код – " + String(errorCode);
         }
     }
 
-    bool errorExists(uint8_t errorCode) {
+    bool errorExists(uint8_t errorCode)
+    {
         return errorCodes.find(errorCode) != errorCodes.end();
     }
 
-    void decodeNakError(uint8_t command, uint8_t errorCode) {
-        String commandName = getCommandName(command);
-        String errorDescription = getNakErrorDescription(errorCode);
-
-        Serial.println();
-        Serial.println("   Команда: " + commandName);
-        Serial.println("   Причина: " + errorDescription);
-    }
-
-    String getCommandName(uint8_t command) {
-        switch (command) {
-        case 0x21: return "Parking Heat (0x21)";
-        case 0x22: return "Ventilation (0x22)";
-        case 0x23: return "Supplemental Heat (0x23)";
-        case 0x10: return "Shutdown (0x10)";
-        case 0x38: return "Diagnostic (0x38)";
-        default: return "Unknown Command (0x" + String(command, HEX) + ")";
-        }
-    }
-
-    String getNakErrorDescription(uint8_t errorCode) {
-        switch (errorCode) {
-        case 0x33: return "Невозможно выполнить в текущем состоянии";
-        case 0x22: return "Неправильные параметры команды";
-        case 0x11: return "Команда не поддерживается";
-        case 0x44: return "Аппаратная ошибка";
-        case 0x55: return "Температура вне диапазона";
-        default: return "Неизвестная ошибка (0x" + String(errorCode, HEX) + ")";
-        }
-    }
-
-    bool isNakResponse(const String& response) {
-        return response.indexOf("4F 04 7F") == 0;
-    }
-
-    ErrorCollection decodeErrorPacket(const String& packet) {
+    ErrorCollection decodeErrorPacket(const String &packet)
+    {
         ErrorCollection result;
-        const int MAX_PACKET_LENGTH = 32;
-        uint8_t data[MAX_PACKET_LENGTH];
 
-        hexStringToBytes(packet, data, MAX_PACKET_LENGTH);
+        int byteCount;
+        uint8_t *data = Utils::hexStringToByteArray(packet, byteCount);
 
-        if (packet.length() < 8 || data[2] != 0xD6 || data[3] != 0x01) {
+        if (packet.length() < 8 || data[2] != 0xD6 || data[3] != 0x01)
+        {
             return result;
         }
 
-        uint8_t errorData[MAX_PACKET_LENGTH - 6];
-        int errorDataLength = 0;
-        int dataStartIndex = 4;
-
-        for (int i = dataStartIndex; i < data[1] + 2 - 1; i++) {
-            if (i < MAX_PACKET_LENGTH) {
-                errorData[errorDataLength++] = data[i];
-            }
-        }
-
-        return decodeErrorList(errorData, errorDataLength);
+        return decodeErrorList(data, byteCount);
     }
 
-    ErrorCollection decodeErrorList(const uint8_t* data, uint8_t dataLength) {
+    ErrorCollection decodeErrorList(const uint8_t *data, uint8_t dataLength)
+    {
         ErrorCollection result;
 
-        if (dataLength < 1) return result;
+        if (dataLength < 1)
+            return result;
 
         uint8_t errorCount = data[0];
 
-        if (errorCount == 0) {
+        if (errorCount == 0)
+        {
             return result;
         }
 
-        if (dataLength < 1 + errorCount * 2) {
+        if (dataLength < 1 + errorCount * 2)
+        {
             return result;
         }
 
-        for (int i = 0; i < errorCount; i++) {
+        for (int i = 0; i < errorCount; i++)
+        {
             uint8_t errorCode = data[1 + i * 2];
             uint8_t counter = data[2 + i * 2];
             WebastoError error = decodeSingleError(errorCode, counter);
@@ -178,53 +147,10 @@ public:
         return result;
     }
 
-    WebastoError decodeSingleError(uint8_t errorCode, uint8_t counter) {
+    WebastoError decodeSingleError(uint8_t errorCode, uint8_t counter)
+    {
         WebastoError error(errorCode, counter);
         error.description = getErrorDescription(errorCode);
         return error;
-    }
-
-    String formatErrorsForDisplay(const ErrorCollection& errorCollection) {
-        String result = "";
-
-        if (errorCollection.isEmpty()) {
-            result = "✅ Ошибок не обнаружено";
-            return result;
-        }
-
-        result += "📋 Найдено ошибок: " + String(errorCollection.errorCount) + "\n\n";
-        
-        for (size_t i = 0; i < errorCollection.errors.size(); i++) {
-            const WebastoError& error = errorCollection.errors[i];
-            result += String(i + 1) + ". " + error.hexCode;
-            result += " (" + String(error.code, DEC) + ") - ";
-            result += error.description;
-            
-            if (error.counter > 0) {
-                result += " [Счетчик: " + String(error.counter) + "]";
-            }
-            
-            result += "\n";
-        }
-
-        return result;
-    }
-
-private:
-    void hexStringToBytes(const String& hexString, uint8_t* output, int maxLength) {
-        String cleanString = hexString;
-        cleanString.replace(" ", "");
-        cleanString.toLowerCase();
-
-        int length = cleanString.length();
-        if (length % 2 != 0) return;
-
-        int byteCount = length / 2;
-        if (byteCount > maxLength) byteCount = maxLength;
-
-        for (int i = 0; i < byteCount; i++) {
-            String byteString = cleanString.substring(i * 2, i * 2 + 2);
-            output[i] = (uint8_t)strtol(byteString.c_str(), NULL, 16);
-        }
     }
 };

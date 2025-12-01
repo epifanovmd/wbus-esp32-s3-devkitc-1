@@ -78,6 +78,25 @@ public:
     static const uint8_t TEST_SOLENOID_VALVE = 0x09;
     static const uint8_t TEST_FUEL_PREHEATING = 0x0F;
 
+    static String getCommandName(uint8_t command) {
+        switch (command) {
+            case CMD_SHUTDOWN: return "SHUTDOWN";
+            case CMD_PARK_HEAT: return "PARK_HEAT";
+            case CMD_VENTILATE: return "VENTILATION";
+            case CMD_SUPP_HEAT: return "SUPP_HEAT";
+            case CMD_CIRC_PUMP_CTRL: return "CIRC_PUMP_CTRL";
+            case CMD_BOOST_MODE: return "BOOST_MODE";
+            case CMD_DIAGNOSTIC: return "DIAGNOSTIC";
+            case CMD_TEST_COMPONENT: return "TEST_COMPONENT";
+            case CMD_READ_SENSOR: return "READ_SENSOR";
+            case CMD_READ_INFO: return "READ_INFO";
+            case CMD_READ_CONFIG: return "READ_CONFIG";
+            case CMD_READ_ERRORS: return "READ_ERRORS";
+            case CMD_CO2_CALIBRATION: return "CO2_CALIBRATION";
+            default: return "UNKNOWN_0x" + String(command, HEX);
+        }
+    }
+
     static void generateAndPrintAllCommands()
     {
         Serial.println();

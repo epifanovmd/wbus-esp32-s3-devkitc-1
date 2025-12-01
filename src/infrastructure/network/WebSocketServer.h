@@ -57,6 +57,12 @@ public:
 
 private:
     void setupEventHandlers() {
+        eventBus.subscribe(EventType::COMMAND_NAK_RESPONSE,
+            [this](const Event& event) {
+                const auto& nakEvent = static_cast<const TypedEvent<NakResponseEvent>&>(event);
+                broadcastJson(EventType::COMMAND_NAK_RESPONSE, nakEvent.data.toJson());
+            });
+
         // =========================================================================
         // СОБЫТИЯ СОСТОЯНИЯ ПОДКЛЮЧЕНИЯ И СИСТЕМЫ
         // =========================================================================

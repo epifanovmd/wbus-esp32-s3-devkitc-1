@@ -33,10 +33,13 @@ public:
         return (b < 0x10) ? "0" + String(b, HEX) : String(b, HEX);
     }
 
-    static String bytesToHexString(const uint8_t* data, size_t length) {
+    static String bytesToHexString(const uint8_t *data, size_t length)
+    {
         String result = "";
-        for (size_t i = 0; i < length; i++) {
-            if (i > 0) result += " ";
+        for (size_t i = 0; i < length; i++)
+        {
+            if (i > 0)
+                result += " ";
 
             result += byteToHexString(data[i]);
         }
@@ -68,26 +71,31 @@ public:
         return data;
     }
 
-    static bool validateChecksum(const String& hexData) {
+    static bool validateChecksum(const String &hexData)
+    {
         String cleanData = hexData;
         cleanData.replace(" ", "");
-        
-        if (!isHexString(cleanData) || cleanData.length() < 4) {
+
+        if (!isHexString(cleanData) || cleanData.length() < 4)
+        {
             return false;
         }
-        
+
         int byteCount;
-        uint8_t* data = hexStringToByteArray(cleanData, byteCount);
-        
-        if (byteCount < 2) return false;
-        
+        uint8_t *data = hexStringToByteArray(cleanData, byteCount);
+
+        if (byteCount < 2)
+            return false;
+
         uint8_t calculatedChecksum = calculateChecksum(data, byteCount - 1);
         return calculatedChecksum == data[byteCount - 1];
     }
 
-    static bool validateChecksum(const uint8_t* data, size_t length) {
-        if (length < 2) return false;
-        
+    static bool validateChecksum(const uint8_t *data, size_t length)
+    {
+        if (length < 2)
+            return false;
+
         uint8_t calculatedChecksum = calculateChecksum(data, length - 1);
         return calculatedChecksum == data[length - 1];
     }
@@ -122,5 +130,27 @@ public:
         }
 
         return true;
+    }
+
+    static uint8_t extractByteFromString(String response, int bytePosition)
+    {
+        String cleanTx = response;
+        cleanTx.replace(" ", "");
+
+        if (cleanTx.length() >= (bytePosition + 1) * 2)
+        {
+            String byteStr = cleanTx.substring(bytePosition * 2, bytePosition * 2 + 2);
+            return hexStringToByte(byteStr);
+        }
+
+        return 0;
+    }
+
+    static bool isNakPacket(const String &response)
+    {
+        String cleanData = response;
+        cleanData.toLowerCase();
+        cleanData.replace(" ", "");
+        return cleanData.startsWith("4f047f");
     }
 };
