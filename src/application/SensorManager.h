@@ -49,7 +49,7 @@ public:
         requestOperatingTimes();
         requestBurningDuration();
         requestStartCounters();
-        requestFuelSettings(); // настройки топлива достаточно получить один раз
+        requestFuelSettings();
     }
 
     void requestOperationalInfo(bool loop = false, std::function<void(String tx, String rx, OperationalMeasurements *measurements)> callback = nullptr) override
@@ -112,8 +112,6 @@ public:
                                   { handleStartCountersResponse(tx, rx, callback); }, loop);
     }
 
-    // =========================================================================
-    // ПУБЛИЧНЫЕ МЕТОДЫ ОБРАБОТКИ ОТВЕТОВ (для использования извне)
     // =========================================================================
 
     void handleOperationalInfoResponse(String tx, String rx, std::function<void(String tx, String rx, OperationalMeasurements *measurements)> callback = nullptr)

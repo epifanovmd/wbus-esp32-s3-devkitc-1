@@ -3,6 +3,7 @@
 #include <functional>
 #include <queue>
 #include <vector>
+#include <deque>
 #include "./CommandReceiver.h"
 #include "../common/Timer.h"
 #include "../core/EventBus.h"
@@ -40,7 +41,8 @@ struct Command
 class CommandManager
 {
 private:
-    std::queue<Command> queue;
+    std::queue<Command> priorityQueue; // Приоритетная очередь
+    std::queue<Command> normalQueue;   // Обычная очередь
 
     EventBus &eventBus;
     const BusConfig &config;
@@ -48,6 +50,7 @@ private:
     CommanReceiver &commanReceiver;
     WBusErrorsDecoder errorsDecoder;
 
+    Command processingCommand;
     ProcessingState state = ProcessingState::IDLE;
     uint8_t currentRetries = 0;
     const uint8_t MAX_RETRIES = 5;
@@ -58,41 +61,34 @@ public:
     {
     }
 
-    // =========================================================================
-    // ОСНОВНЫЕ МЕТОДЫ ДОБАВЛЕНИЯ КОМАНД
-    // =========================================================================
-
-    // Добавить команду в конец очереди
-    bool addCommand(const String &command, std::function<void(String, String)> callback = nullptr, bool loop = false)
+    bool addCommand(const String &command, std::function<void(String, String)> callback = nullptr,
+                    bool loop = false)
     {
-        if (queue.size() >= 30)
-        {
-            Serial.println("❌ Очередь переполнена");
+        if (getTotalQueueSize() >= 30 || containsCommand(command))
             return false;
-        }
 
-        if (containsCommand(command))
-        {
-            return false;
-        }
-
-        queue.push(Command(command, callback, loop));
-
+        normalQueue.push(Command(command, callback, loop));
         return true;
     }
 
-    // =========================================================================
-    // УПРАВЛЕНИЕ ОЧЕРЕДЬЮ (аналоги оригинальных методов)
-    // =========================================================================
+    bool addPriorityCommand(const String &command, std::function<void(String, String)> callback = nullptr, bool loop = false)
+    {
+        if (getTotalQueueSize() >= 30 || containsPriorityCommand(command))
+            return false;
+
+        priorityQueue.push(Command(command, callback, loop));
+        return true;
+    }
 
     void process()
     {
         switch (state)
         {
         case ProcessingState::IDLE:
-            if (!queue.empty() && queueTimer.isReady())
+            if (!isQueueEmpty() && queueTimer.isReady())
             {
-                _sendCurrentCommand();
+                processingCommand = getNextCommand();
+                sendCurrentCommand();
             }
             break;
 
@@ -100,19 +96,19 @@ public:
             if (commanReceiver.isRxReceived())
             {
                 // ✅ Ответ получен
-                _completeCurrentCommand(commanReceiver.getRxData(), true);
+                complete(commanReceiver.getRxData());
             }
             else if (timeoutTimer.isReady())
             {
                 // ⏰ Таймаут
-                _handleTimeout();
+                handleTimeout();
             }
             break;
 
         case ProcessingState::RETRY:
             if (breakTimer.isReady())
             {
-                _sendCurrentCommand();
+                sendCurrentCommand();
             }
             break;
 
@@ -135,45 +131,25 @@ public:
         }
     }
 
-    // =========================================================================
-    // МЕТОДЫ УПРАВЛЕНИЯ (аналоги оригинальных)
-    // =========================================================================
-
-    bool removeCommand(const String &command)
-    {
-        std::queue<Command> tempQueue;
-        bool found = false;
-
-        while (!queue.empty())
-        {
-            Command cmd = queue.front();
-            queue.pop();
-
-            if (cmd.data == command)
-            {
-                found = true;
-                Serial.println("🗑️  Команда удалена: " + command);
-            }
-            else
-            {
-                tempQueue.push(cmd);
-            }
-        }
-
-        queue = std::move(tempQueue);
-        return found;
-    }
-
     bool containsCommand(const String &command)
     {
-        std::queue<Command> tempQueue = queue;
-
+        std::queue<Command> tempQueue = normalQueue;
         while (!tempQueue.empty())
         {
             if (tempQueue.front().data == command)
-            {
                 return true;
-            }
+            tempQueue.pop();
+        }
+        return false;
+    }
+
+    bool containsPriorityCommand(const String &command)
+    {
+        std::queue<Command> tempQueue = priorityQueue;
+        while (!tempQueue.empty())
+        {
+            if (tempQueue.front().data == command)
+                return true;
             tempQueue.pop();
         }
         return false;
@@ -181,10 +157,15 @@ public:
 
     void clear()
     {
-        while (!queue.empty())
+        while (!normalQueue.empty())
         {
-            queue.pop();
+            normalQueue.pop();
         }
+        while (!priorityQueue.empty())
+        {
+            priorityQueue.pop();
+        }
+
         state = ProcessingState::IDLE;
         currentRetries = 0;
 
@@ -194,101 +175,109 @@ public:
 
     void setInterval(unsigned long interval)
     {
-        queueTimer = interval;
+        queueTimer.setInterval(interval);
     }
 
     void setTimeout(unsigned long timeout)
     {
-        timeoutTimer = timeout;
-        Serial.println();
-        Serial.println("⏰ Таймаут установлен: " + String(timeout) + "мс");
+        timeoutTimer.setInterval(timeout);
     }
 
     bool isEmpty() const
     {
-        return queue.empty() && state == ProcessingState::IDLE;
+        return isQueueEmpty() && state == ProcessingState::IDLE;
+    }
+
+    size_t getTotalQueueSize() const
+    {
+        return priorityQueue.size() + normalQueue.size();
     }
 
 private:
-    void _sendCurrentCommand()
+    bool isQueueEmpty() const
     {
-        if (queue.empty())
-            return;
+        return priorityQueue.empty() && normalQueue.empty();
+    }
 
-        Command command = queue.front();
+    Command getNextCommand()
+    {
+        if (!priorityQueue.empty())
+        {
+            Command cmd = priorityQueue.front();
+            priorityQueue.pop();
+            return cmd;
+        }
+        else if (!normalQueue.empty())
+        {
+            Command cmd = normalQueue.front();
+            normalQueue.pop();
+            return cmd;
+        }
 
-        WBusCommand wBusCommand(command.data);
+        return Command();
+    }
+
+    void sendCurrentCommand()
+    {
+        WBusCommand wBusCommand(processingCommand.data);
 
         if (!wBusCommand.isValid())
-        {
-            _completeCurrentCommand("", false);
             return;
-        }
 
         if (busManager.sendCommand(wBusCommand.data, wBusCommand.byteCount))
         {
             state = ProcessingState::SENDING;
             timeoutTimer.reset();
-            eventBus.publish(EventType::COMMAND_SENT, command.data);
+            eventBus.publish(EventType::COMMAND_SENT, processingCommand.data);
         }
         else
         {
-            Serial.println();
-            Serial.println("❌ Ошибка отправки команды: " + command.data);
-            _completeCurrentCommand("", false);
+            complete();
         }
     }
 
-    void _completeCurrentCommand(const String &response, bool success)
+    void complete(const String &response = "")
     {
-        Command command = queue.front();
-        queue.pop();
-
-        // Вызываем колбэк если есть
-        if (command.callback)
+        if (processingCommand.callback)
         {
-            command.callback(command.data, success ? response : "");
+            processingCommand.callback(processingCommand.data, response);
         }
 
-        // Если команда зациклена и успешно выполнена - добавляем обратно
-        if (success && command.loop && !response.isEmpty())
+        if (!response.isEmpty())
         {
-            queue.push(command);
-        }
-
-        if (success)
-        {
-            eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {command.data, response});
+            if (processingCommand.loop)
+            {
+                normalQueue.push(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
+            }
+            eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {processingCommand.data, response});
         }
         else
         {
-            Serial.println();
-            Serial.println("❌ Ошибка выполнения: " + command.data);
-            eventBus.publish(EventType::COMMAND_SENT_ERRROR, command.data);
+            eventBus.publish(EventType::COMMAND_SENT_ERRROR, processingCommand.data);
         }
 
-        // Сброс состояния
         state = ProcessingState::IDLE;
         currentRetries = 0;
+        processingCommand = Command();
     }
 
-    void _handleTimeout()
+    void handleTimeout()
     {
         currentRetries++;
-        Command command = queue.front();
 
         if (currentRetries > MAX_RETRIES)
         {
-            _completeCurrentCommand("", false);
-            clear();
+            complete();
+            // Не очищаем все очереди, только сбрасываем состояние
+            state = ProcessingState::IDLE;
+            currentRetries = 0;
         }
         else
         {
-            eventBus.publish<ConnectionTimeoutEvent>(EventType::COMMAND_SENT_TIMEOUT, {currentRetries, command.data});
+            eventBus.publish<ConnectionTimeoutEvent>(EventType::COMMAND_SENT_TIMEOUT, {currentRetries, processingCommand.data});
             Serial.println();
-            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(MAX_RETRIES) + ": " + command.data);
+            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(MAX_RETRIES) + ": " + processingCommand.data);
 
-            // Как в оригинале - BREAK сигнал перед повторной отправкой
             state = ProcessingState::BREAK_SET;
         }
     }

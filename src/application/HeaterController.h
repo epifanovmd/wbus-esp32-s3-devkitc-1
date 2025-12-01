@@ -1,5 +1,6 @@
 #pragma once
 #include "../interfaces/IHeaterController.h"
+
 #include "../core/EventBus.h"
 #include "../core/ConfigManager.h"
 #include "../application/CommandManager.h"
@@ -22,8 +23,14 @@ private:
     HeaterStatus currentStatus;
 
 public:
-    HeaterController(EventBus &bus, CommandManager &cmdManager, IBusManager &busMgr, DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr, ErrorsManager &errorsMngr)
-        : eventBus(bus), commandManager(cmdManager), busManager(busMgr), deviceInfoManager(deviceInfoMngr), sensorManager(sensorMngr), errorsManager(errorsMngr)
+    HeaterController(
+        EventBus &bus, CommandManager &cmdManager, IBusManager &busMgr, DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr, ErrorsManager &errorsMngr)
+        : eventBus(bus),
+          commandManager(cmdManager),
+          busManager(busMgr),
+          deviceInfoManager(deviceInfoMngr),
+          sensorManager(sensorMngr),
+          errorsManager(errorsMngr)
     {
         currentStatus.state = WebastoState::OFF;
         currentStatus.connection = ConnectionState::DISCONNECTED;
@@ -31,14 +38,12 @@ public:
 
     void initialize() override
     {
-        Serial.println();
-        Serial.println("✅ Heater Controller initialized");
         neopixelWrite(RGB_PIN, 0, 0, 0);
 
         eventBus.subscribe(EventType::COMMAND_SENT_ERRROR, [this](const Event &event)
                            {
-            setState(WebastoState::OFF);
-            setConnectionState(ConnectionState::DISCONNECTED); });
+      setState(WebastoState::OFF);
+      setConnectionState(ConnectionState::DISCONNECTED); });
     }
 
     // =========================================================================
@@ -65,11 +70,8 @@ public:
         deviceInfoManager.requestWBusCode();
 
         // Запускаем диагностику
-        commandManager.addCommand(WBusCommandBuilder::createDiagnostic(),
-                                  [this](String tx, String rx)
-                                  {
-                                      handleDiagnosticResponse(tx, rx);
-                                  });
+        commandManager.addCommand(WBusCommandBuilder::createDiagnostic(), [this](String tx, String rx)
+                                  { handleDiagnosticResponse(tx, rx); });
     }
 
     bool isConnected()
@@ -90,78 +92,50 @@ public:
 
     void startParkingHeat(int minutes = 60) override
     {
-        String command = WBusCommandBuilder::createParkHeat(minutes);
-
         breakIfNeeded();
 
-        commandManager.addCommand(command,
-                                  [this, minutes](String tx, String rx)
-                                  {
-                                      handleStartParkingHeatResponse(tx, rx, minutes);
-                                  });
+        commandManager.addCommand(WBusCommandBuilder::createParkHeat(minutes), [this, minutes](String tx, String rx)
+                                  { handleStartParkingHeatResponse(tx, rx, minutes); });
     }
 
     void startVentilation(int minutes = 60) override
     {
-        String command = WBusCommandBuilder::createVentilation(minutes);
-
         breakIfNeeded();
 
-        commandManager.addCommand(command,
-                                  [this, minutes](String tx, String rx)
-                                  {
-                                      handleStartVentilationResponse(tx, rx, minutes);
-                                  });
+        commandManager.addCommand(WBusCommandBuilder::createVentilation(minutes), [this, minutes](String tx, String rx)
+                                  { handleStartVentilationResponse(tx, rx, minutes); });
     }
 
     void startSupplementalHeat(int minutes = 60) override
     {
-        String command = WBusCommandBuilder::createSupplementalHeat(minutes);
-
         breakIfNeeded();
 
-        commandManager.addCommand(command,
-                                  [this, minutes](String tx, String rx)
-                                  {
-                                      handleStartSupplementalHeatResponse(tx, rx, minutes);
-                                  });
+        commandManager.addCommand(WBusCommandBuilder::createSupplementalHeat(minutes), [this, minutes](String tx, String rx)
+                                  { handleStartSupplementalHeatResponse(tx, rx, minutes); });
     }
 
     void startBoostMode(int minutes = 60) override
     {
-        String command = WBusCommandBuilder::createBoostMode(minutes);
-
         breakIfNeeded();
 
-        commandManager.addCommand(command,
-                                  [this, minutes](String tx, String rx)
-                                  {
-                                      handleStartBoostModeResponse(tx, rx, minutes);
-                                  });
+        commandManager.addCommand(WBusCommandBuilder::createBoostMode(minutes), [this, minutes](String tx, String rx)
+                                  { handleStartBoostModeResponse(tx, rx, minutes); });
     }
 
     void controlCirculationPump(bool enable) override
     {
-        String command = WBusCommandBuilder::createCirculationPumpControl(enable);
-
         breakIfNeeded();
 
-        commandManager.addCommand(command,
-                                  [this, enable](String tx, String rx)
-                                  {
-                                      handleControlCirculationPumpResponse(tx, rx, enable);
-                                  });
+        commandManager.addCommand(WBusCommandBuilder::createCirculationPumpControl(enable), [this, enable](String tx, String rx)
+                                  { handleControlCirculationPumpResponse(tx, rx, enable); });
     }
 
     void shutdown() override
     {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusCommandBuilder::createShutdown(),
-                                  [this](String tx, String rx)
-                                  {
-                                      handleShutdownResponse(tx, rx);
-                                  });
+        commandManager.addCommand(WBusCommandBuilder::createShutdown(), [this](String tx, String rx)
+                                  { handleShutdownResponse(tx, rx); });
     }
 
     // =========================================================================
@@ -282,8 +256,6 @@ public:
         }
     }
 
-    // =========================================================================
-    // ПУБЛИЧНЫЕ МЕТОДЫ ОБРАБОТКИ ОТВЕТОВ (для использования извне)
     // =========================================================================
 
     void handleDiagnosticResponse(String tx, String rx)
@@ -589,7 +561,8 @@ private:
             WebastoState oldState = currentStatus.state;
             currentStatus.state = newState;
 
-            eventBus.publish<HeaterStateChangedEvent>(EventType::HEATER_STATE_CHANGED, {oldState, newState});
+            eventBus.publish<HeaterStateChangedEvent>(EventType::HEATER_STATE_CHANGED, {oldState,
+                                                                                        newState});
         }
     }
 
@@ -600,7 +573,6 @@ private:
             ConnectionState oldState = currentStatus.connection;
             currentStatus.connection = newState;
 
-            // Дополнительные действия при изменении состояния
             switch (newState)
             {
             case ConnectionState::CONNECTING:
@@ -617,7 +589,8 @@ private:
                 break;
             }
 
-            eventBus.publish<ConnectionStateChangedEvent>(EventType::CONNECTION_STATE_CHANGED, {oldState, newState});
+            eventBus.publish<ConnectionStateChangedEvent>(EventType::CONNECTION_STATE_CHANGED, {oldState,
+                                                                                                newState});
         }
     }
 };

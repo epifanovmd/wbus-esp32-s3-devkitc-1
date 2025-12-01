@@ -89,8 +89,6 @@ public:
   }
 
   // =========================================================================
-  // ПУБЛИЧНЫЕ МЕТОДЫ ОБРАБОТКИ ОТВЕТОВ (для использования извне)
-  // =========================================================================
 
   void handleWBusVersionResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
   {
@@ -234,29 +232,6 @@ public:
     json += "\"supported_functions\":\"" + supportedFunctions + "\"";
     json += "}";
     return json;
-  }
-
-  void printInfo() const override
-  {
-    Serial.println();
-    Serial.println("═══════════════════════════════════════════════════════════");
-    Serial.println("         ИНФОРМАЦИЯ Webasto                                ");
-    Serial.println("═══════════════════════════════════════════════════════════");
-
-    Serial.println("Версия W-шины:                              " + wbusVersion);
-    Serial.println("Обозначение устройства:                     " + deviceName);
-    Serial.println("Кодирование W-шины:                         " + wbusCode);
-    Serial.println("Идентификационный код блока управления:     " + deviceID);
-    Serial.println("Дата выпуска отопителя:                     " + heaterManufactureDate);
-    Serial.println("Дата выпуска блока управления:              " + controllerManufactureDate);
-    Serial.println("Идентификационный код клиента:              " + customerID);
-    Serial.println("Серийный номер:                             " + serialNumber);
-
-    Serial.println();
-    Serial.println("Поддерживаемые функции:");
-    Serial.print(supportedFunctions);
-    Serial.println("═══════════════════════════════════════════════════════════");
-    Serial.println();
   }
 
   void clear() override
