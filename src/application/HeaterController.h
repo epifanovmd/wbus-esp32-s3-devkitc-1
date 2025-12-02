@@ -280,6 +280,7 @@ public:
             deviceInfoManager.requestSerialNumber();
 
             // Запускаем периодический опрос сенсоров
+            errorsManager.checkErrors(true);
             sensorManager.requestAllSensorData(true);
         }
         else
