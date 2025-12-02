@@ -177,7 +177,7 @@ struct OperatingState
         json += "\"stateDescription\":\"" + stateDescription + "\",";
         json += "\"deviceStateInfo\":\"" + deviceStateInfo + "\",";
         json += "\"stateCodeHex\":\"0x" + String(stateCode, HEX) + "\",";
-        json += "\"deviceStateFlagsHex\":\"0x" + String(deviceStateFlags, HEX);
+        json += "\"deviceStateFlagsHex\":\"0x" + String(deviceStateFlags, HEX) + "\"";
         json += "}";
         return json;
     }
