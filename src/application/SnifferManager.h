@@ -17,7 +17,7 @@ private:
     ErrorsManager &errorsManager;
     HeaterController &heaterController;
 
-    bool snifferModeEnabled = true;
+    bool snifferModeEnabled = false;
 
 public:
     SnifferManager(EventBus &bus, DeviceInfoManager &deviceInfoMngr,
