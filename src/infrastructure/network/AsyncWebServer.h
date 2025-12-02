@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 #include <ArduinoJson.h>
@@ -27,11 +28,13 @@ private:
 public:
     AsyncApiServer(DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr,
                    ErrorsManager &errorsMngr, HeaterController &heaterCtrl,
-                   uint16_t serverPort = 80)
-        : server(serverPort), ws("/ws"),
-          deviceInfoManager(deviceInfoMngr), sensorManager(sensorMngr),
-          errorsManager(errorsMngr), heaterController(heaterCtrl),
-          port(serverPort)
+                   uint16_t serverPort = 80) : server(serverPort),
+                                               ws("/ws"),
+                                               deviceInfoManager(deviceInfoMngr),
+                                               sensorManager(sensorMngr),
+                                               errorsManager(errorsMngr),
+                                               heaterController(heaterCtrl),
+                                               port(serverPort)
     {
         // Настройка WebSocket события
         ws.onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client,
@@ -100,7 +103,8 @@ public:
         ws.cleanupClients();
     }
 
-    void broadcastJson(EventType eventType, const String &json)
+    void broadcastJson(EventType eventType,
+                       const String &json)
     {
         if (!enabled || ws.count() == 0)
             return;
@@ -156,20 +160,49 @@ private:
         // =========================================================================
         // ТЕСТИРОВАНИЕ КОМПОНЕНТОВ
         // =========================================================================
-        server.on("/api/test/combustion-fan", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { handleTestCombustionFan(request); });
-        server.on("/api/test/fuel-pump", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { handleTestFuelPump(request); });
-        server.on("/api/test/glow-plug", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { handleTestGlowPlug(request); });
-        server.on("/api/test/circulation-pump", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { handleTestCirculationPump(request); });
-        server.on("/api/test/vehicle-fan", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { handleTestVehicleFan(request); });
-        server.on("/api/test/solenoid", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { handleTestSolenoid(request); });
-        server.on("/api/test/fuel-preheating", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { handleTestFuelPreheating(request); });
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/combustion-fan",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleTestCombustionFan(request, json);
+                                                          }));
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/fuel-pump",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleTestFuelPump(request, json);
+                                                          }));
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/glow-plug",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleTestGlowPlug(request, json);
+                                                          }));
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/circulation-pump",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleTestCirculationPump(request, json);
+                                                          }));
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/vehicle-fan",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleTestVehicleFan(request, json);
+                                                          }));
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/solenoid",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleTestSolenoid(request, json);
+                                                          }));
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/fuel-preheating",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              // Обработка запроса
+                                                              handleTestFuelPreheating(request, json);
+                                                          }));
 
         // =========================================================================
         // ЧТЕНИЕ ДАННЫХ
@@ -199,7 +232,8 @@ private:
         eventBus.subscribe(EventType::COMMAND_NAK_RESPONSE,
                            [this](const Event &event)
                            {
-                               const auto &nakEvent = static_cast<const TypedEvent<NakResponseEvent> &>(event);
+                               const auto &nakEvent = static_cast<
+                                   const TypedEvent<NakResponseEvent> &>(event);
                                broadcastJson(EventType::COMMAND_NAK_RESPONSE, nakEvent.data.toJson());
                            });
 
@@ -210,14 +244,16 @@ private:
         eventBus.subscribe(EventType::HEATER_STATE_CHANGED,
                            [this](const Event &event)
                            {
-                               const auto &stateEvent = static_cast<const TypedEvent<HeaterStateChangedEvent> &>(event);
+                               const auto &stateEvent = static_cast<
+                                   const TypedEvent<HeaterStateChangedEvent> &>(event);
                                broadcastJson(EventType::HEATER_STATE_CHANGED, stateEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,
                            [this](const Event &event)
                            {
-                               const auto &connectionEvent = static_cast<const TypedEvent<ConnectionStateChangedEvent> &>(event);
+                               const auto &connectionEvent = static_cast<
+                                   const TypedEvent<ConnectionStateChangedEvent> &>(event);
                                broadcastJson(EventType::CONNECTION_STATE_CHANGED, connectionEvent.data.toJson());
                            });
 
@@ -234,7 +270,8 @@ private:
         eventBus.subscribe(EventType::COMMAND_SENT_TIMEOUT,
                            [this](const Event &event)
                            {
-                               const auto &timeoutEvent = static_cast<const TypedEvent<ConnectionTimeoutEvent> &>(event);
+                               const auto &timeoutEvent = static_cast<
+                                   const TypedEvent<ConnectionTimeoutEvent> &>(event);
                                broadcastJson(EventType::COMMAND_SENT_TIMEOUT, timeoutEvent.data.toJson());
                            });
 
@@ -279,7 +316,8 @@ private:
         eventBus.subscribe(EventType::WBUS_CODE,
                            [this](const Event &event)
                            {
-                               const auto &codeEvent = static_cast<const TypedEvent<DecodedWBusCode> &>(event);
+                               const auto &codeEvent = static_cast<
+                                   const TypedEvent<DecodedWBusCode> &>(event);
                                broadcastJson(EventType::WBUS_CODE, codeEvent.data.toJson());
                            });
 
@@ -292,14 +330,16 @@ private:
         eventBus.subscribe(EventType::CONTRALLER_MANUFACTURE_DATE,
                            [this](const Event &event)
                            {
-                               const auto &dateEvent = static_cast<const TypedEvent<DecodedManufactureDate> &>(event);
+                               const auto &dateEvent = static_cast<
+                                   const TypedEvent<DecodedManufactureDate> &>(event);
                                broadcastJson(EventType::CONTRALLER_MANUFACTURE_DATE, dateEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::HEATER_MANUFACTURE_DATE,
                            [this](const Event &event)
                            {
-                               const auto &dateEvent = static_cast<const TypedEvent<DecodedManufactureDate> &>(event);
+                               const auto &dateEvent = static_cast<
+                                   const TypedEvent<DecodedManufactureDate> &>(event);
                                broadcastJson(EventType::HEATER_MANUFACTURE_DATE, dateEvent.data.toJson());
                            });
 
@@ -322,7 +362,8 @@ private:
         eventBus.subscribe(EventType::WBUS_ERRORS,
                            [this](const Event &event)
                            {
-                               const auto &errorsEvent = static_cast<const TypedEvent<ErrorCollection> &>(event);
+                               const auto &errorsEvent = static_cast<
+                                   const TypedEvent<ErrorCollection> &>(event);
                                broadcastJson(EventType::WBUS_ERRORS, errorsEvent.data.toJson());
                            });
 
@@ -345,70 +386,80 @@ private:
         eventBus.subscribe(EventType::SENSOR_OPERATIONAL_INFO,
                            [this](const Event &event)
                            {
-                               const auto &sensorEvent = static_cast<const TypedEvent<OperationalMeasurements> &>(event);
+                               const auto &sensorEvent = static_cast<
+                                   const TypedEvent<OperationalMeasurements> &>(event);
                                broadcastJson(EventType::SENSOR_OPERATIONAL_INFO, sensorEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::SENSOR_ON_OFF_FLAGS,
                            [this](const Event &event)
                            {
-                               const auto &flagsEvent = static_cast<const TypedEvent<OnOffFlags> &>(event);
+                               const auto &flagsEvent = static_cast<
+                                   const TypedEvent<OnOffFlags> &>(event);
                                broadcastJson(EventType::SENSOR_ON_OFF_FLAGS, flagsEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::SENSOR_STATUS_FLAGS,
                            [this](const Event &event)
                            {
-                               const auto &statusEvent = static_cast<const TypedEvent<StatusFlags> &>(event);
+                               const auto &statusEvent = static_cast<
+                                   const TypedEvent<StatusFlags> &>(event);
                                broadcastJson(EventType::SENSOR_STATUS_FLAGS, statusEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::SENSOR_OPERATING_STATE,
                            [this](const Event &event)
                            {
-                               const auto &stateEvent = static_cast<const TypedEvent<OperatingState> &>(event);
+                               const auto &stateEvent = static_cast<
+                                   const TypedEvent<OperatingState> &>(event);
                                broadcastJson(EventType::SENSOR_OPERATING_STATE, stateEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::SENSOR_SUBSYSTEM_STATE,
                            [this](const Event &event)
                            {
-                               const auto &subsystemEvent = static_cast<const TypedEvent<SubsystemsStatus> &>(event);
+                               const auto &subsystemEvent = static_cast<
+                                   const TypedEvent<SubsystemsStatus> &>(event);
                                broadcastJson(EventType::SENSOR_SUBSYSTEM_STATE, subsystemEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::FUEL_SETTINGS,
                            [this](const Event &event)
                            {
-                               const auto &fuelEvent = static_cast<const TypedEvent<FuelSettings> &>(event);
+                               const auto &fuelEvent = static_cast<
+                                   const TypedEvent<FuelSettings> &>(event);
                                broadcastJson(EventType::FUEL_SETTINGS, fuelEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::SENSOR_OPERATING_TIMES,
                            [this](const Event &event)
                            {
-                               const auto &operatingTimes = static_cast<const TypedEvent<OperatingTimes> &>(event);
+                               const auto &operatingTimes = static_cast<
+                                   const TypedEvent<OperatingTimes> &>(event);
                                broadcastJson(EventType::SENSOR_OPERATING_TIMES, operatingTimes.data.toJson());
                            });
 
         eventBus.subscribe(EventType::FUEL_PREWARMING,
                            [this](const Event &event)
                            {
-                               const auto &fuelPrewarming = static_cast<const TypedEvent<FuelPrewarming> &>(event);
+                               const auto &fuelPrewarming = static_cast<
+                                   const TypedEvent<FuelPrewarming> &>(event);
                                broadcastJson(EventType::FUEL_PREWARMING, fuelPrewarming.data.toJson());
                            });
 
         eventBus.subscribe(EventType::BURNING_DURATION_STATS,
                            [this](const Event &event)
                            {
-                               const auto &burningDurationEvent = static_cast<const TypedEvent<BurningDuration> &>(event);
+                               const auto &burningDurationEvent = static_cast<
+                                   const TypedEvent<BurningDuration> &>(event);
                                broadcastJson(EventType::BURNING_DURATION_STATS, burningDurationEvent.data.toJson());
                            });
 
         eventBus.subscribe(EventType::START_COUNTERS,
                            [this](const Event &event)
                            {
-                               const auto &startCounters = static_cast<const TypedEvent<StartCounters> &>(event);
+                               const auto &startCounters = static_cast<
+                                   const TypedEvent<StartCounters> &>(event);
                                broadcastJson(EventType::START_COUNTERS, startCounters.data.toJson());
                            });
 
@@ -584,56 +635,116 @@ private:
         sendJsonResponse(request, "{\"status\":\"shutdown\"}");
     }
 
-    void handleTestCombustionFan(AsyncWebServerRequest *request)
+    void handleTestCombustionFan(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = getIntParam(request, "seconds", 10);
-        int power = getIntParam(request, "power", 50);
+        if (!json.containsKey("seconds") || !json.containsKey("power"))
+        {
+            request->send(400, "application/json", "{\"error\":\"Missing required fields\",\"required\":[\"seconds\",\"power\"]}");
+            return;
+        }
+
+        int seconds = json["seconds"] | 10;
+        int power = json["power"] | 50;
+
+        seconds = constrain(seconds, 1, 30);
+        power = constrain(power, 1, 100);
         heaterController.testCombustionFan(seconds, power);
         sendJsonResponse(request, "{\"status\":\"testing\",\"component\":\"combustionFan\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
     }
 
-    void handleTestFuelPump(AsyncWebServerRequest *request)
+    void handleTestFuelPump(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = getIntParam(request, "seconds", 10);
-        int frequency = getIntParam(request, "frequency", 10);
+        if (!json.containsKey("seconds") || !json.containsKey("frequency"))
+        {
+            request->send(400, "application/json", "{\"error\":\"Missing required fields\",\"required\":[\"seconds\",\"frequency\"]}");
+            return;
+        }
+
+        int seconds = json["seconds"] | 10;
+        int frequency = json["frequency"] | 50;
+
+        seconds = constrain(seconds, 1, 30);
+        frequency = constrain(frequency, 1, 100);
         heaterController.testFuelPump(seconds, frequency);
         sendJsonResponse(request, "{\"status\":\"testing\",\"component\":\"fuelPump\",\"seconds\":" + String(seconds) + ",\"frequency\":" + String(frequency) + "}");
     }
 
-    void handleTestGlowPlug(AsyncWebServerRequest *request)
+    void handleTestGlowPlug(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = getIntParam(request, "seconds", 10);
-        int power = getIntParam(request, "power", 75);
+        if (!json.containsKey("seconds") || !json.containsKey("power"))
+        {
+            request->send(400, "application/json", "{\"error\":\"Missing required fields\",\"required\":[\"seconds\",\"power\"]}");
+            return;
+        }
+
+        int seconds = json["seconds"] | 10;
+        int power = json["power"] | 50;
+
+        seconds = constrain(seconds, 1, 30);
+        power = constrain(power, 1, 100);
         heaterController.testGlowPlug(seconds, power);
         sendJsonResponse(request, "{\"status\":\"testing\",\"component\":\"glowGlug\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
     }
 
-    void handleTestCirculationPump(AsyncWebServerRequest *request)
+    void handleTestCirculationPump(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = getIntParam(request, "seconds", 10);
-        int power = getIntParam(request, "power", 100);
+        if (!json.containsKey("seconds") || !json.containsKey("power"))
+        {
+            request->send(400, "application/json", "{\"error\":\"Missing required fields\",\"required\":[\"seconds\",\"power\"]}");
+            return;
+        }
+
+        int seconds = json["seconds"] | 10;
+        int power = json["power"] | 50;
+
+        seconds = constrain(seconds, 1, 30);
+        power = constrain(power, 1, 100);
         heaterController.testCirculationPump(seconds, power);
         sendJsonResponse(request, "{\"status\":\"testing\",\"component\":\"circulationPump\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
     }
 
-    void handleTestVehicleFan(AsyncWebServerRequest *request)
+    void handleTestVehicleFan(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = getIntParam(request, "seconds", 10);
+        if (!json.containsKey("seconds"))
+        {
+            request->send(400, "application/json", "{\"error\":\"Missing required fields\",\"required\":[\"seconds\"]}");
+            return;
+        }
+
+        int seconds = json["seconds"] | 10;
+        seconds = constrain(seconds, 1, 30);
         heaterController.testVehicleFan(seconds);
         sendJsonResponse(request, "{\"status\":\"testing\",\"component\":\"vehicleFan\",\"seconds\":" + String(seconds) + "}");
     }
 
-    void handleTestSolenoid(AsyncWebServerRequest *request)
+    void handleTestSolenoid(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = getIntParam(request, "seconds", 10);
+        if (!json.containsKey("seconds"))
+        {
+            request->send(400, "application/json", "{\"error\":\"Missing required fields\",\"required\":[\"seconds\"]}");
+            return;
+        }
+
+        int seconds = json["seconds"] | 10;
+
+        seconds = constrain(seconds, 1, 30);
         heaterController.testSolenoidValve(seconds);
         sendJsonResponse(request, "{\"status\":\"testing\",\"component\":\"solenoid\",\"seconds\":" + String(seconds) + "}");
     }
 
-    void handleTestFuelPreheating(AsyncWebServerRequest *request)
+    void handleTestFuelPreheating(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = getIntParam(request, "seconds", 10);
-        int power = getIntParam(request, "power", 50);
+        if (!json.containsKey("seconds") || !json.containsKey("power"))
+        {
+            request->send(400, "application/json", "{\"error\":\"Missing required fields\",\"required\":[\"seconds\",\"power\"]}");
+            return;
+        }
+
+        int seconds = json["seconds"] | 10;
+        int power = json["power"] | 50;
+
+        seconds = constrain(seconds, 1, 30);
+        power = constrain(power, 1, 100);
         heaterController.testFuelPreheating(seconds, power);
         sendJsonResponse(request, "{\"status\":\"testing\",\"component\":\"fuelPreheating\",\"seconds\":" + String(seconds) + ",\"power\":" + String(power) + "}");
     }
@@ -778,25 +889,41 @@ private:
     // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
     // =========================================================================
 
-    void sendJsonResponse(AsyncWebServerRequest *request, const String &json, int statusCode = 200)
+    void sendJsonResponse(AsyncWebServerRequest *request,
+                          const String &json, int statusCode = 200)
     {
         AsyncWebServerResponse *resp = request->beginResponse(statusCode, "application/json", json);
         resp->addHeader("Access-Control-Allow-Origin", "*");
         request->send(resp);
     }
 
-    int getIntParam(AsyncWebServerRequest *request, const String &param, int defaultValue)
+    int getIntParam(AsyncWebServerRequest *request,
+                    const String &param, int defaultValue)
     {
+        if (request->hasParam(param))
+        {
+            String value = request->getParam(param)->value();
+            return value.toInt();
+        }
+
         if (request->hasParam(param, true))
         {
             String value = request->getParam(param, true)->value();
             return value.toInt();
         }
+
         return defaultValue;
     }
 
-    bool getBoolParam(AsyncWebServerRequest *request, const String &param, bool defaultValue)
+    bool getBoolParam(AsyncWebServerRequest *request,
+                      const String &param, bool defaultValue)
     {
+        if (request->hasParam(param))
+        {
+            String value = request->getParam(param)->value();
+            return value == "true" || value == "1";
+        }
+
         if (request->hasParam(param, true))
         {
             String value = request->getParam(param, true)->value();
@@ -805,8 +932,15 @@ private:
         return defaultValue;
     }
 
-    String getStringParam(AsyncWebServerRequest *request, const String &param, const String &defaultValue)
+    String getStringParam(AsyncWebServerRequest *request,
+                          const String &param,
+                          const String &defaultValue)
     {
+        if (request->hasParam(param))
+        {
+            return request->getParam(param)->value();
+        }
+
         if (request->hasParam(param, true))
         {
             return request->getParam(param, true)->value();

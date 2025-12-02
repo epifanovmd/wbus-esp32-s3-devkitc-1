@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../interfaces/IErrorsManager.h"
 #include "../core/EventBus.h"
 #include "../infrastructure/protocol/WBusErrorsDecoder.h"
@@ -17,7 +18,9 @@ private:
   ErrorCollection currentErrors;
 
 public:
-  ErrorsManager(EventBus &bus, CommandManager &cmdManager) : eventBus(bus), commandManager(cmdManager), errorDetailsDecoder(errorsDecoder) {}
+  ErrorsManager(EventBus &bus, CommandManager &cmdManager) : eventBus(bus),
+                                                             commandManager(cmdManager),
+                                                             errorDetailsDecoder(errorsDecoder) {}
 
   void checkErrors(bool loop = false, std::function<void(String, String, ErrorCollection *)> callback = nullptr) override
   {
@@ -27,8 +30,12 @@ public:
 
   void resetErrors(std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createClearErrors(), [this, callback](String tx, String rx)
-                              { handleResetErrorsResponse(tx, rx, callback); });
+    commandManager.addPriorityCommand(WBusCommandBuilder::createClearErrors(), [this, callback](String tx, String rx)
+                                      {
+      commandManager.addCommand(WBusCommandBuilder::createReadErrors(), [this, callback](String tx, String rx) {
+        handleCheckErrorsResponse(tx, rx);
+      });
+      handleResetErrorsResponse(tx, rx, callback); });
   }
 
   void readErrorDetails(uint8_t errorCode, std::function<void(String, String, ErrorDetails *)> callback = nullptr) override

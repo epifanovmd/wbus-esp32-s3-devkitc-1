@@ -169,6 +169,7 @@ public:
 
         state = ProcessingState::IDLE;
         currentRetries = 0;
+        processingCommand = Command();
 
         Serial.println();
         Serial.println("🧹 Очередь очищена");
@@ -239,11 +240,6 @@ private:
 
     void complete(const String &response = "")
     {
-        if (processingCommand.callback)
-        {
-            processingCommand.callback(processingCommand.data, response);
-        }
-
         if (!response.isEmpty())
         {
             if (Utils::isNakPacket(response))
@@ -255,6 +251,11 @@ private:
             }
             else
             {
+                if (processingCommand.callback)
+                {
+                    processingCommand.callback(processingCommand.data, response);
+                }
+
                 if (processingCommand.loop)
                 {
                     normalQueue.push(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
@@ -279,10 +280,8 @@ private:
 
         if (currentRetries > MAX_RETRIES)
         {
-            complete();
-            // Не очищаем все очереди, только сбрасываем состояние
-            state = ProcessingState::IDLE;
-            currentRetries = 0;
+            eventBus.publish(EventType::COMMAND_SENT_ERRROR, processingCommand.data);
+            clear();
         }
         else
         {

@@ -94,7 +94,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusCommandBuilder::createParkHeat(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createParkHeat(minutes), [this, minutes](String tx, String rx)
                                   { handleStartParkingHeatResponse(tx, rx, minutes); });
     }
 
@@ -102,7 +102,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusCommandBuilder::createVentilation(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createVentilation(minutes), [this, minutes](String tx, String rx)
                                   { handleStartVentilationResponse(tx, rx, minutes); });
     }
 
@@ -110,7 +110,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusCommandBuilder::createSupplementalHeat(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createSupplementalHeat(minutes), [this, minutes](String tx, String rx)
                                   { handleStartSupplementalHeatResponse(tx, rx, minutes); });
     }
 
@@ -118,7 +118,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusCommandBuilder::createBoostMode(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createBoostMode(minutes), [this, minutes](String tx, String rx)
                                   { handleStartBoostModeResponse(tx, rx, minutes); });
     }
 
@@ -126,7 +126,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusCommandBuilder::createCirculationPumpControl(enable), [this, enable](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createCirculationPumpControl(enable), [this, enable](String tx, String rx)
                                   { handleControlCirculationPumpResponse(tx, rx, enable); });
     }
 
@@ -134,7 +134,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addCommand(WBusCommandBuilder::createShutdown(), [this](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createShutdown(), [this](String tx, String rx)
                                   { handleShutdownResponse(tx, rx); });
     }
 
@@ -148,7 +148,7 @@ public:
 
         breakIfNeeded();
 
-        commandManager.addCommand(command,
+        commandManager.addPriorityCommand(command,
                                   [this, seconds, powerPercent](String tx, String rx)
                                   {
                                       handleTestCombustionFanResponse(tx, rx, seconds, powerPercent);
@@ -161,7 +161,7 @@ public:
 
         breakIfNeeded();
 
-        commandManager.addCommand(command,
+        commandManager.addPriorityCommand(command,
                                   [this, seconds, frequencyHz](String tx, String rx)
                                   {
                                       handleTestFuelPumpResponse(tx, rx, seconds, frequencyHz);
@@ -174,7 +174,7 @@ public:
 
         breakIfNeeded();
 
-        commandManager.addCommand(command,
+        commandManager.addPriorityCommand(command,
                                   [this, seconds, powerPercent](String tx, String rx)
                                   {
                                       handleTestGlowPlugResponse(tx, rx, seconds, powerPercent);
@@ -187,7 +187,7 @@ public:
 
         breakIfNeeded();
 
-        commandManager.addCommand(command,
+        commandManager.addPriorityCommand(command,
                                   [this, seconds, powerPercent](String tx, String rx)
                                   {
                                       handleTestCirculationPumpResponse(tx, rx, seconds, powerPercent);
@@ -200,7 +200,7 @@ public:
 
         breakIfNeeded();
 
-        commandManager.addCommand(command,
+        commandManager.addPriorityCommand(command,
                                   [this, seconds](String tx, String rx)
                                   {
                                       handleTestVehicleFanResponse(tx, rx, seconds);
@@ -213,7 +213,7 @@ public:
 
         breakIfNeeded();
 
-        commandManager.addCommand(command,
+        commandManager.addPriorityCommand(command,
                                   [this, seconds](String tx, String rx)
                                   {
                                       handleTestSolenoidValveResponse(tx, rx, seconds);
@@ -226,7 +226,7 @@ public:
 
         breakIfNeeded();
 
-        commandManager.addCommand(command,
+        commandManager.addPriorityCommand(command,
                                   [this, seconds, powerPercent](String tx, String rx)
                                   {
                                       handleTestFuelPreheatingResponse(tx, rx, seconds, powerPercent);
