@@ -121,8 +121,7 @@ struct OnOffFlags
         json += "\"circulationPump\":" + String(circulationPump ? "true" : "false") + ",";
         json += "\"vehicleFanRelay\":" + String(vehicleFanRelay ? "true" : "false") + ",";
         json += "\"nozzleStockHeating\":" + String(nozzleStockHeating ? "true" : "false") + ",";
-        json += "\"flameIndicator\":" + String(flameIndicator ? "true" : "false") + ",";
-
+        json += "\"flameIndicator\":" + String(flameIndicator ? "true" : "false");
         json += "}";
         return json;
     }
@@ -153,7 +152,7 @@ struct StatusFlags
         json += "\"generatorSignal\":" + String(generatorSignal ? "true" : "false") + ",";
         json += "\"boostMode\":" + String(boostMode ? "true" : "false") + ",";
         json += "\"auxiliaryDrive\":" + String(auxiliaryDrive ? "true" : "false") + ",";
-        json += "\"ignitionSignal\":" + String(ignitionSignal ? "true" : "false") + ",";
+        json += "\"ignitionSignal\":" + String(ignitionSignal ? "true" : "false");
         json += "}";
         return json;
     }
@@ -178,7 +177,7 @@ struct OperatingState
         json += "\"stateDescription\":\"" + stateDescription + "\",";
         json += "\"deviceStateInfo\":\"" + deviceStateInfo + "\",";
         json += "\"stateCodeHex\":\"0x" + String(stateCode, HEX) + "\",";
-        json += "\"deviceStateFlagsHex\":\"0x" + String(deviceStateFlags, HEX) + "\"";
+        json += "\"deviceStateFlagsHex\":\"0x" + String(deviceStateFlags, HEX);
         json += "}";
         return json;
     }
