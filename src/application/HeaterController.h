@@ -168,6 +168,7 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestCombustionFan(seconds, powerPercent),
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
+                                              sensorManager.requestStatusFlags();
                                               handleTestCombustionFanResponse(tx, rx, seconds, powerPercent);
                                           });
     }
@@ -179,6 +180,7 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestFuelPump(seconds, frequencyHz),
                                           [this, seconds, frequencyHz](String tx, String rx)
                                           {
+                                              sensorManager.requestStatusFlags();
                                               handleTestFuelPumpResponse(tx, rx, seconds, frequencyHz);
                                           });
     }
@@ -190,6 +192,7 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestGlowPlug(seconds, powerPercent),
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
+                                              sensorManager.requestStatusFlags();
                                               handleTestGlowPlugResponse(tx, rx, seconds, powerPercent);
                                           });
     }
@@ -201,6 +204,7 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestCirculationPump(seconds, powerPercent),
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
+                                              sensorManager.requestStatusFlags();
                                               handleTestCirculationPumpResponse(tx, rx, seconds, powerPercent);
                                           });
     }
@@ -212,6 +216,7 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestVehicleFan(seconds),
                                           [this, seconds](String tx, String rx)
                                           {
+                                              sensorManager.requestStatusFlags();
                                               handleTestVehicleFanResponse(tx, rx, seconds);
                                           });
     }
@@ -223,6 +228,7 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestSolenoidValve(seconds),
                                           [this, seconds](String tx, String rx)
                                           {
+                                              sensorManager.requestStatusFlags();
                                               handleTestSolenoidValveResponse(tx, rx, seconds);
                                           });
     }
@@ -234,6 +240,7 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestFuelPreheating(seconds, powerPercent),
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
+                                              sensorManager.requestStatusFlags();
                                               handleTestFuelPreheatingResponse(tx, rx, seconds, powerPercent);
                                           });
     }
