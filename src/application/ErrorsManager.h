@@ -32,7 +32,7 @@ public:
   {
     commandManager.addPriorityCommand(WBusCommandBuilder::createClearErrors(), [this, callback](String tx, String rx)
                                       {
-      commandManager.addCommand(WBusCommandBuilder::createReadErrors(), [this, callback](String tx, String rx) {
+      commandManager.addPriorityCommand(WBusCommandBuilder::createReadErrors(), [this, callback](String tx, String rx) {
         handleCheckErrorsResponse(tx, rx);
       });
       handleResetErrorsResponse(tx, rx, callback); });
