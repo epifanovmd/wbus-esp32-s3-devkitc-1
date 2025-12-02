@@ -144,7 +144,7 @@ struct StatusFlags
     {
         String json = "{";
         json += "\"mainSwitch\":" + String(mainSwitch ? "true" : "false") + ",";
-        json += "\"parkingHeatRequest\":" + String(supplementalHeatRequest ? "true" : "false") + ",";
+        json += "\"supplementalHeatRequest\":" + String(supplementalHeatRequest ? "true" : "false") + ",";
         json += "\"parkingHeatRequest\":" + String(parkingHeatRequest ? "true" : "false") + ",";
         json += "\"ventilationRequest\":" + String(ventilationRequest ? "true" : "false") + ",";
         json += "\"summerMode\":" + String(summerMode ? "true" : "false") + ",";

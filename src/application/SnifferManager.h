@@ -120,35 +120,35 @@ public:
         case WBusCommandBuilder::CMD_PARK_HEAT:
         {
             // Для команд управления извлекаем параметры из последнего TX
-            int minutes = Utils::extractByteFromString(tx, 5);
+            int minutes = Utils::extractByteFromString(tx, 3);
             heaterController.handleStartParkingHeatResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_VENTILATE:
         {
-            int minutes = Utils::extractByteFromString(tx, 5);
+            int minutes = Utils::extractByteFromString(tx, 3);
             heaterController.handleStartVentilationResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_SUPP_HEAT:
         {
-            int minutes = Utils::extractByteFromString(tx, 5);
+            int minutes = Utils::extractByteFromString(tx, 3);
             heaterController.handleStartSupplementalHeatResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_BOOST_MODE:
         {
-            int minutes = Utils::extractByteFromString(tx, 5);
+            int minutes = Utils::extractByteFromString(tx, 3);
             heaterController.handleStartBoostModeResponse(tx, rx, minutes);
             return true;
         }
 
         case WBusCommandBuilder::CMD_CIRC_PUMP_CTRL:
         {
-            bool enable = Utils::extractByteFromString(tx, 5) != 0x00;
+            bool enable = Utils::extractByteFromString(tx, 3) != 0x00;
             heaterController.handleControlCirculationPumpResponse(tx, rx, enable);
             return true;
         }
