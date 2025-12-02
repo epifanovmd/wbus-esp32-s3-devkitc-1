@@ -66,7 +66,7 @@ public:
 
     void requestStatusFlags(bool loop = false, std::function<void(String tx, String rx, StatusFlags *status)> callback = nullptr) override
     {
-        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_STATUS_FLAGS), [this, callback](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_STATUS_FLAGS), [this, callback](String tx, String rx)
                                   { handleStatusFlagsResponse(tx, rx, callback); }, loop);
     }
 

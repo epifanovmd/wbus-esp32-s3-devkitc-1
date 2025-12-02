@@ -97,9 +97,6 @@ public:
 
     void process()
     {
-        // Для AsyncWebServer не нужен явный вызов process()
-        // Все обработки выполняются асинхронно
-        // Очищаем неактивных клиентов WebSocket
         ws.cleanupClients();
     }
 

@@ -42,8 +42,17 @@ public:
 
         eventBus.subscribe(EventType::COMMAND_SENT_ERRROR, [this](const Event &event)
                            {
-      setState(WebastoState::OFF);
-      setConnectionState(ConnectionState::DISCONNECTED); });
+        setState(WebastoState::OFF);
+        setConnectionState(ConnectionState::DISCONNECTED); });
+
+        eventBus.subscribe(EventType::SENSOR_STATUS_FLAGS, [this](const Event &event)
+                           {
+        const auto & statusEvent = static_cast <
+          const TypedEvent < StatusFlags > & > (event);
+
+        StatusFlags statusFlags = statusEvent.data;
+
+        updateHeaterStateFromStatusFlags( & statusFlags); });
     }
 
     // =========================================================================
@@ -95,7 +104,9 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createParkHeat(minutes), [this, minutes](String tx, String rx)
-                                  { handleStartParkingHeatResponse(tx, rx, minutes); });
+                                          { 
+                                            sensorManager.requestStatusFlags();
+                                            handleStartParkingHeatResponse(tx, rx, minutes); });
     }
 
     void startVentilation(int minutes = 60) override
@@ -103,7 +114,9 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createVentilation(minutes), [this, minutes](String tx, String rx)
-                                  { handleStartVentilationResponse(tx, rx, minutes); });
+                                          { 
+                                            sensorManager.requestStatusFlags();
+                                            handleStartVentilationResponse(tx, rx, minutes); });
     }
 
     void startSupplementalHeat(int minutes = 60) override
@@ -111,7 +124,9 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createSupplementalHeat(minutes), [this, minutes](String tx, String rx)
-                                  { handleStartSupplementalHeatResponse(tx, rx, minutes); });
+                                          { 
+                                            sensorManager.requestStatusFlags();
+                                            handleStartSupplementalHeatResponse(tx, rx, minutes); });
     }
 
     void startBoostMode(int minutes = 60) override
@@ -119,7 +134,9 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createBoostMode(minutes), [this, minutes](String tx, String rx)
-                                  { handleStartBoostModeResponse(tx, rx, minutes); });
+                                          { 
+                                            sensorManager.requestStatusFlags();
+                                            handleStartBoostModeResponse(tx, rx, minutes); });
     }
 
     void controlCirculationPump(bool enable) override
@@ -127,7 +144,9 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createCirculationPumpControl(enable), [this, enable](String tx, String rx)
-                                  { handleControlCirculationPumpResponse(tx, rx, enable); });
+                                          { 
+                                            sensorManager.requestStatusFlags();
+                                            handleControlCirculationPumpResponse(tx, rx, enable); });
     }
 
     void shutdown() override
@@ -135,7 +154,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createShutdown(), [this](String tx, String rx)
-                                  { handleShutdownResponse(tx, rx); });
+                                          { handleShutdownResponse(tx, rx); });
     }
 
     // =========================================================================
@@ -144,103 +163,85 @@ public:
 
     void testCombustionFan(int seconds, int powerPercent) override
     {
-        String command = WBusCommandBuilder::createTestCombustionFan(seconds, powerPercent);
-
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(command,
-                                  [this, seconds, powerPercent](String tx, String rx)
-                                  {
-                                      handleTestCombustionFanResponse(tx, rx, seconds, powerPercent);
-                                  });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestCombustionFan(seconds, powerPercent),
+                                          [this, seconds, powerPercent](String tx, String rx)
+                                          {
+                                              handleTestCombustionFanResponse(tx, rx, seconds, powerPercent);
+                                          });
     }
 
     void testFuelPump(int seconds, int frequencyHz) override
     {
-        String command = WBusCommandBuilder::createTestFuelPump(seconds, frequencyHz);
-
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(command,
-                                  [this, seconds, frequencyHz](String tx, String rx)
-                                  {
-                                      handleTestFuelPumpResponse(tx, rx, seconds, frequencyHz);
-                                  });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestFuelPump(seconds, frequencyHz),
+                                          [this, seconds, frequencyHz](String tx, String rx)
+                                          {
+                                              handleTestFuelPumpResponse(tx, rx, seconds, frequencyHz);
+                                          });
     }
 
     void testGlowPlug(int seconds, int powerPercent) override
     {
-        String command = WBusCommandBuilder::createTestGlowPlug(seconds, powerPercent);
-
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(command,
-                                  [this, seconds, powerPercent](String tx, String rx)
-                                  {
-                                      handleTestGlowPlugResponse(tx, rx, seconds, powerPercent);
-                                  });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestGlowPlug(seconds, powerPercent),
+                                          [this, seconds, powerPercent](String tx, String rx)
+                                          {
+                                              handleTestGlowPlugResponse(tx, rx, seconds, powerPercent);
+                                          });
     }
 
     void testCirculationPump(int seconds, int powerPercent) override
     {
-        String command = WBusCommandBuilder::createTestCirculationPump(seconds, powerPercent);
-
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(command,
-                                  [this, seconds, powerPercent](String tx, String rx)
-                                  {
-                                      handleTestCirculationPumpResponse(tx, rx, seconds, powerPercent);
-                                  });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestCirculationPump(seconds, powerPercent),
+                                          [this, seconds, powerPercent](String tx, String rx)
+                                          {
+                                              handleTestCirculationPumpResponse(tx, rx, seconds, powerPercent);
+                                          });
     }
 
     void testVehicleFan(int seconds) override
     {
-        String command = WBusCommandBuilder::createTestVehicleFan(seconds);
-
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(command,
-                                  [this, seconds](String tx, String rx)
-                                  {
-                                      handleTestVehicleFanResponse(tx, rx, seconds);
-                                  });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestVehicleFan(seconds),
+                                          [this, seconds](String tx, String rx)
+                                          {
+                                              handleTestVehicleFanResponse(tx, rx, seconds);
+                                          });
     }
 
     void testSolenoidValve(int seconds) override
     {
-        String command = WBusCommandBuilder::createTestSolenoidValve(seconds);
-
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(command,
-                                  [this, seconds](String tx, String rx)
-                                  {
-                                      handleTestSolenoidValveResponse(tx, rx, seconds);
-                                  });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestSolenoidValve(seconds),
+                                          [this, seconds](String tx, String rx)
+                                          {
+                                              handleTestSolenoidValveResponse(tx, rx, seconds);
+                                          });
     }
 
     void testFuelPreheating(int seconds, int powerPercent) override
     {
-        String command = WBusCommandBuilder::createTestFuelPreheating(seconds, powerPercent);
-
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(command,
-                                  [this, seconds, powerPercent](String tx, String rx)
-                                  {
-                                      handleTestFuelPreheatingResponse(tx, rx, seconds, powerPercent);
-                                  });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestFuelPreheating(seconds, powerPercent),
+                                          [this, seconds, powerPercent](String tx, String rx)
+                                          {
+                                              handleTestFuelPreheatingResponse(tx, rx, seconds, powerPercent);
+                                          });
     }
 
     void checkWebastoStatus()
     {
         breakIfNeeded();
-
-        sensorManager.requestOnOffFlags(false, [this](String tx, String rx, OnOffFlags *onOff)
-                                        { updateHeaterStateFromOnOffFlags(tx, rx, onOff); });
-        sensorManager.requestStatusFlags(false, [this](String tx, String rx, StatusFlags *status)
-                                         { updateHeaterStateFromStatusFlags(tx, rx, status); });
+        sensorManager.requestStatusFlags();
     }
 
     HeaterStatus getStatus() const override
@@ -272,8 +273,7 @@ public:
             deviceInfoManager.requestSerialNumber();
 
             // Запускаем периодический опрос сенсоров
-            startSensorMonitoring();
-            errorsManager.checkErrors(true);
+            sensorManager.requestAllSensorData(true);
         }
         else
         {
@@ -503,39 +503,13 @@ public:
     }
 
 private:
-    void startSensorMonitoring()
-    {
-        sensorManager.requestOperationalInfo(true);
-        sensorManager.requestOnOffFlags(true, [this](String tx, String rx, OnOffFlags *onOff)
-                                        { updateHeaterStateFromOnOffFlags(tx, rx, onOff); });
-        sensorManager.requestStatusFlags(true, [this](String tx, String rx, StatusFlags *status)
-                                         { updateHeaterStateFromStatusFlags(tx, rx, status); });
-        sensorManager.requestOperatingState(true);
-        sensorManager.requestSubsystemsStatus(true);
-        sensorManager.requestFuelPrewarming(true);
-        sensorManager.requestOperatingTimes();
-        sensorManager.requestBurningDuration();
-        sensorManager.requestStartCounters();
-        sensorManager.requestFuelSettings();
-    }
-
-    void updateHeaterStateFromStatusFlags(String tx, String rx, StatusFlags *status)
+    void updateHeaterStateFromStatusFlags(StatusFlags *status)
     {
         WebastoState newState = determineStateFromFlags(status);
 
         if (newState != currentStatus.state)
         {
             setState(newState);
-        }
-    }
-
-    void updateHeaterStateFromOnOffFlags(String tx, String rx, OnOffFlags *onOff)
-    {
-        // Дополнительная логика определения состояния на основе активных компонентов
-        if (currentStatus.state == WebastoState::CIRC_PUMP &&
-            !onOff->circulationPump)
-        {
-            setState(WebastoState::OFF);
         }
     }
 
