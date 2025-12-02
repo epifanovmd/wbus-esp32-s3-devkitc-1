@@ -37,14 +37,19 @@ public:
                                    uint8_t txCommand = Utils::extractByteFromString(tx, 2);
                                    uint8_t rxCommandAsc = Utils::extractByteFromString(rx, 2);
                                    uint8_t rxCommand = rxCommandAsc & 0x7F;
+                                   uint8_t rxIndex = Utils::extractByteFromString(rx, 3);
 
                                    if (txCommand == rxCommand)
                                    {
                                        Serial.println();
+                                       Serial.print("📤 SNIFF TX: " + tx);
+                                       Serial.print("  ––––  ");
                                        Serial.print("📨 SNIFF RX: " + rx);
                                        Serial.print(" [ACK: 0x" + String(rxCommand, HEX) + "]");
+                                       Serial.print(" [" + WBusCommandBuilder::getCommandName(rxCommand) + "]");
+                                       Serial.print(" [" + WBusCommandBuilder::getIndexDisplayName(rxCommand, rxIndex) + "]");
 
-                                       // // Автоматически определяем и вызываем соответствующий обработчик
+                                       // Автоматически определяем и вызываем соответствующий обработчик
                                        bool processed = autoProcessResponse(rxCommand, tx, rx);
 
                                        if (!processed)

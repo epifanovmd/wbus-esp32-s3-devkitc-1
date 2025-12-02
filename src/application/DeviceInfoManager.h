@@ -221,15 +221,15 @@ public:
   String getDeviceInfoJson() const override
   {
     String json = "{";
-    json += "\"wbus_version\":\"" + wbusVersion + "\",";
-    json += "\"device_name\":\"" + deviceName + "\",";
-    json += "\"device_id\":\"" + deviceID + "\",";
-    json += "\"serial_number\":\"" + serialNumber + "\",";
-    json += "\"controller_manufacture_date\":\"" + controllerManufactureDate + "\",";
-    json += "\"heater_manufacture_date\":\"" + heaterManufactureDate + "\",";
-    json += "\"customer_id\":\"" + customerID + "\",";
-    json += "\"wbus_code\":\"" + wbusCode + "\",";
-    json += "\"supported_functions\":\"" + supportedFunctions + "\"";
+    json += "\"wbusVersion\":\"" + wbusVersion + "\",";
+    json += "\"deviceName\":\"" + deviceName + "\",";
+    json += "\"deviceId\":\"" + deviceID + "\",";
+    json += "\"serialNumber\":\"" + serialNumber + "\",";
+    json += "\"controllerManufactureDate\":\"" + controllerManufactureDate + "\",";
+    json += "\"heaterManufactureDate\":\"" + heaterManufactureDate + "\",";
+    json += "\"customerId\":\"" + customerID + "\",";
+    json += "\"wbusCode\":\"" + wbusCode + "\",";
+    json += "\"supportedFunctions\":\"" + supportedFunctions + "\"";
     json += "}";
     return json;
   }

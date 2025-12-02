@@ -269,16 +269,16 @@ public:
     String getAllSensorsJson() const
     {
         String json = "{";
-        json += "\"operational_measurements\":" + operationalMeasurements.toJson() + ",";
-        json += "\"fuel_settings\":" + fuelSettings.toJson() + ",";
-        json += "\"on_off_flags\":" + onOffFlags.toJson() + ",";
-        json += "\"status_flags\":" + statusFlags.toJson() + ",";
-        json += "\"operating_state\":" + operatingState.toJson() + ",";
-        json += "\"subsystems_status\":" + subsystemsStatus.toJson() + ",";
-        json += "\"operating_times\":" + operatingTimes.toJson() + ",";
-        json += "\"fuel_prewarming\":" + fuelPrewarming.toJson() + ",";
-        json += "\"burning_duration\":" + burningDuration.toJson();
-        json += "\"start_counters\":" + startCounters.toJson();
+        json += "\"operationalMeasurements\":" + operationalMeasurements.toJson() + ",";
+        json += "\"fuelSettings\":" + fuelSettings.toJson() + ",";
+        json += "\"onOffFlags\":" + onOffFlags.toJson() + ",";
+        json += "\"statusFlags\":" + statusFlags.toJson() + ",";
+        json += "\"operatingState\":" + operatingState.toJson() + ",";
+        json += "\"subsystemsStatus\":" + subsystemsStatus.toJson() + ",";
+        json += "\"operatingTimes\":" + operatingTimes.toJson() + ",";
+        json += "\"fuelPrewarming\":" + fuelPrewarming.toJson() + ",";
+        json += "\"burningDuration\":" + burningDuration.toJson() + ",";
+        json += "\"startCounters\":" + startCounters.toJson();
         json += "}";
         return json;
     }

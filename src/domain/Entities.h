@@ -54,8 +54,8 @@ struct DecodedWBusCode
     String toJson() const
     {
         String json = "{";
-        json += "\"code_string\":\"" + codeString + "\",";
-        json += "\"supported_functions\":\"" + supportedFunctions + "\"";
+        json += "\"codeString\":\"" + codeString + "\",";
+        json += "\"supportedFunctions\":\"" + supportedFunctions + "\"";
         json += "}";
         return json;
     }

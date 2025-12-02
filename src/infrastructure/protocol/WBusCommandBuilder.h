@@ -79,6 +79,11 @@ public:
     static const uint8_t TEST_SOLENOID_VALVE = 0x09;
     static const uint8_t TEST_FUEL_PREHEATING = 0x0F;
 
+    // =========================================================================
+    // ФУНКЦИИ ПОЛУЧЕНИЯ ИМЕНИ ПО ИНДЕКСУ
+    // =========================================================================
+
+    // Получить имя команды по коду
     static String getCommandName(uint8_t command)
     {
         switch (command)
@@ -111,6 +116,270 @@ public:
             return "CO2_CALIBRATION";
         default:
             return "UNKNOWN_0x" + String(command, HEX);
+        }
+    }
+
+    // Получить имя сенсора по индексу (0x50 команды)
+    static String getSensorName(uint8_t sensorIndex)
+    {
+        switch (sensorIndex)
+        {
+        case SENSOR_STATUS_FLAGS:
+            return "STATUS_FLAGS";
+        case SENSOR_ON_OFF_FLAGS:
+            return "ON_OFF_FLAGS";
+        case SENSOR_FUEL_SETTINGS:
+            return "FUEL_SETTINGS";
+        case SENSOR_OPERATIONAL:
+            return "OPERATIONAL";
+        case SENSOR_OPERATING_STATE:
+            return "OPERATING_STATE";
+        case SENSOR_OPERATING_TIMES:
+            return "OPERATING_TIMES";
+        case SENSOR_BURNING_DURATION:
+            return "BURNING_DURATION";
+        case SENSOR_START_COUNTERS:
+            return "START_COUNTERS";
+        case SENSOR_SUBSYSTEMS_STATUS:
+            return "SUBSYSTEMS_STATUS";
+        case SENSOR_TEMPERATURE_THRESHOLDS:
+            return "TEMPERATURE_THRESHOLDS";
+        case SENSOR_VENTILATION_DURATION:
+            return "VENTILATION_DURATION";
+        case SENSOR_FUEL_PREWARMING:
+            return "FUEL_PREWARMING";
+        case SENSOR_SPARK_TRANSMISSION:
+            return "SPARK_TRANSMISSION";
+        default:
+            return "UNKNOWN_SENSOR_0x" + String(sensorIndex, HEX);
+        }
+    }
+
+    // Получить человекочитаемое имя сенсора
+    static String getSensorDisplayName(uint8_t sensorIndex)
+    {
+        switch (sensorIndex)
+        {
+        case SENSOR_STATUS_FLAGS:
+            return "Флаги состояния";
+        case SENSOR_ON_OFF_FLAGS:
+            return "Флаги включения/выключения";
+        case SENSOR_FUEL_SETTINGS:
+            return "Настройки топлива";
+        case SENSOR_OPERATIONAL:
+            return "Операционные измерения";
+        case SENSOR_OPERATING_STATE:
+            return "Состояние работы";
+        case SENSOR_OPERATING_TIMES:
+            return "Время работы";
+        case SENSOR_BURNING_DURATION:
+            return "Длительность горения";
+        case SENSOR_START_COUNTERS:
+            return "Счетчики запусков";
+        case SENSOR_SUBSYSTEMS_STATUS:
+            return "Статус подсистем";
+        case SENSOR_TEMPERATURE_THRESHOLDS:
+            return "Температурные пороги";
+        case SENSOR_VENTILATION_DURATION:
+            return "Длительность вентиляции";
+        case SENSOR_FUEL_PREWARMING:
+            return "Подогрев топлива";
+        case SENSOR_SPARK_TRANSMISSION:
+            return "Искровая передача";
+        default:
+            return "Неизвестный датчик (0x" + String(sensorIndex, HEX) + ")";
+        }
+    }
+
+    // Получить имя информации по индексу (0x51 команды)
+    static String getInfoName(uint8_t infoIndex)
+    {
+        switch (infoIndex)
+        {
+        case INFO_DEVICE_ID:
+            return "DEVICE_ID";
+        case INFO_HARDWARE_VERSION:
+            return "HARDWARE_VERSION";
+        case INFO_DATASET_ID:
+            return "DATASET_ID";
+        case INFO_CTRL_MFG_DATE:
+            return "CONTROLLER_MANUFACTURE_DATE";
+        case INFO_HEATER_MFG_DATE:
+            return "HEATER_MANUFACTURE_DATE";
+        case INFO_UNKNOWN_06:
+            return "UNKNOWN_06";
+        case INFO_CUSTOMER_ID:
+            return "CUSTOMER_ID";
+        case INFO_SERIAL_NUMBER:
+            return "SERIAL_NUMBER";
+        case INFO_WBUS_VERSION:
+            return "WBUS_VERSION";
+        case INFO_DEVICE_NAME:
+            return "DEVICE_NAME";
+        case INFO_WBUS_CODE:
+            return "WBUS_CODE";
+        case INFO_UNKNOWN_0D:
+            return "UNKNOWN_0D";
+        default:
+            return "UNKNOWN_INFO_0x" + String(infoIndex, HEX);
+        }
+    }
+
+    // Получить человекочитаемое имя информации
+    static String getInfoDisplayName(uint8_t infoIndex)
+    {
+        switch (infoIndex)
+        {
+        case INFO_DEVICE_ID:
+            return "ID устройства";
+        case INFO_HARDWARE_VERSION:
+            return "Версия аппаратного обеспечения";
+        case INFO_DATASET_ID:
+            return "ID набора данных";
+        case INFO_CTRL_MFG_DATE:
+            return "Дата изготовления контроллера";
+        case INFO_HEATER_MFG_DATE:
+            return "Дата изготовления нагревателя";
+        case INFO_UNKNOWN_06:
+            return "Неизвестная информация 06";
+        case INFO_CUSTOMER_ID:
+            return "ID заказчика";
+        case INFO_SERIAL_NUMBER:
+            return "Серийный номер";
+        case INFO_WBUS_VERSION:
+            return "Версия W-Bus";
+        case INFO_DEVICE_NAME:
+            return "Имя устройства";
+        case INFO_WBUS_CODE:
+            return "Код W-Bus";
+        case INFO_UNKNOWN_0D:
+            return "Неизвестная информация 0D";
+        default:
+            return "Неизвестная информация (0x" + String(infoIndex, HEX) + ")";
+        }
+    }
+
+    // Получить имя операции с ошибками по индексу (0x56 команды)
+    static String getErrorOperationName(uint8_t errorIndex)
+    {
+        switch (errorIndex)
+        {
+        case ERROR_READ_LIST:
+            return "READ_ERROR_LIST";
+        case ERROR_READ_DETAILS:
+            return "READ_ERROR_DETAILS";
+        case ERROR_CLEAR:
+            return "CLEAR_ERRORS";
+        default:
+            return "UNKNOWN_ERROR_OP_0x" + String(errorIndex, HEX);
+        }
+    }
+
+    // Получить человекочитаемое имя операции с ошибками
+    static String getErrorOperationDisplayName(uint8_t errorIndex)
+    {
+        switch (errorIndex)
+        {
+        case ERROR_READ_LIST:
+            return "Чтение списка ошибок";
+        case ERROR_READ_DETAILS:
+            return "Чтение деталей ошибки";
+        case ERROR_CLEAR:
+            return "Очистка ошибок";
+        default:
+            return "Неизвестная операция с ошибками (0x" + String(errorIndex, HEX) + ")";
+        }
+    }
+
+    // Получить имя компонента для тестирования
+    static String getTestComponentName(uint8_t component)
+    {
+        switch (component)
+        {
+        case TEST_COMBUSTION_FAN:
+            return "COMBUSTION_FAN";
+        case TEST_FUEL_PUMP:
+            return "FUEL_PUMP";
+        case TEST_GLOW_PLUG:
+            return "GLOW_PLUG";
+        case TEST_CIRCULATION_PUMP:
+            return "CIRCULATION_PUMP";
+        case TEST_VEHICLE_FAN:
+            return "VEHICLE_FAN";
+        case TEST_SOLENOID_VALVE:
+            return "SOLENOID_VALVE";
+        case TEST_FUEL_PREHEATING:
+            return "FUEL_PREHEATING";
+        default:
+            return "UNKNOWN_COMPONENT_0x" + String(component, HEX);
+        }
+    }
+
+    // Получить человекочитаемое имя компонента для тестирования
+    static String getTestComponentDisplayName(uint8_t component)
+    {
+        switch (component)
+        {
+        case TEST_COMBUSTION_FAN:
+            return "Вентилятор горения";
+        case TEST_FUEL_PUMP:
+            return "Топливный насос";
+        case TEST_GLOW_PLUG:
+            return "Свеча накаливания";
+        case TEST_CIRCULATION_PUMP:
+            return "Циркуляционный насос";
+        case TEST_VEHICLE_FAN:
+            return "Вентилятор автомобиля";
+        case TEST_SOLENOID_VALVE:
+            return "Соленоидный клапан";
+        case TEST_FUEL_PREHEATING:
+            return "Подогрев топлива";
+        default:
+            return "Неизвестный компонент (0x" + String(component, HEX) + ")";
+        }
+    }
+
+    // Универсальная функция для получения имени по типу команды и индексу
+    static String getIndexName(uint8_t command, uint8_t index)
+    {
+        switch (command)
+        {
+        case CMD_READ_SENSOR:
+            return getSensorName(index);
+
+        case CMD_READ_INFO:
+            return getInfoName(index);
+
+        case CMD_READ_ERRORS:
+            return getErrorOperationName(index);
+
+        case CMD_TEST_COMPONENT:
+            return getTestComponentName(index);
+
+        default:
+            return "INDEX_0x" + String(index, HEX);
+        }
+    }
+
+    // Универсальная функция для получения человекочитаемого имени
+    static String getIndexDisplayName(uint8_t command, uint8_t index)
+    {
+        switch (command)
+        {
+        case CMD_READ_SENSOR:
+            return getSensorDisplayName(index);
+
+        case CMD_READ_INFO:
+            return getInfoDisplayName(index);
+
+        case CMD_READ_ERRORS:
+            return getErrorOperationDisplayName(index);
+
+        case CMD_TEST_COMPONENT:
+            return getTestComponentDisplayName(index);
+
+        default:
+            return "Индекс 0x" + String(index, HEX);
         }
     }
 

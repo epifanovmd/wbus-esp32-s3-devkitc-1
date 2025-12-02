@@ -115,7 +115,7 @@ public:
             return result;
         }
 
-        return decodeErrorList(data, byteCount);
+        return decodeErrorList(&data[4], byteCount - 4);
     }
 
     ErrorCollection decodeErrorList(const uint8_t *data, uint8_t dataLength)
