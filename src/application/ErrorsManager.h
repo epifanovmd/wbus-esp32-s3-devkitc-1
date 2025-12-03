@@ -22,10 +22,9 @@ public:
                                                              commandManager(cmdManager),
                                                              errorDetailsDecoder(errorsDecoder) {}
 
-  void checkErrors(bool loop = false, std::function<void(String, String, ErrorCollection *)> callback = nullptr) override
+  void checkErrors(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadErrors(), [this, callback](String tx, String rx)
-                              { handleCheckErrorsResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadErrors(), callback, loop);
   }
 
   void resetErrors(std::function<void(String, String)> callback = nullptr) override
@@ -35,13 +34,15 @@ public:
       commandManager.addPriorityCommand(WBusCommandBuilder::createReadErrors(), [this, callback](String tx, String rx) {
         handleCheckErrorsResponse(tx, rx);
       });
-      handleResetErrorsResponse(tx, rx, callback); });
+      if (callback)
+      {
+       callback(tx, rx); 
+      } });
   }
 
-  void readErrorDetails(uint8_t errorCode, std::function<void(String, String, ErrorDetails *)> callback = nullptr) override
+  void readErrorDetails(uint8_t errorCode, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadErrorDetails(errorCode), [this, errorCode, callback](String tx, String rx)
-                              { handleErrorDetailsResponse(tx, rx, errorCode, callback); });
+    commandManager.addCommand(WBusCommandBuilder::createReadErrorDetails(errorCode), callback);
   }
 
   // =========================================================================
@@ -66,16 +67,11 @@ public:
     {
       currentErrors.clear();
       eventBus.publish<ErrorCollection>(EventType::WBUS_ERRORS, currentErrors);
-      eventBus.publish(EventType::WBUS_CLEAR_ERRORS_SUCCESS);
 
       if (callback)
       {
         callback(tx, rx);
       }
-    }
-    else
-    {
-      eventBus.publish(EventType::WBUS_CLEAR_ERRORS_FAILED);
     }
   }
 

@@ -17,7 +17,7 @@ private:
     ErrorsManager &errorsManager;
     HeaterController &heaterController;
 
-    bool snifferModeEnabled = false;
+    bool snifferModeEnabled = true;
 
 public:
     SnifferManager(EventBus &bus, DeviceInfoManager &deviceInfoMngr,
@@ -59,18 +59,6 @@ public:
                                    }
                                }
                            });
-    }
-
-    void toggleSnifferMode()
-    {
-        snifferModeEnabled = !snifferModeEnabled;
-        Serial.println();
-        Serial.println(snifferModeEnabled ? "🔍 Режим сниффера ВКЛЮЧЕН" : "🔍 Режим сниффера ВЫКЛЮЧЕН");
-    }
-
-    bool isSnifferModeEnabled() const
-    {
-        return snifferModeEnabled;
     }
 
     // Автоматическая обработка ответов на основе команды

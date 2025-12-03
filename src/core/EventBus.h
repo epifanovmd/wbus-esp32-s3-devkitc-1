@@ -49,8 +49,6 @@ enum class EventType
 
     // события ошибок Webasto
     WBUS_ERRORS,
-    WBUS_CLEAR_ERRORS_SUCCESS,
-    WBUS_CLEAR_ERRORS_FAILED,
     COMMAND_NAK_RESPONSE,
 
     // события датчиков
@@ -189,10 +187,6 @@ public:
 
         case EventType::WBUS_ERRORS:
             return "WBUS_ERRORS";
-        case EventType::WBUS_CLEAR_ERRORS_SUCCESS:
-            return "WBUS_CLEAR_ERRORS_SUCCESS";
-        case EventType::WBUS_CLEAR_ERRORS_FAILED:
-            return "WBUS_CLEAR_ERRORS_FAILED";
 
         case EventType::SENSOR_OPERATIONAL_INFO:
             return "SENSOR_OPERATIONAL_INFO";

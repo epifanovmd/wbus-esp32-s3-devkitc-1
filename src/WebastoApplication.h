@@ -270,10 +270,6 @@ private:
             {
                 heaterController.shutdown();
             }
-            else if (command == "mode")
-            {
-                snifferManager.toggleSnifferMode();
-            }
             else if (command == "help" || command == "h")
             {
                 printHelp();

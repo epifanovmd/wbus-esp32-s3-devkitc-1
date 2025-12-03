@@ -364,18 +364,6 @@ private:
                                broadcastJson(EventType::WBUS_ERRORS, errorsEvent.data.toJson());
                            });
 
-        eventBus.subscribe(EventType::WBUS_CLEAR_ERRORS_SUCCESS,
-                           [this](const Event &event)
-                           {
-                               broadcastJson(EventType::WBUS_CLEAR_ERRORS_SUCCESS, "{\"status\":\"success\"}");
-                           });
-
-        eventBus.subscribe(EventType::WBUS_CLEAR_ERRORS_FAILED,
-                           [this](const Event &event)
-                           {
-                               broadcastJson(EventType::WBUS_CLEAR_ERRORS_FAILED, "{\"status\":\"failed\"}");
-                           });
-
         // =========================================================================
         // СОБЫТИЯ ДАТЧИКОВ
         // =========================================================================

@@ -40,52 +40,44 @@ public:
     requestSerialNumber(loop);
   }
 
-  void requestWBusVersion(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
+  void requestWBusVersion(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_VERSION), [this, callback](String tx, String rx)
-                              { handleWBusVersionResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_VERSION), callback, loop);
   }
 
-  void requestDeviceName(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
+  void requestDeviceName(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_NAME), [this, callback](String tx, String rx)
-                              { handleDeviceNameResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_NAME), callback, loop);
   }
 
-  void requestWBusCode(bool loop = false, std::function<void(String, String, DecodedWBusCode *)> callback = nullptr) override
+  void requestWBusCode(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_CODE), [this, callback](String tx, String rx)
-                              { handleWBusCodeResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_CODE), callback, loop);
   }
 
-  void requestDeviceID(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
+  void requestDeviceID(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_ID), [this, callback](String tx, String rx)
-                              { handleDeviceIDResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_ID), callback, loop);
   }
 
-  void requestControllerManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate *)> callback = nullptr) override
+  void requestControllerManufactureDate(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CTRL_MFG_DATE), [this, callback](String tx, String rx)
-                              { handleControllerManufactureDateResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CTRL_MFG_DATE), callback, loop);
   }
 
-  void requestHeaterManufactureDate(bool loop = false, std::function<void(String, String, DecodedManufactureDate *)> callback = nullptr) override
+  void requestHeaterManufactureDate(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_HEATER_MFG_DATE), [this, callback](String tx, String rx)
-                              { handleHeaterManufactureDateResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_HEATER_MFG_DATE), callback, loop);
   }
 
-  void requestCustomerID(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
+  void requestCustomerID(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CUSTOMER_ID), [this, callback](String tx, String rx)
-                              { handleCustomerIDResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CUSTOMER_ID), callback, loop);
   }
 
-  void requestSerialNumber(bool loop = false, std::function<void(String, String, String *)> callback = nullptr) override
+  void requestSerialNumber(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_SERIAL_NUMBER), [this, callback](String tx, String rx)
-                              { handleSerialNumberResponse(tx, rx, callback); }, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_SERIAL_NUMBER), callback, loop);
   }
 
   // =========================================================================
