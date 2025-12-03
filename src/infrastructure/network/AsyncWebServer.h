@@ -294,6 +294,14 @@ private:
                                broadcastJson(EventType::RX_RECEIVED, "\"" + event.source + "\"");
                            });
 
+        eventBus.subscribe(EventType::COMMAND_RECEIVED,
+                           [this](const Event &event)
+                           {
+                               const auto &cmdEvent = static_cast<const TypedEvent<CommandReceivedEvent> &>(event);
+
+                               broadcastJson(EventType::COMMAND_RECEIVED, cmdEvent.data.toJson());
+                           });
+
         // =========================================================================
         // СОБЫТИЯ ИНФОРМАЦИИ ОБ УСТРОЙСТВЕ
         // =========================================================================

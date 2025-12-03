@@ -310,7 +310,6 @@ struct FuelPrewarming
 {
     uint16_t resistance;  // Сопротивление в миллиомах
     uint16_t power;       // Мощность в ваттах
-    float resistanceOhms; // Сопротивление в омах
     bool isActive;        // Активен ли подогрев
 
     String toJson() const

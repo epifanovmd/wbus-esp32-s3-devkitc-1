@@ -17,8 +17,6 @@ private:
     ErrorsManager &errorsManager;
     HeaterController &heaterController;
 
-    bool snifferModeEnabled = true;
-
 public:
     SnifferManager(EventBus &bus, DeviceInfoManager &deviceInfoMngr,
                    SensorManager &sensorMngr, ErrorsManager &errorsMngr, HeaterController &heaterCtrl)
@@ -27,36 +25,33 @@ public:
         eventBus.subscribe(EventType::COMMAND_RECEIVED,
                            [this](const Event &event)
                            {
-                               if (snifferModeEnabled)
+                               const auto &cmdEvent = static_cast<const TypedEvent<CommandReceivedEvent> &>(event);
+
+                               String tx = cmdEvent.data.tx;
+                               String rx = cmdEvent.data.rx;
+
+                               uint8_t txCommand = Utils::extractByteFromString(tx, 2);
+                               uint8_t rxCommandAsc = Utils::extractByteFromString(rx, 2);
+                               uint8_t rxCommand = rxCommandAsc & 0x7F;
+                               uint8_t rxIndex = Utils::extractByteFromString(rx, 3);
+
+                               if (txCommand == rxCommand)
                                {
-                                   const auto &cmdEvent = static_cast<const TypedEvent<CommandReceivedEvent> &>(event);
+                                //    Serial.println();
+                                //    Serial.print("📤 SNIFF TX: " + tx);
+                                //    Serial.print("  ––––  ");
+                                //    Serial.print("📨 SNIFF RX: " + rx);
+                                //    Serial.print(" [ACK: 0x" + String(rxCommand, HEX) + "]");
+                                //    Serial.print(" [" + WBusCommandBuilder::getCommandName(rxCommand) + "]");
+                                //    Serial.print(" [" + WBusCommandBuilder::getIndexDisplayName(rxCommand, rxIndex) + "]");
 
-                                   String tx = cmdEvent.data.tx;
-                                   String rx = cmdEvent.data.rx;
+                                   // Автоматически определяем и вызываем соответствующий обработчик
+                                   bool processed = autoProcessResponse(rxCommand, tx, rx);
 
-                                   uint8_t txCommand = Utils::extractByteFromString(tx, 2);
-                                   uint8_t rxCommandAsc = Utils::extractByteFromString(rx, 2);
-                                   uint8_t rxCommand = rxCommandAsc & 0x7F;
-                                   uint8_t rxIndex = Utils::extractByteFromString(rx, 3);
-
-                                   if (txCommand == rxCommand)
-                                   {
-                                       Serial.println();
-                                       Serial.print("📤 SNIFF TX: " + tx);
-                                       Serial.print("  ––––  ");
-                                       Serial.print("📨 SNIFF RX: " + rx);
-                                       Serial.print(" [ACK: 0x" + String(rxCommand, HEX) + "]");
-                                       Serial.print(" [" + WBusCommandBuilder::getCommandName(rxCommand) + "]");
-                                       Serial.print(" [" + WBusCommandBuilder::getIndexDisplayName(rxCommand, rxIndex) + "]");
-
-                                       // Автоматически определяем и вызываем соответствующий обработчик
-                                       bool processed = autoProcessResponse(rxCommand, tx, rx);
-
-                                       if (!processed)
-                                       {
-                                           Serial.print(" [UNKNOWN]");
-                                       }
-                                   }
+                                //    if (!processed)
+                                //    {
+                                //        Serial.print(" [UNKNOWN]");
+                                //    }
                                }
                            });
     }
