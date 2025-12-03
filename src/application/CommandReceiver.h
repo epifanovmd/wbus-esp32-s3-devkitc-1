@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "../common/Constants.h"
+#include "../infrastructure/protocol/WBusCommandBuilder.h"
 #include "../common/Utils.h"
 #include "../core/EventBus.h"
 
@@ -165,6 +166,17 @@ public:
             receivedData.completeRxReception();
 
             eventBus.publish(EventType::RX_RECEIVED, getRxData());
+            if (Utils::isNakPacket(getRxData()))
+            {
+              uint8_t command = Utils::extractByteFromString(getTxData(), 2);
+              uint8_t errorCode = Utils::extractByteFromString(getRxData(), 4);
+              String commandName = WBusCommandBuilder::getCommandName(command);
+              eventBus.publish<NakResponseEvent>(EventType::COMMAND_NAK_RESPONSE, {getTxData(), commandName, errorCode});
+            }
+            else
+            {
+              eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {getTxData(), getRxData()});
+            }
           }
           if (receivedData.isReceivingTx)
           {
@@ -172,7 +184,6 @@ public:
             currentTx = getTxData();
 
             eventBus.publish(EventType::TX_RECEIVED, getTxData());
-  
           }
           receivedData.bytesToRead = 0;
           receivedData.bytesRead = 0;

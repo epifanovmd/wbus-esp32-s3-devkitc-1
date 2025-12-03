@@ -43,7 +43,7 @@ public:
 
             result += byteToHexString(data[i]);
         }
-        result.toUpperCase();
+        result.toLowerCase();
         return result;
     }
 

@@ -9,7 +9,6 @@
 #include "../core/EventBus.h"
 #include "../core/ConfigManager.h"
 #include "../infrastructure/protocol/WBusCommand.h"
-#include "../infrastructure/protocol/WBusCommandBuilder.h"
 #include "../infrastructure/protocol/WBusErrorsDecoder.h"
 #include "../interfaces/IBusManager.h"
 #include "../domain/Events.h"
@@ -242,14 +241,7 @@ private:
     {
         if (!response.isEmpty())
         {
-            if (Utils::isNakPacket(response))
-            {
-                uint8_t command = Utils::extractByteFromString(processingCommand.data, 2);
-                uint8_t errorCode = Utils::extractByteFromString(response, 4);
-                String commandName = WBusCommandBuilder::getCommandName(command);
-                eventBus.publish<NakResponseEvent>(EventType::COMMAND_NAK_RESPONSE, {processingCommand.data, commandName, errorCode});
-            }
-            else
+            if (!Utils::isNakPacket(response))
             {
                 if (processingCommand.callback)
                 {
@@ -260,8 +252,6 @@ private:
                 {
                     normalQueue.push(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
                 }
-
-                eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {processingCommand.data, response});
             }
         }
         else

@@ -11,7 +11,7 @@ struct WBusCommand
     WBusCommand(String &command)
     {
         command.trim();
-        command.toUpperCase();
+        command.toLowerCase();
 
         if (!Utils::hexStringToByteArray(command, data, MESSAGE_BUFFER_SIZE, byteCount)) {
             byteCount = 0;
