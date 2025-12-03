@@ -165,7 +165,6 @@ public:
             receivedData.completeRxReception();
 
             eventBus.publish(EventType::RX_RECEIVED, getRxData());
-            eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {getTxData(), getRxData()});
           }
           if (receivedData.isReceivingTx)
           {
