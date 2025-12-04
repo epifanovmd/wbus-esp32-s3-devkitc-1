@@ -11,7 +11,7 @@ public:
     {
         OperatingState result;
 
-        if (!Utils::validateASCPacketStructure(response, 0x50, 0x06, 13))
+        if (!Utils::validateASCPacketStructure(response, WBusCommandBuilder::CMD_READ_SENSOR, WBusCommandBuilder::SENSOR_OPERATING_STATE, 11))
         {
             return result;
         }
@@ -20,27 +20,19 @@ public:
         int byteCount;
         Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
-        // Правильные смещения согласно структуре пакета:
-        // [4F][Len][D0][06][StateCode][StateNum][Flags][Unknown...]
-        result.stateCode = data[4];        // Код состояния
-        result.stateNumber = data[5];      // Номер состояния
-        result.deviceStateFlags = data[6]; // Флаги устройства
+        if (byteCount < 11)
+        {
+            return result;
+        }
 
-        // Декодируем полное описание состояния
-        decodeStateDetails(result);
+        result.stateName = getStateName(data[4]);
+        result.stateNumber = data[5];
+        result.deviceStateFlags = decodeDeviceStateFlags(data[6]);
 
         return result;
     }
 
 private:
-    static void decodeStateDetails(OperatingState &state)
-    {
-        // Полное декодирование согласно протоколу
-        state.stateName = getStateName(state.stateCode);
-        state.stateDescription = getStateDescription(state.stateCode);
-        state.deviceStateInfo = decodeDeviceStateFlags(state.deviceStateFlags);
-    }
-
     static String getStateName(uint8_t stateCode)
     {
         switch (stateCode)
@@ -257,34 +249,6 @@ private:
         }
     }
 
-    static String getStateDescription(uint8_t stateCode)
-    {
-        if (stateCode == 0x04)
-            return "Нагреватель выключен и готов к работе";
-        if (stateCode >= 0x05 && stateCode <= 0x06)
-            return "Активный процесс горения";
-        if (stateCode >= 0x07 && stateCode <= 0x09)
-            return "Фаза подачи топлива";
-        if (stateCode >= 0x0A && stateCode <= 0x0C)
-            return "Диагностика и измерения";
-        if (stateCode >= 0x10 && stateCode <= 0x1F)
-            return "Подготовка и запуск системы";
-        if (stateCode >= 0x20 && stateCode <= 0x27)
-            return "Процесс запуска";
-        if (stateCode >= 0x28 && stateCode <= 0x3F)
-            return "Контроль и стабилизация";
-        if (stateCode >= 0x41 && stateCode <= 0x44)
-            return "Основной процесс горения";
-        if (stateCode >= 0x45 && stateCode <= 0x4F)
-            return "Завершение работы";
-        if (stateCode >= 0x51 && stateCode <= 0x52)
-            return "Специальные режимы";
-        if (stateCode >= 0x54)
-            return "Аварийные и блокирующие состояния";
-
-        return "Промежуточное состояние системы";
-    }
-
     static String decodeDeviceStateFlags(uint8_t flags)
     {
         String result = "";
@@ -293,22 +257,22 @@ private:
         // Основные флаги
         if (flags & 0x01)
         {
-            result += "STFL (Start Flag), ";
+            result += "STFL, ";
             details += "Система в процессе запуска, ";
         }
         if (flags & 0x02)
         {
-            result += "UEHFL (Overheat Flag), ";
+            result += "UEHFL, ";
             details += "Обнаружен перегрев! ";
         }
         if (flags & 0x04)
         {
-            result += "SAFL (Safety Flag), ";
+            result += "SAFL, ";
             details += "Система безопасности активна, ";
         }
         if (flags & 0x08)
         {
-            result += "RZFL (Run Flag), ";
+            result += "RZFL, ";
             details += "Нагреватель в рабочем режиме, ";
         }
 

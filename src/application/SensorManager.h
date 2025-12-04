@@ -192,7 +192,6 @@ public:
     {
         if (!rx.isEmpty())
         {
-            // нужно тестировать
             operatingTimes = WBusOperatingTimesDecoder::decode(rx);
             eventBus.publish<OperatingTimes>(EventType::SENSOR_OPERATING_TIMES, operatingTimes);
 

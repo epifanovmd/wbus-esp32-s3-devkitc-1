@@ -31,19 +31,21 @@ public:
     // =========================================================================
     // ИНДЕКСЫ СЕНСОРОВ (0x50)
     // =========================================================================
-    static const uint8_t SENSOR_STATUS_FLAGS = 0x02;
-    static const uint8_t SENSOR_ON_OFF_FLAGS = 0x03;
-    static const uint8_t SENSOR_FUEL_SETTINGS = 0x04;
-    static const uint8_t SENSOR_OPERATIONAL = 0x05;
-    static const uint8_t SENSOR_OPERATING_STATE = 0x06;
-    static const uint8_t SENSOR_OPERATING_TIMES = 0x07;
-    static const uint8_t SENSOR_BURNING_DURATION = 0x0A;
-    static const uint8_t SENSOR_START_COUNTERS = 0x0C;
-    static const uint8_t SENSOR_SUBSYSTEMS_STATUS = 0x0F;
-    static const uint8_t SENSOR_TEMPERATURE_THRESHOLDS = 0x11;
-    static const uint8_t SENSOR_VENTILATION_DURATION = 0x12;
-    static const uint8_t SENSOR_FUEL_PREWARMING = 0x13;
-    static const uint8_t SENSOR_SPARK_TRANSMISSION = 0x14;
+    static const uint8_t SENSOR_STATUS_FLAGS = 0x02;           // Статус-флаги (битовые маски)
+    static const uint8_t SENSOR_ON_OFF_FLAGS = 0x03;           // Флаги вкл/выкл компонентов
+    static const uint8_t SENSOR_FUEL_SETTINGS = 0x04;          // Настройки топлива (тип, время, коэфф)
+    static const uint8_t SENSOR_OPERATIONAL = 0x05;            // Операционные измерения (темп, напряжение и т.д.)
+    static const uint8_t SENSOR_OPERATING_TIMES = 0x06;        // Время работы (working/operating hours)
+    static const uint8_t SENSOR_OPERATING_STATE = 0x07;        // Состояние работы и флаги устройства
+    static const uint8_t SENSOR_BURNING_DURATION = 0x0A;       // Длительность горения по уровням мощности
+    static const uint8_t SENSOR_WORKING_DURATION = 0x0B;       // Время включения PH и SH
+    static const uint8_t SENSOR_START_COUNTERS = 0x0C;         // Счетчики запусков
+    static const uint8_t SENSOR_SUBSYSTEMS_STATUS = 0x0F;      // Статус подсистем (свеча, насос и т.д.)
+    static const uint8_t SENSOR_OTHER_DURATION = 0x10;         // Другая длительность (по описанию протокола)
+    static const uint8_t SENSOR_TEMPERATURE_THRESHOLDS = 0x11; // Пороги температуры
+    static const uint8_t SENSOR_VENTILATION_DURATION = 0x12;   // Длительность вентиляции
+    static const uint8_t SENSOR_FUEL_PREWARMING = 0x13;        // Подогрев топлива
+    static const uint8_t SENSOR_SPARK_TRANSMISSION = 0x14;     // Спарк-трансмиссия
 
     // =========================================================================
     // ИНДЕКСЫ ИНФОРМАЦИИ (0x51)

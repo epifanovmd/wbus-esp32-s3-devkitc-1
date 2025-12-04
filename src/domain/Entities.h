@@ -160,24 +160,17 @@ struct StatusFlags
 
 struct OperatingState
 {
-    uint8_t stateCode = 0;
-    uint8_t stateNumber = 0;
-    uint8_t deviceStateFlags = 0;
     String stateName = "";
-    String stateDescription = "";
-    String deviceStateInfo = "";
+    uint8_t stateNumber = 0;
+    String deviceStateFlags = "";
 
     String toJson() const
     {
         String json = "{";
-        json += "\"stateCode\":" + String(stateCode) + ",";
-        json += "\"stateNumber\":" + String(stateNumber) + ",";
-        json += "\"deviceStateFlags\":" + String(deviceStateFlags) + ",";
         json += "\"stateName\":\"" + stateName + "\",";
-        json += "\"stateDescription\":\"" + stateDescription + "\",";
-        json += "\"deviceStateInfo\":\"" + deviceStateInfo + "\",";
-        json += "\"stateCodeHex\":\"0x" + String(stateCode, HEX) + "\",";
-        json += "\"deviceStateFlagsHex\":\"0x" + String(deviceStateFlags, HEX) + "\"";
+        json += "\"stateNumber\":" + String(stateNumber) + ",";
+        json += "\"deviceStateFlags\":" + deviceStateFlags;
+
         json += "}";
         return json;
     }
@@ -329,6 +322,7 @@ struct OperatingTimes
     uint8_t workingMinutes;
     uint16_t operatingHours;
     uint8_t operatingMinutes;
+    uint16_t startCounter;
 
     String toJson() const
     {
@@ -336,7 +330,8 @@ struct OperatingTimes
         json += "\"workingHours\":" + String(workingHours) + ",";
         json += "\"workingMinutes\":" + String(workingMinutes) + ",";
         json += "\"operatingHours\":" + String(operatingHours) + ",";
-        json += "\"operatingMinutes\":" + String(operatingMinutes);
+        json += "\"operatingMinutes\":" + String(operatingMinutes) + ",";
+        json += "\"startCounter\":" + String(startCounter);
         json += "}";
         return json;
     }

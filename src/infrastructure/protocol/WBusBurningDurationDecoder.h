@@ -3,12 +3,15 @@
 #include "../../domain/Entities.h"
 #include "../../common/Utils.h"
 
-class WBusBurningDurationDecoder {
+class WBusBurningDurationDecoder
+{
 public:
-    static BurningDuration decode(const String &response) {
+    static BurningDuration decode(const String &response)
+    {
         BurningDuration result;
-        
-        if (!Utils::validateASCPacketStructure(response, 0x50, 0x0A, 27)) {
+
+        if (!Utils::validateASCPacketStructure(response, 0x50, 0x0A, 29))
+        {
             return result;
         }
 
@@ -16,36 +19,35 @@ public:
         int byteCount;
         Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
-        if (byteCount >= 29) { // 4 байта заголовок + 25 байт данных
-            // SH 0-33% (байты 4-9)
-            result.shLow = decodePowerLevel(data, 4);
-            // SH 34-66% (байты 10-15)
-            result.shMedium = decodePowerLevel(data, 10);
-            // SH 67-100% (байты 16-21)
-            result.shHigh = decodePowerLevel(data, 16);
-            // SH >100% (байты 22-27)
-            result.shBoost = decodePowerLevel(data, 22);
-            
-            // ZH 0-33% (байты 28-33)
-            result.zhLow = decodePowerLevel(data, 28);
-            // ZH 34-66% (байты 34-39)
-            result.zhMedium = decodePowerLevel(data, 34);
-            // ZH 67-100% (байты 40-45)
-            result.zhHigh = decodePowerLevel(data, 40);
-            // ZH >100% (байты 46-51)
-            result.zhBoost = decodePowerLevel(data, 46);
-        }
+        // SH 0-33% (байты 4-6)
+        result.shLow = decodePowerLevel(data, 4);
+        // SH 34-66% (байты 7-9)
+        result.shMedium = decodePowerLevel(data, 7);
+        // SH 67-100% (байты 10-12)
+        result.shHigh = decodePowerLevel(data, 10);
+        // SH >100% (байты 13-15)
+        result.shBoost = decodePowerLevel(data, 13);
+
+        // ZH 0-33% (байты 16-18)
+        result.zhLow = decodePowerLevel(data, 16);
+        // ZH 34-66% (байты 19-21)
+        result.zhMedium = decodePowerLevel(data, 19);
+        // ZH 67-100% (байты 22-24)
+        result.zhHigh = decodePowerLevel(data, 22);
+        // ZH >100% (байты 25-27)
+        result.zhBoost = decodePowerLevel(data, 25);
 
         return result;
     }
 
 private:
-    static PowerLevelStats decodePowerLevel(uint8_t* data, int startIndex) {
+    static PowerLevelStats decodePowerLevel(uint8_t *data, int startIndex)
+    {
         PowerLevelStats stats;
-        if (startIndex + 5 < 52) { // Проверяем границы
+        if (startIndex + 5 < 29)
+        {
             stats.hours = (data[startIndex] << 8) | data[startIndex + 1];
             stats.minutes = data[startIndex + 2];
-            // Байты startIndex+3, +4, +5 - возможно резерв или дополнительные данные
         }
         return stats;
     }
