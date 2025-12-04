@@ -10,6 +10,14 @@ struct BusConfig
     uint32_t commandTimeout = 2000;
     uint8_t maxRetries = 3;
     uint32_t queueInterval = 150;
+
+    // Пины для управления TJA1020
+    uint32_t NSLP_PIN = 7;               // Sleep control (active LOW)
+    uint32_t NWAKE_PIN = 6;              // Wake-up input (active LOW)
+    uint32_t RXD_PULLUP = 8;             // Пин для подтяжки RXD (open-drain)
+    uint32_t SERIAL_CONFIG = SERIAL_8E1; // 8 бит, Even parity, 1 стоп-бит
+    uint32_t RX_TJA_PIN = 18;
+    uint32_t TX_TJA_PIN = 17;
 };
 
 struct NetworkConfig

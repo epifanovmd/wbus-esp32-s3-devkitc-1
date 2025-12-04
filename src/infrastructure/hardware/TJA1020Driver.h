@@ -23,16 +23,16 @@ public:
     bool initialize() override
     {
         // Инициализация пинов управления TJA1020
-        pinMode(NSLP_PIN, OUTPUT);
-        pinMode(NWAKE_PIN, OUTPUT);
-        pinMode(RXD_PULLUP, OUTPUT);
+        pinMode(config.NSLP_PIN, OUTPUT);
+        pinMode(config.NWAKE_PIN, OUTPUT);
+        pinMode(config.RXD_PULLUP, OUTPUT);
 
         // Подтяжка RXD к 3.3V
-        digitalWrite(RXD_PULLUP, HIGH);
+        digitalWrite(config.RXD_PULLUP, HIGH);
 
         // Изначально спящий режим
-        digitalWrite(NSLP_PIN, LOW);
-        digitalWrite(NWAKE_PIN, HIGH);
+        digitalWrite(config.NSLP_PIN, LOW);
+        digitalWrite(config.NWAKE_PIN, HIGH);
 
         Serial.println("✅ TJA1020 Driver initialized");
         return true;
@@ -48,9 +48,6 @@ public:
 
         setConnectionState(ConnectionState::CONNECTING);
         wakeUp();
-
-        // Инициализация UART из оригинального кода
-        serial.begin(2400, SERIAL_8E1, 18, 17);
 
         setConnectionState(ConnectionState::CONNECTED);
         Serial.println("✅ TJA1020 connected");
@@ -76,15 +73,18 @@ public:
 
     void wakeUp() override
     {
-        digitalWrite(NSLP_PIN, HIGH);
+        digitalWrite(config.NSLP_PIN, HIGH);
         delay(10);
 
-        digitalWrite(NWAKE_PIN, LOW);
+        digitalWrite(config.NWAKE_PIN, LOW);
         delay(2);
-        digitalWrite(NWAKE_PIN, HIGH);
+        digitalWrite(config.NWAKE_PIN, HIGH);
 
         delay(50);
         isAwakeFlag = true;
+
+        // Инициализация UART из оригинального кода
+        serial.begin(config.baudRate, SERIAL_8E1, config.RX_TJA_PIN, config.TX_TJA_PIN);
 
         Serial.println("🔔 TJA1020 awakened");
     }
@@ -100,12 +100,12 @@ public:
 
     void sleep() override
     {
-        digitalWrite(TX_TJA_PIN, HIGH);
+        digitalWrite(config.TX_TJA_PIN, HIGH);
         delay(10);
 
         serial.end();
-        digitalWrite(NSLP_PIN, LOW);
-        digitalWrite(NWAKE_PIN, HIGH);
+        digitalWrite(config.NSLP_PIN, LOW);
+        digitalWrite(config.NWAKE_PIN, HIGH);
 
         delay(10);
         isAwakeFlag = false;
@@ -120,11 +120,11 @@ public:
 
     bool sendCommand(uint8_t *data, size_t length) override
     {
-        if (!isAwakeFlag)
-        {
-            Serial.println("❌ TJA1020 is sleeping");
-            return false;
-        }
+        // if (!isAwakeFlag)
+        // {
+        //     Serial.println("❌ TJA1020 is sleeping");
+        //     return false;
+        // }
 
         for (int i = 0; i < length; i++)
         {

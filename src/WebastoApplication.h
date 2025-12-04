@@ -274,6 +274,14 @@ private:
             {
                 WBusCommandBuilder::generateAndPrintAllCommands();
             }
+            else if (command == "wake")
+            {
+                busDriver.wakeUp();
+            }
+            else if (command == "sleep")
+            {
+                busDriver.sleep();
+            }
             else if (command == "help" || command == "h")
             {
                 printHelp();
@@ -282,7 +290,7 @@ private:
             {
                 // Прямая отправка команды в очередь
                 heaterController.breakIfNeeded();
-                commandManager.addCommand(command);
+                commandManager.addPriorityCommand(command);
             }
         }
     }

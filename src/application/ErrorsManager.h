@@ -19,12 +19,11 @@ private:
 
 public:
   ErrorsManager(EventBus &bus, CommandManager &cmdManager) : eventBus(bus),
-                                                             commandManager(cmdManager),
-                                                             errorDetailsDecoder(errorsDecoder) {}
+                                                             commandManager(cmdManager) {}
 
   void checkErrors(bool loop = false, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadErrors(), callback, loop);
+    commandManager.addPriorityCommand(WBusCommandBuilder::createReadErrors(), callback, loop);
   }
 
   void resetErrors(std::function<void(String, String)> callback = nullptr) override
@@ -42,7 +41,7 @@ public:
 
   void readErrorDetails(uint8_t errorCode, std::function<void(String, String)> callback = nullptr) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadErrorDetails(errorCode), callback);
+    commandManager.addPriorityCommand(WBusCommandBuilder::createReadErrorDetails(errorCode), callback);
   }
 
   // =========================================================================
@@ -53,6 +52,17 @@ public:
     {
       currentErrors = errorsDecoder.decodeErrorPacket(rx);
       eventBus.publish<ErrorCollection>(EventType::WBUS_ERRORS, currentErrors);
+
+      for (size_t i = 0; i < currentErrors.errorCount; i++)
+      {
+
+        WebastoError error = currentErrors.errors[i];
+
+        if (error.code)
+        {
+          readErrorDetails(error.code);
+        }
+      }
 
       if (callback)
       {
@@ -78,6 +88,7 @@ public:
   void handleErrorDetailsResponse(String tx, String rx, uint8_t errorCode, std::function<void(String, String, ErrorDetails *)> callback = nullptr)
   {
     ErrorDetails details = errorDetailsDecoder.decode(rx, errorCode);
+    eventBus.publish<ErrorDetails>(EventType::WBUS_DETAILS_ERROR, details);
 
     if (callback)
     {

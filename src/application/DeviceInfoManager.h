@@ -12,15 +12,14 @@ private:
   CommandManager &commandManager;
 
   // Данные устройства
-  String wbusVersion;
-  String deviceName;
-  String deviceID;
-  String serialNumber;
-  String controllerManufactureDate;
-  String heaterManufactureDate;
-  String customerID;
-  String wbusCode;
-  String supportedFunctions;
+  String wbusVersion = "N/A";
+  String deviceName = "N/A";
+  String deviceID = "N/A";
+  String serialNumber = "N/A";
+  String controllerManufactureDate = "N/A";
+  String heaterManufactureDate = "N/A";
+  String customerID = "N/A";
+  DecodedWBusCode wBusCode;
 
   bool hasData = false;
 
@@ -114,14 +113,12 @@ public:
   {
     if (!rx.isEmpty())
     {
-      DecodedWBusCode code = WBusInfoDecoder::decodeWBusCode(rx);
-      wbusCode = code.codeString;
-      supportedFunctions = code.supportedFunctions;
-      eventBus.publish<DecodedWBusCode>(EventType::WBUS_CODE, code);
+      wBusCode = WBusInfoDecoder::decodeWBusCode(rx);
+      eventBus.publish<DecodedWBusCode>(EventType::WBUS_CODE, wBusCode);
 
       if (callback)
       {
-        callback(tx, rx, &code);
+        callback(tx, rx, &wBusCode);
       }
     }
   }
@@ -207,8 +204,7 @@ public:
   String getControllerManufactureDateData() const override { return controllerManufactureDate; }
   String getHeaterManufactureDateData() const override { return heaterManufactureDate; }
   String getCustomerIDData() const override { return customerID; }
-  String getWBusCodeData() const override { return wbusCode; }
-  String getSupportedFunctionsData() const override { return supportedFunctions; }
+  DecodedWBusCode getWBusCodeData() const override { return wBusCode; }
 
   String getDeviceInfoJson() const override
   {
@@ -220,8 +216,7 @@ public:
     json += "\"controllerManufactureDate\":\"" + controllerManufactureDate + "\",";
     json += "\"heaterManufactureDate\":\"" + heaterManufactureDate + "\",";
     json += "\"customerId\":\"" + customerID + "\",";
-    json += "\"wbusCode\":\"" + wbusCode + "\",";
-    json += "\"supportedFunctions\":\"" + supportedFunctions + "\"";
+    json += "\"wBusCode\":" + wBusCode.toJson();
     json += "}";
     return json;
   }
@@ -235,8 +230,7 @@ public:
     controllerManufactureDate = "";
     heaterManufactureDate = "";
     customerID = "";
-    wbusCode = "";
-    supportedFunctions = "";
+    wBusCode.clear();
     hasData = false;
   }
 };

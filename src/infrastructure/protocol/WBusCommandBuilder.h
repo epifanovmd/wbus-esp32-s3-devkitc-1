@@ -446,11 +446,11 @@ public:
         testCommand("SENSOR_OPERATING_TIMES", createReadSensor(SENSOR_OPERATING_TIMES), "f4 03 50 06 a1");
         testCommand("SENSOR_OPERATING_STATE", createReadSensor(SENSOR_OPERATING_STATE), "f4 03 50 07 a0");
         testCommand("SENSOR_BURNING_DURATION", createReadSensor(SENSOR_BURNING_DURATION), "f4 03 50 0a ad");
-        testCommand("SENSOR_WORKING_DURATION", createReadSensor(SENSOR_WORKING_DURATION), "f4 03 50 0b ac"); // не используется
+        testCommand("SENSOR_WORKING_DURATION", createReadSensor(SENSOR_WORKING_DURATION), "f4 03 50 0b ac"); // не удается декодировать ответ
         testCommand("SENSOR_START_COUNTERS", createReadSensor(SENSOR_START_COUNTERS), "f4 03 50 0c ab");
         testCommand("SENSOR_SUBSYSTEMS", createReadSensor(SENSOR_SUBSYSTEMS_STATUS), "f4 03 50 0f a8");
         testCommand("SENSOR_OTHER_DURATION", createReadSensor(SENSOR_OTHER_DURATION), "f4 03 50 10 b7"); // не используется
-        testCommand("SENSOR_TEMP_THRESHOLDS", createReadSensor(SENSOR_TEMPERATURE_THRESHOLDS), "f4 03 50 11 b6"); // не используется
+        testCommand("SENSOR_TEMP_THRESHOLDS", createReadSensor(SENSOR_TEMPERATURE_THRESHOLDS), "f4 03 50 11 b6"); // не удается декодировать ответ
         testCommand("SENSOR_VENTILATION_DUR", createReadSensor(SENSOR_VENTILATION_DURATION), "f4 03 50 12 b5");   // не используется
         testCommand("SENSOR_FUEL_PREWARMING", createReadSensor(SENSOR_FUEL_PREWARMING), "f4 03 50 13 b4");
         testCommand("SENSOR_SPARK_TRANSMISSION", createReadSensor(SENSOR_SPARK_TRANSMISSION), "f4 03 50 14 b3"); // не используется
@@ -465,7 +465,7 @@ public:
 
         testCommand("INFO_DEVICE_ID", createReadInfo(INFO_DEVICE_ID), "f4 03 51 01 a7");
         testCommand("INFO_HARDWARE_VERSION", createReadInfo(INFO_HARDWARE_VERSION), "f4 03 51 02 a4"); // не используется
-        testCommand("INFO_DATASET_ID", createReadInfo(INFO_DATASET_ID), "f4 03 51 03 a5");             // не используется
+        testCommand("INFO_DATASET_ID", createReadInfo(INFO_DATASET_ID), "f4 03 51 03 a5");             // плохо декодируется, есть нессоответствия
         testCommand("INFO_CTRL_MFG_DATE", createReadInfo(INFO_CTRL_MFG_DATE), "f4 03 51 04 a2");
         testCommand("INFO_HEATER_MFG_DATE", createReadInfo(INFO_HEATER_MFG_DATE), "f4 03 51 05 a3");
         testCommand("INFO_UNKNOWN_06", createReadInfo(INFO_UNKNOWN_06), "f4 03 51 06 a0");

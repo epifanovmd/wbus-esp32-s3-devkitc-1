@@ -22,8 +22,7 @@ public:
     virtual String getControllerManufactureDateData() const = 0;
     virtual String getHeaterManufactureDateData() const = 0;
     virtual String getCustomerIDData() const = 0;
-    virtual String getWBusCodeData() const = 0;
-    virtual String getSupportedFunctionsData() const = 0;
+    virtual DecodedWBusCode getWBusCodeData() const = 0;
 
     virtual String getDeviceInfoJson() const = 0;
     virtual void clear() = 0;

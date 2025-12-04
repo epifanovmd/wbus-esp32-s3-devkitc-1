@@ -27,7 +27,6 @@ public:
         return result;
     }
 
-private:
     static String getStateName(uint8_t stateCode)
     {
         switch (stateCode)
@@ -244,6 +243,7 @@ private:
         }
     }
 
+private:
     static String decodeDeviceStateFlags(uint8_t flags)
     {
         String result = "";

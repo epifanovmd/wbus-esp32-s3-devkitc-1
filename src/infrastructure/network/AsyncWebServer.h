@@ -372,6 +372,14 @@ private:
                                broadcastJson(EventType::WBUS_ERRORS, errorsEvent.data.toJson());
                            });
 
+        eventBus.subscribe(EventType::WBUS_DETAILS_ERROR,
+                           [this](const Event &event)
+                           {
+                               const auto &detailsErrorEvent = static_cast<
+                                   const TypedEvent<ErrorDetails> &>(event);
+                               broadcastJson(EventType::WBUS_DETAILS_ERROR, detailsErrorEvent.data.toJson());
+                           });
+
         // =========================================================================
         // СОБЫТИЯ ДАТЧИКОВ
         // =========================================================================

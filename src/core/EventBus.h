@@ -49,6 +49,7 @@ enum class EventType
 
     // события ошибок Webasto
     WBUS_ERRORS,
+    WBUS_DETAILS_ERROR,
     COMMAND_NAK_RESPONSE,
 
     // события датчиков
