@@ -239,24 +239,21 @@ private:
 
     void complete(const String &response = "")
     {
-        if (!response.isEmpty())
+        if (processingCommand.callback)
         {
-            if (!Utils::isNakPacket(response))
-            {
-                if (processingCommand.callback)
-                {
-                    processingCommand.callback(processingCommand.data, response);
-                }
-
-                if (processingCommand.loop)
-                {
-                    normalQueue.push(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
-                }
-            }
+            processingCommand.callback(processingCommand.data, response);
         }
-        else
+
+        if (response.isEmpty())
         {
             eventBus.publish(EventType::COMMAND_SENT_ERRROR, processingCommand.data);
+        }
+        else if (!Utils::isNakPacket(response))
+        {
+            if (processingCommand.loop)
+            {
+                normalQueue.push(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
+            }
         }
 
         state = ProcessingState::IDLE;

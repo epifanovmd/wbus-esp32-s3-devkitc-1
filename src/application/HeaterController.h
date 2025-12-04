@@ -71,7 +71,6 @@ public:
         setConnectionState(ConnectionState::CONNECTING);
 
         busManager.sendBreak();
-        delay(100);
 
         // Запрашиваем основную информацию об устройстве
         deviceInfoManager.requestWBusVersion();
