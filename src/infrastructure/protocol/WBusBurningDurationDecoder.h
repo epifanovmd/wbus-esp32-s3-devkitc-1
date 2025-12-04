@@ -44,7 +44,7 @@ private:
     static PowerLevelStats decodePowerLevel(uint8_t *data, int startIndex)
     {
         PowerLevelStats stats;
-        if (startIndex + 5 < 29)
+        if (startIndex + 2 < 29)
         {
             stats.hours = (data[startIndex] << 8) | data[startIndex + 1];
             stats.minutes = data[startIndex + 2];

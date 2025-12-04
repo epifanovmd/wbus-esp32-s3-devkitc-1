@@ -399,23 +399,23 @@ public:
         Serial.println("🚗 БАЗОВЫЕ КОМАНДЫ УПРАВЛЕНИЯ:");
         Serial.println("─────────────────────────────────────────────────────────");
 
-        testCommand("SHUTDOWN", createShutdown(), "F4 02 10 E6");
-        testCommand("DIAGNOSTIC", createDiagnostic(), "F4 02 38 CE");
+        testCommand("SHUTDOWN", createShutdown(), "f4 02 10 e6");
+        testCommand("DIAGNOSTIC", createDiagnostic(), "f4 02 38 ce");
 
-        testCommand("PARK_HEAT (30min)", createParkHeat(30), "F4 03 21 1E C8");
-        testCommand("PARK_HEAT (59min)", createParkHeat(59), "F4 03 21 3B ED");
+        testCommand("PARK_HEAT (30min)", createParkHeat(30), "f4 03 21 1e c8");
+        testCommand("PARK_HEAT (59min)", createParkHeat(59), "f4 03 21 3b ed");
 
-        testCommand("VENTILATION (30min)", createVentilation(30), "F4 03 22 1E CB");
-        testCommand("VENTILATION (59min)", createVentilation(59), "F4 03 22 3B EE");
+        testCommand("VENTILATION (30min)", createVentilation(30), "f4 03 22 1e cb");
+        testCommand("VENTILATION (59min)", createVentilation(59), "f4 03 22 3b ee");
 
-        testCommand("SUPP_HEAT (30min)", createSupplementalHeat(30), "F4 03 23 1E CA");
-        testCommand("SUPP_HEAT (59min)", createSupplementalHeat(59), "F4 03 23 3B EF");
+        testCommand("SUPP_HEAT (30min)", createSupplementalHeat(30), "f4 03 23 1e ca");
+        testCommand("SUPP_HEAT (59min)", createSupplementalHeat(59), "f4 03 23 3b ef");
 
-        testCommand("BOOST_MODE (30min)", createBoostMode(30), "F4 03 25 1E CC");
-        testCommand("BOOST_MODE (59min)", createBoostMode(59), "F4 03 25 3B E9");
+        testCommand("BOOST_MODE (30min)", createBoostMode(30), "f4 03 25 1e cc");
+        testCommand("BOOST_MODE (59min)", createBoostMode(59), "f4 03 25 3b e9");
 
-        testCommand("CIRC_PUMP ON", createCirculationPumpControl(true), "F4 03 24 01 D2");
-        testCommand("CIRC_PUMP OFF", createCirculationPumpControl(false), "F4 03 24 00 D3");
+        testCommand("CIRC_PUMP ON", createCirculationPumpControl(true), "f4 03 24 01 d2");
+        testCommand("CIRC_PUMP OFF", createCirculationPumpControl(false), "f4 03 24 00 d3");
 
         Serial.println();
 
@@ -425,11 +425,11 @@ public:
         Serial.println("🔄 KEEP-ALIVE КОМАНДЫ:");
         Serial.println("─────────────────────────────────────────────────────────");
 
-        testCommand("KEEPALIVE PARKING", createKeepAliveParking(), "F4 04 44 21 00 95");
-        testCommand("KEEPALIVE VENTILATION", createKeepAliveVentilation(), "F4 04 44 22 00 96");
-        testCommand("KEEPALIVE SUPPLEMENTAL", createKeepAliveSupplemental(), "F4 04 44 23 00 97");
-        testCommand("KEEPALIVE CIRC_PUMP", createKeepAliveCirculationPump(), "F4 04 44 24 00 90");
-        testCommand("KEEPALIVE BOOST", createKeepAliveBoost(), "F4 04 44 25 00 91");
+        testCommand("KEEPALIVE PARKING", createKeepAliveParking(), "f4 04 44 21 00 95");
+        testCommand("KEEPALIVE VENTILATION", createKeepAliveVentilation(), "f4 04 44 22 00 96");
+        testCommand("KEEPALIVE SUPPLEMENTAL", createKeepAliveSupplemental(), "f4 04 44 23 00 97");
+        testCommand("KEEPALIVE CIRC_PUMP", createKeepAliveCirculationPump(), "f4 04 44 24 00 90");
+        testCommand("KEEPALIVE BOOST", createKeepAliveBoost(), "f4 04 44 25 00 91");
 
         Serial.println();
 
@@ -439,21 +439,21 @@ public:
         Serial.println("📊 КОМАНДЫ ЧТЕНИЯ СЕНСОРОВ:");
         Serial.println("─────────────────────────────────────────────────────────");
 
-        testCommand("SENSOR_STATUS_FLAGS", createReadSensor(SENSOR_STATUS_FLAGS), "F4 03 50 02 A5");
-        testCommand("SENSOR_ON_OFF_FLAGS", createReadSensor(SENSOR_ON_OFF_FLAGS), "F4 03 50 03 A4");
-        testCommand("SENSOR_FUEL_SETTINGS", createReadSensor(SENSOR_FUEL_SETTINGS), "F4 03 50 04 A3");
-        testCommand("SENSOR_OPERATIONAL", createReadSensor(SENSOR_OPERATIONAL), "F4 03 50 05 A2");
-        testCommand("SENSOR_OPERATING_TIMES", createReadSensor(SENSOR_OPERATING_TIMES), "F4 03 50 07 A0");
-        testCommand("SENSOR_OPERATING_STATE", createReadSensor(SENSOR_OPERATING_STATE), "F4 03 50 06 A1");
-        testCommand("SENSOR_BURNING_DURATION", createReadSensor(SENSOR_BURNING_DURATION), "F4 03 50 0A A0");
-        testCommand("SENSOR_WORKING_DURATION", createReadSensor(SENSOR_WORKING_DURATION), "F4 03 50 0B A0"); // не используется
-        testCommand("SENSOR_START_COUNTERS", createReadSensor(SENSOR_START_COUNTERS), "F4 03 50 0C A0");
-        testCommand("SENSOR_SUBSYSTEMS", createReadSensor(SENSOR_SUBSYSTEMS_STATUS), "F4 03 50 0F A8");
-        testCommand("SENSOR_OTHER_DURATION", createReadSensor(SENSOR_OTHER_DURATION), "F4 03 50 10 B6"); // не используется
-        testCommand("SENSOR_TEMP_THRESHOLDS", createReadSensor(SENSOR_TEMPERATURE_THRESHOLDS), "F4 03 50 11 B6"); // не используется
-        testCommand("SENSOR_VENTILATION_DUR", createReadSensor(SENSOR_VENTILATION_DURATION), "F4 03 50 12 B5");   // не используется
-        testCommand("SENSOR_FUEL_PREWARMING", createReadSensor(SENSOR_FUEL_PREWARMING), "F4 03 50 13 B4");
-        testCommand("SENSOR_SPARK_TRANSMISSION", createReadSensor(SENSOR_SPARK_TRANSMISSION), "F4 03 50 14 B3"); // не используется
+        testCommand("SENSOR_STATUS_FLAGS", createReadSensor(SENSOR_STATUS_FLAGS), "f4 03 50 02 a5");
+        testCommand("SENSOR_ON_OFF_FLAGS", createReadSensor(SENSOR_ON_OFF_FLAGS), "f4 03 50 03 a4");
+        testCommand("SENSOR_FUEL_SETTINGS", createReadSensor(SENSOR_FUEL_SETTINGS), "f4 03 50 04 a3");
+        testCommand("SENSOR_OPERATIONAL", createReadSensor(SENSOR_OPERATIONAL), "f4 03 50 05 a2");
+        testCommand("SENSOR_OPERATING_TIMES", createReadSensor(SENSOR_OPERATING_TIMES), "f4 03 50 06 a1");
+        testCommand("SENSOR_OPERATING_STATE", createReadSensor(SENSOR_OPERATING_STATE), "f4 03 50 07 a0");
+        testCommand("SENSOR_BURNING_DURATION", createReadSensor(SENSOR_BURNING_DURATION), "f4 03 50 0a ad");
+        testCommand("SENSOR_WORKING_DURATION", createReadSensor(SENSOR_WORKING_DURATION), "f4 03 50 0b ac"); // не используется
+        testCommand("SENSOR_START_COUNTERS", createReadSensor(SENSOR_START_COUNTERS), "f4 03 50 0c ab");
+        testCommand("SENSOR_SUBSYSTEMS", createReadSensor(SENSOR_SUBSYSTEMS_STATUS), "f4 03 50 0f a8");
+        testCommand("SENSOR_OTHER_DURATION", createReadSensor(SENSOR_OTHER_DURATION), "f4 03 50 10 b7"); // не используется
+        testCommand("SENSOR_TEMP_THRESHOLDS", createReadSensor(SENSOR_TEMPERATURE_THRESHOLDS), "f4 03 50 11 b6"); // не используется
+        testCommand("SENSOR_VENTILATION_DUR", createReadSensor(SENSOR_VENTILATION_DURATION), "f4 03 50 12 b5");   // не используется
+        testCommand("SENSOR_FUEL_PREWARMING", createReadSensor(SENSOR_FUEL_PREWARMING), "f4 03 50 13 b4");
+        testCommand("SENSOR_SPARK_TRANSMISSION", createReadSensor(SENSOR_SPARK_TRANSMISSION), "f4 03 50 14 b3"); // не используется
 
         Serial.println();
 
@@ -463,19 +463,19 @@ public:
         Serial.println("ℹ️  КОМАНДЫ ЧТЕНИЯ ИНФОРМАЦИИ:");
         Serial.println("─────────────────────────────────────────────────────────");
 
-        testCommand("INFO_DEVICE_ID", createReadInfo(INFO_DEVICE_ID), "F4 03 51 01 A7");
-        testCommand("INFO_HARDWARE_VERSION", createReadInfo(INFO_HARDWARE_VERSION), "F4 03 51 02 A4"); // не используется
-        testCommand("INFO_DATASET_ID", createReadInfo(INFO_DATASET_ID), "F4 03 51 03 A5");             // не используется
-        testCommand("INFO_CTRL_MFG_DATE", createReadInfo(INFO_CTRL_MFG_DATE), "F4 03 51 04 A2");
-        testCommand("INFO_HEATER_MFG_DATE", createReadInfo(INFO_HEATER_MFG_DATE), "F4 03 51 05 A3");
-        testCommand("INFO_UNKNOWN_06", createReadInfo(INFO_UNKNOWN_06), "F4 03 51 06 A0");
-        testCommand("INFO_CUSTOMER_ID", createReadInfo(INFO_CUSTOMER_ID), "F4 03 51 07 A1");
-        testCommand("INFO_SERIAL_NUMBER", createReadInfo(INFO_SERIAL_NUMBER), "F4 03 51 09 AF");
+        testCommand("INFO_DEVICE_ID", createReadInfo(INFO_DEVICE_ID), "f4 03 51 01 a7");
+        testCommand("INFO_HARDWARE_VERSION", createReadInfo(INFO_HARDWARE_VERSION), "f4 03 51 02 a4"); // не используется
+        testCommand("INFO_DATASET_ID", createReadInfo(INFO_DATASET_ID), "f4 03 51 03 a5");             // не используется
+        testCommand("INFO_CTRL_MFG_DATE", createReadInfo(INFO_CTRL_MFG_DATE), "f4 03 51 04 a2");
+        testCommand("INFO_HEATER_MFG_DATE", createReadInfo(INFO_HEATER_MFG_DATE), "f4 03 51 05 a3");
+        testCommand("INFO_UNKNOWN_06", createReadInfo(INFO_UNKNOWN_06), "f4 03 51 06 a0");
+        testCommand("INFO_CUSTOMER_ID", createReadInfo(INFO_CUSTOMER_ID), "f4 03 51 07 a1");
+        testCommand("INFO_SERIAL_NUMBER", createReadInfo(INFO_SERIAL_NUMBER), "f4 03 51 09 af");
 
-        testCommand("INFO_WBUS_VERSION", createReadInfo(INFO_WBUS_VERSION), "F4 03 51 0A AC");
-        testCommand("INFO_DEVICE_NAME", createReadInfo(INFO_DEVICE_NAME), "F4 03 51 0B AD");
-        testCommand("INFO_WBUS_CODE", createReadInfo(INFO_WBUS_CODE), "F4 03 51 0C AA");
-        testCommand("INFO_UNKNOWN_0D", createReadInfo(INFO_UNKNOWN_0D), "F4 03 51 0D AB"); // не используется
+        testCommand("INFO_WBUS_VERSION", createReadInfo(INFO_WBUS_VERSION), "f4 03 51 0a ac");
+        testCommand("INFO_DEVICE_NAME", createReadInfo(INFO_DEVICE_NAME), "f4 03 51 0b ad");
+        testCommand("INFO_WBUS_CODE", createReadInfo(INFO_WBUS_CODE), "f4 03 51 0c aa");
+        testCommand("INFO_UNKNOWN_0D", createReadInfo(INFO_UNKNOWN_0D), "f4 03 51 0d ab"); // не используется
 
         Serial.println();
 
@@ -485,8 +485,8 @@ public:
         Serial.println("🚨 КОМАНДЫ ОШИБОК:");
         Serial.println("─────────────────────────────────────────────────────────");
 
-        testCommand("ERROR_READ_LIST", createReadErrors(), "F4 03 56 01 A0");
-        testCommand("ERROR_CLEAR", createClearErrors(), "F4 03 56 03 A2");
+        testCommand("ERROR_READ_LIST", createReadErrors(), "f4 03 56 01 a0");
+        testCommand("ERROR_CLEAR", createClearErrors(), "f4 03 56 03 a2");
 
         Serial.println();
 
@@ -498,31 +498,31 @@ public:
 
         testCommand("TEST_COMBUSTION_FAN (10s, 50%)",
                     createTestCombustionFan(10, 50),
-                    "F4 06 45 01 0A 00 FF 43");
+                    "f4 06 45 01 0a 00 ff 43");
 
         testCommand("TEST_FUEL_PUMP (10s, 15Hz)",
                     createTestFuelPump(10, 15),
-                    "F4 06 45 02 0A 01 2C 92");
+                    "f4 06 45 02 0a 01 2c 92");
 
         testCommand("TEST_GLOW_PLUG (5s, 75%)",
                     createTestGlowPlug(5, 75),
-                    "F4 06 45 03 05 00 96 27");
+                    "f4 06 45 03 05 00 96 27");
 
         testCommand("TEST_CIRC_PUMP (15s, 100%)",
                     createTestCirculationPump(15, 100),
-                    "F4 06 45 04 0F 00 C8 74");
+                    "f4 06 45 04 0f 00 c8 74");
 
         testCommand("TEST_VEHICLE_FAN (8s)",
                     createTestVehicleFan(8),
-                    "F4 06 45 05 08 00 01 BB");
+                    "f4 06 45 05 08 00 01 bb");
 
         testCommand("TEST_SOLENOID (12s)",
                     createTestSolenoidValve(12),
-                    "F4 06 45 09 0C 00 01 B3");
+                    "f4 06 45 09 0c 00 01 b3");
 
         testCommand("TEST_FUEL_PREHEATING (20s, 50%)",
                     createTestFuelPreheating(20, 50),
-                    "F4 06 45 0F 14 00 64 C8");
+                    "f4 06 45 0f 14 00 ff 53");
 
         Serial.println();
         Serial.println("═══════════════════════════════════════════════════════════");

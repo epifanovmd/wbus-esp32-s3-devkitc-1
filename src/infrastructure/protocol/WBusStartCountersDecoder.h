@@ -10,7 +10,7 @@ public:
     {
         StartCounters result = {0, 0, 0};
 
-        if (!Utils::validateASCPacketStructure(response, 0x50, 0x0C, 9))
+        if (!Utils::validateASCPacketStructure(response, 0x50, 0x0C, 11))
         {
             return result;
         }
@@ -19,12 +19,9 @@ public:
         int byteCount;
         Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
-        if (byteCount >= 11)
-        {
-            result.shStarts = (data[4] << 8) | data[5];
-            result.zhStarts = (data[6] << 8) | data[7];
-            result.totalStarts = (data[8] << 8) | data[9];
-        }
+        result.shStarts = (data[4] << 8) | data[5];
+        result.zhStarts = (data[6] << 8) | data[7];
+        result.totalStarts = (data[8] << 8) | data[9];
 
         return result;
     }

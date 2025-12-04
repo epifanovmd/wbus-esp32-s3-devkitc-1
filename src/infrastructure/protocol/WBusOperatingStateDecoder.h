@@ -20,11 +20,6 @@ public:
         int byteCount;
         Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
-        if (byteCount < 11)
-        {
-            return result;
-        }
-
         result.stateName = getStateName(data[4]);
         result.stateNumber = data[5];
         result.deviceStateFlags = decodeDeviceStateFlags(data[6]);

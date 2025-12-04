@@ -31,6 +31,4 @@ public:
 
         return result;
     }
-
-private:
 };
