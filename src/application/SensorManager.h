@@ -290,8 +290,7 @@ public:
         json += "\"operatingTimes\":" + operatingTimes.toJson() + ",";
         json += "\"operatingState\":" + operatingState.toJson() + ",";
         json += "\"burningDuration\":" + burningDuration.toJson() + ",";
-        json += "\"startCounters\":" + startCounters.toJson();
-        +",";
+        json += "\"startCounters\":" + startCounters.toJson() + ",";
         json += "\"subsystemsStatus\":" + subsystemsStatus.toJson() + ",";
         json += "\"fuelPrewarming\":" + fuelPrewarming.toJson();
         json += "}";
