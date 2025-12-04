@@ -389,7 +389,7 @@ struct StartCounters {
         String json = "{";
         json += "\"shStarts\":" + String(shStarts) + ",";
         json += "\"zhStarts\":" + String(zhStarts) + ",";
-        json += "\"totalStarts\":" + String(totalStarts);
+        json += "\"totalStarts\":" + String(totalStarts) + "\"";
         json += "}";
         return json;
     }
