@@ -21,16 +21,16 @@ private:
     EventBus &eventBus;
     CommandManager &commandManager;
 
-    OperationalMeasurements operationalMeasurements;
-    OnOffFlags onOffFlags;
     StatusFlags statusFlags;
-    OperatingState operatingState;
-    SubsystemsStatus subsystemsStatus;
+    OnOffFlags onOffFlags;
     FuelSettings fuelSettings;
+    OperationalMeasurements operationalMeasurements;
     OperatingTimes operatingTimes;
-    FuelPrewarming fuelPrewarming;
+    OperatingState operatingState;
     BurningDuration burningDuration;
     StartCounters startCounters;
+    SubsystemsStatus subsystemsStatus;
+    FuelPrewarming fuelPrewarming;
 
 public:
     SensorManager(EventBus &bus, CommandManager &cmdManager)
@@ -40,26 +40,16 @@ public:
 
     void requestAllSensorData(bool loop = false) override
     {
-        requestOperationalInfo(loop);
-        requestOnOffFlags(loop);
         requestStatusFlags(loop);
-        requestOperatingState(loop);
-        requestSubsystemsStatus(loop);
-        requestFuelPrewarming(loop);
+        requestOnOffFlags(loop);
+        requestFuelSettings();
+        requestOperationalInfo(loop);
         requestOperatingTimes();
+        requestOperatingState(loop);
         requestBurningDuration();
         requestStartCounters();
-        requestFuelSettings();
-    }
-
-    void requestOperationalInfo(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
-    {
-        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OPERATIONAL), callback, loop);
-    }
-
-    void requestOnOffFlags(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
-    {
-        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_ON_OFF_FLAGS), callback, loop);
+        requestSubsystemsStatus(loop);
+        requestFuelPrewarming(loop);
     }
 
     void requestStatusFlags(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
@@ -67,14 +57,9 @@ public:
         commandManager.addPriorityCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_STATUS_FLAGS), callback, loop);
     }
 
-    void requestOperatingState(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    void requestOnOffFlags(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
     {
-        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OPERATING_STATE), callback, loop);
-    }
-
-    void requestSubsystemsStatus(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
-    {
-        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_SUBSYSTEMS_STATUS), callback, loop);
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_ON_OFF_FLAGS), callback, loop);
     }
 
     void requestFuelSettings(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
@@ -82,14 +67,19 @@ public:
         commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_FUEL_SETTINGS), callback, loop);
     }
 
+    void requestOperationalInfo(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OPERATIONAL), callback, loop);
+    }
+
     void requestOperatingTimes(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
     {
         commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OPERATING_TIMES), callback, loop);
     }
 
-    void requestFuelPrewarming(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    void requestOperatingState(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
     {
-        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_FUEL_PREWARMING), callback, loop);
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OPERATING_STATE), callback, loop);
     }
 
     void requestBurningDuration(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
@@ -97,23 +87,58 @@ public:
         commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_BURNING_DURATION), callback, loop);
     }
 
+    // void requestWorkingDuration(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    // {
+    //     commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_WORKING_DURATION), callback, loop);
+    // }
+
     void requestStartCounters(bool loop = false, std::function<void(String, String)> callback = nullptr) override
     {
         commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_START_COUNTERS), callback, loop);
     }
 
+    void requestSubsystemsStatus(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_SUBSYSTEMS_STATUS), callback, loop);
+    }
+
+    // void requestOtherDuration(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    // {
+    //     commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_OTHER_DURATION), callback, loop);
+    // }
+
+    // void requestTemperatureThresholds(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    // {
+    //     commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_TEMPERATURE_THRESHOLDS), callback, loop);
+    // }
+
+    // void requestVentilationDuration(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    // {
+    //     commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_VENTILATION_DURATION), callback, loop);
+    // }
+
+    void requestFuelPrewarming(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    {
+        commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_FUEL_PREWARMING), callback, loop);
+    }
+
+    // void requestSparkTransmission(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) override
+    // {
+    //     commandManager.addCommand(WBusCommandBuilder::createReadSensor(WBusCommandBuilder::SENSOR_SPARK_TRANSMISSION), callback, loop);
+    // }
+
     // =========================================================================
 
-    void handleOperationalInfoResponse(String tx, String rx, std::function<void(String tx, String rx, OperationalMeasurements *measurements)> callback = nullptr)
+    void handleStatusFlagsResponse(String tx, String rx, std::function<void(String tx, String rx, StatusFlags *status)> callback = nullptr)
     {
         if (!rx.isEmpty())
         {
-            operationalMeasurements = WBusOperationalInfoDecoder::decode(rx);
-            eventBus.publish<OperationalMeasurements>(EventType::SENSOR_OPERATIONAL_INFO, operationalMeasurements);
+            statusFlags = WBusStatusFlagsDecoder::decode(rx);
+            eventBus.publish<StatusFlags>(EventType::SENSOR_STATUS_FLAGS, statusFlags);
 
             if (callback)
             {
-                callback(tx, rx, &operationalMeasurements);
+                callback(tx, rx, &statusFlags);
             }
         }
     }
@@ -132,48 +157,6 @@ public:
         }
     }
 
-    void handleStatusFlagsResponse(String tx, String rx, std::function<void(String tx, String rx, StatusFlags *status)> callback = nullptr)
-    {
-        if (!rx.isEmpty())
-        {
-            statusFlags = WBusStatusFlagsDecoder::decode(rx);
-            eventBus.publish<StatusFlags>(EventType::SENSOR_STATUS_FLAGS, statusFlags);
-
-            if (callback)
-            {
-                callback(tx, rx, &statusFlags);
-            }
-        }
-    }
-
-    void handleOperatingStateResponse(String tx, String rx, std::function<void(String tx, String rx, OperatingState *state)> callback = nullptr)
-    {
-        if (!rx.isEmpty())
-        {
-            operatingState = WBusOperatingStateDecoder::decode(rx);
-            eventBus.publish<OperatingState>(EventType::SENSOR_OPERATING_STATE, operatingState);
-
-            if (callback)
-            {
-                callback(tx, rx, &operatingState);
-            }
-        }
-    }
-
-    void handleSubsystemsStatusResponse(String tx, String rx, std::function<void(String tx, String rx, SubsystemsStatus *subsystems)> callback = nullptr)
-    {
-        if (!rx.isEmpty())
-        {
-            subsystemsStatus = WBusSubSystemsDecoder::decode(rx);
-            eventBus.publish<SubsystemsStatus>(EventType::SENSOR_SUBSYSTEM_STATE, subsystemsStatus);
-
-            if (callback)
-            {
-                callback(tx, rx, &subsystemsStatus);
-            }
-        }
-    }
-
     void handleFuelSettingsResponse(String tx, String rx, std::function<void(String tx, String rx, FuelSettings *fuel)> callback = nullptr)
     {
         if (!rx.isEmpty())
@@ -184,6 +167,20 @@ public:
             if (callback)
             {
                 callback(tx, rx, &fuelSettings);
+            }
+        }
+    }
+
+    void handleOperationalInfoResponse(String tx, String rx, std::function<void(String tx, String rx, OperationalMeasurements *measurements)> callback = nullptr)
+    {
+        if (!rx.isEmpty())
+        {
+            operationalMeasurements = WBusOperationalInfoDecoder::decode(rx);
+            eventBus.publish<OperationalMeasurements>(EventType::SENSOR_OPERATIONAL_INFO, operationalMeasurements);
+
+            if (callback)
+            {
+                callback(tx, rx, &operationalMeasurements);
             }
         }
     }
@@ -202,16 +199,16 @@ public:
         }
     }
 
-    void handleFuelPrewarmingResponse(String tx, String rx, std::function<void(String, String, FuelPrewarming *)> callback = nullptr)
+    void handleOperatingStateResponse(String tx, String rx, std::function<void(String tx, String rx, OperatingState *state)> callback = nullptr)
     {
         if (!rx.isEmpty())
         {
-            fuelPrewarming = WBusFuelPrewarmingDecoder::decode(rx);
-            eventBus.publish<FuelPrewarming>(EventType::FUEL_PREWARMING, fuelPrewarming);
+            operatingState = WBusOperatingStateDecoder::decode(rx);
+            eventBus.publish<OperatingState>(EventType::SENSOR_OPERATING_STATE, operatingState);
 
             if (callback)
             {
-                callback(tx, rx, &fuelPrewarming);
+                callback(tx, rx, &operatingState);
             }
         }
     }
@@ -244,30 +241,59 @@ public:
         }
     }
 
-    OperationalMeasurements getOperationalMeasurementsData() override { return operationalMeasurements; }
-    FuelSettings getFuelSettingsData() override { return fuelSettings; }
-    OnOffFlags getOnOffFlagsData() override { return onOffFlags; }
+    void handleSubsystemsStatusResponse(String tx, String rx, std::function<void(String tx, String rx, SubsystemsStatus *subsystems)> callback = nullptr)
+    {
+        if (!rx.isEmpty())
+        {
+            subsystemsStatus = WBusSubSystemsDecoder::decode(rx);
+            eventBus.publish<SubsystemsStatus>(EventType::SENSOR_SUBSYSTEM_STATE, subsystemsStatus);
+
+            if (callback)
+            {
+                callback(tx, rx, &subsystemsStatus);
+            }
+        }
+    }
+
+    void handleFuelPrewarmingResponse(String tx, String rx, std::function<void(String, String, FuelPrewarming *)> callback = nullptr)
+    {
+        if (!rx.isEmpty())
+        {
+            fuelPrewarming = WBusFuelPrewarmingDecoder::decode(rx);
+            eventBus.publish<FuelPrewarming>(EventType::FUEL_PREWARMING, fuelPrewarming);
+
+            if (callback)
+            {
+                callback(tx, rx, &fuelPrewarming);
+            }
+        }
+    }
+
     StatusFlags getStatusFlagsData() override { return statusFlags; }
-    OperatingState geToperatingStateData() override { return operatingState; }
-    SubsystemsStatus geTsubsystemsStatusData() override { return subsystemsStatus; }
+    OnOffFlags getOnOffFlagsData() override { return onOffFlags; }
+    FuelSettings getFuelSettingsData() override { return fuelSettings; }
+    OperationalMeasurements getOperationalMeasurementsData() override { return operationalMeasurements; }
     OperatingTimes getOperatingTimesData() override { return operatingTimes; }
-    FuelPrewarming getFuelPrewarmingData() override { return fuelPrewarming; }
+    OperatingState getOperatingStateData() override { return operatingState; }
     BurningDuration getBurningDurationData() override { return burningDuration; }
     StartCounters getStartCountersData() override { return startCounters; }
+    SubsystemsStatus geTsubsystemsStatusData() override { return subsystemsStatus; }
+    FuelPrewarming getFuelPrewarmingData() override { return fuelPrewarming; }
 
     String getAllSensorsJson() const
     {
         String json = "{";
-        json += "\"operationalMeasurements\":" + operationalMeasurements.toJson() + ",";
-        json += "\"fuelSettings\":" + fuelSettings.toJson() + ",";
-        json += "\"onOffFlags\":" + onOffFlags.toJson() + ",";
         json += "\"statusFlags\":" + statusFlags.toJson() + ",";
-        json += "\"operatingState\":" + operatingState.toJson() + ",";
-        json += "\"subsystemsStatus\":" + subsystemsStatus.toJson() + ",";
+        json += "\"onOffFlags\":" + onOffFlags.toJson() + ",";
+        json += "\"fuelSettings\":" + fuelSettings.toJson() + ",";
+        json += "\"operationalMeasurements\":" + operationalMeasurements.toJson() + ",";
         json += "\"operatingTimes\":" + operatingTimes.toJson() + ",";
-        json += "\"fuelPrewarming\":" + fuelPrewarming.toJson() + ",";
+        json += "\"operatingState\":" + operatingState.toJson() + ",";
         json += "\"burningDuration\":" + burningDuration.toJson() + ",";
         json += "\"startCounters\":" + startCounters.toJson();
+        +",";
+        json += "\"subsystemsStatus\":" + subsystemsStatus.toJson() + ",";
+        json += "\"fuelPrewarming\":" + fuelPrewarming.toJson();
         json += "}";
         return json;
     }

@@ -169,8 +169,7 @@ struct OperatingState
         String json = "{";
         json += "\"stateName\":\"" + stateName + "\",";
         json += "\"stateNumber\":" + String(stateNumber) + ",";
-        json += "\"deviceStateFlags\":" + deviceStateFlags;
-
+        json += "\"deviceStateFlags\":\"" + deviceStateFlags + "\"";
         json += "}";
         return json;
     }

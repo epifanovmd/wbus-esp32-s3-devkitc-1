@@ -270,6 +270,10 @@ private:
             {
                 heaterController.shutdown();
             }
+            else if (command == "test")
+            {
+                WBusCommandBuilder::generateAndPrintAllCommands();
+            }
             else if (command == "help" || command == "h")
             {
                 printHelp();

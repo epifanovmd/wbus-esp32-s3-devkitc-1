@@ -293,8 +293,8 @@ private:
         }
         else
         {
-            result = "Нет активных флагов";
-            details = "Все системы в норме";
+            result = "Нет активных флагов. ";
+            details = "Все системы в норме. ";
         }
 
         if (details.length() > 0)

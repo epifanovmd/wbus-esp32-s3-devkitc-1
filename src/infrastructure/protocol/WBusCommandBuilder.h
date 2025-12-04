@@ -443,13 +443,17 @@ public:
         testCommand("SENSOR_ON_OFF_FLAGS", createReadSensor(SENSOR_ON_OFF_FLAGS), "F4 03 50 03 A4");
         testCommand("SENSOR_FUEL_SETTINGS", createReadSensor(SENSOR_FUEL_SETTINGS), "F4 03 50 04 A3");
         testCommand("SENSOR_OPERATIONAL", createReadSensor(SENSOR_OPERATIONAL), "F4 03 50 05 A2");
+        testCommand("SENSOR_OPERATING_TIMES", createReadSensor(SENSOR_OPERATING_TIMES), "F4 03 50 07 A0");
         testCommand("SENSOR_OPERATING_STATE", createReadSensor(SENSOR_OPERATING_STATE), "F4 03 50 06 A1");
-        testCommand("SENSOR_OPERATING_TIMES", createReadSensor(SENSOR_OPERATING_TIMES), "F4 03 50 07 A0"); // не используется
+        testCommand("SENSOR_BURNING_DURATION", createReadSensor(SENSOR_BURNING_DURATION), "F4 03 50 0A A0");
+        testCommand("SENSOR_WORKING_DURATION", createReadSensor(SENSOR_WORKING_DURATION), "F4 03 50 0B A0"); // не используется
+        testCommand("SENSOR_START_COUNTERS", createReadSensor(SENSOR_START_COUNTERS), "F4 03 50 0C A0");
         testCommand("SENSOR_SUBSYSTEMS", createReadSensor(SENSOR_SUBSYSTEMS_STATUS), "F4 03 50 0F A8");
+        testCommand("SENSOR_OTHER_DURATION", createReadSensor(SENSOR_OTHER_DURATION), "F4 03 50 10 B6"); // не используется
         testCommand("SENSOR_TEMP_THRESHOLDS", createReadSensor(SENSOR_TEMPERATURE_THRESHOLDS), "F4 03 50 11 B6"); // не используется
         testCommand("SENSOR_VENTILATION_DUR", createReadSensor(SENSOR_VENTILATION_DURATION), "F4 03 50 12 B5");   // не используется
-        testCommand("SENSOR_FUEL_PREWARMING", createReadSensor(SENSOR_FUEL_PREWARMING), "F4 03 50 13 B4");        // не используется
-        testCommand("SENSOR_SPARK_TRANSMISSION", createReadSensor(SENSOR_SPARK_TRANSMISSION), "F4 03 50 14 B3");  // не используется
+        testCommand("SENSOR_FUEL_PREWARMING", createReadSensor(SENSOR_FUEL_PREWARMING), "F4 03 50 13 B4");
+        testCommand("SENSOR_SPARK_TRANSMISSION", createReadSensor(SENSOR_SPARK_TRANSMISSION), "F4 03 50 14 B3"); // не используется
 
         Serial.println();
 
