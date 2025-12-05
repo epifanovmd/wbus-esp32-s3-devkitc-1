@@ -220,15 +220,15 @@ public:
 
     void clear()
     {
-        operationalMeasurements = OperationalMeasurements{};
-        fuelSettings = FuelSettings{};
-        onOffFlags = OnOffFlags{};
         statusFlags = StatusFlags{};
-        operatingState = OperatingState{};
-        subsystemsStatus = SubsystemsStatus{};
+        onOffFlags = OnOffFlags{};
+        fuelSettings = FuelSettings{};
+        operationalMeasurements = OperationalMeasurements{};
         operatingTimes = OperatingTimes{};
-        fuelPrewarming = FuelPrewarming{};
+        operatingState = OperatingState{};
         burningDuration = BurningDuration{};
         startCounters = StartCounters{};
+        subsystemsStatus = SubsystemsStatus{};
+        fuelPrewarming = FuelPrewarming{};
     }
 };

@@ -202,7 +202,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestCirculationPump(seconds, powerPercent), false,
-                                      
+
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -215,7 +215,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestVehicleFan(seconds),
-            false,
+                                          false,
                                           [this, seconds](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -572,6 +572,11 @@ private:
                 break;
             case ConnectionState::DISCONNECTED:
                 neopixelWrite(RGB_PIN, 0, 0, 0);
+
+                deviceInfoManager.clear();
+                sensorManager.clear();
+                errorsManager.clear();
+
                 break;
             }
 

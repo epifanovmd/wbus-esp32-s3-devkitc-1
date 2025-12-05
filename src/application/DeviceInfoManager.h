@@ -158,13 +158,13 @@ public:
 
   void clear() override
   {
-    wbusVersion = "";
-    deviceName = "";
-    deviceID = "";
-    serialNumber = "";
-    controllerManufactureDate = "";
-    heaterManufactureDate = "";
-    customerID = "";
+    wbusVersion = "N/A";
+    deviceName = "N/A";
+    deviceID = "N/A";
+    serialNumber = "N/A";
+    controllerManufactureDate = "N/A";
+    heaterManufactureDate = "N/A";
+    customerID = "N/A";
     wBusCode.clear();
     hasData = false;
   }
