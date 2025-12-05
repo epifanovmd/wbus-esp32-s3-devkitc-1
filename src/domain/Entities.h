@@ -266,7 +266,7 @@ struct DecodedWBusCode
 
     void clear()
     {
-        codeString = "";
+        codeString = "N/A";
         flags.clear();
     }
 };

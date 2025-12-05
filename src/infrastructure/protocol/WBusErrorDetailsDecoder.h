@@ -54,7 +54,6 @@ public:
             // Проверка кода ошибки в ответе
             if (data[4] != errorCode)
             {
-                Serial.println("Код ошибки не совпадает");
                 return details;
             }
 

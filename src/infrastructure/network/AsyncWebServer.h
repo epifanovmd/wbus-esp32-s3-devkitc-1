@@ -837,7 +837,7 @@ private:
             Serial.printf("[WebSocket] Client #%u disconnected\n", client->id());
             break;
         case WS_EVT_DATA:
-            handleWebSocketMessage(arg, data, len);
+            handleWebSocketMessage(client, arg, data, len);
             break;
         case WS_EVT_PONG:
         case WS_EVT_ERROR:
@@ -845,7 +845,7 @@ private:
         }
     }
 
-    void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
+    void handleWebSocketMessage(AsyncWebSocketClient *client, void *arg, uint8_t *data, size_t len)
     {
         AwsFrameInfo *info = (AwsFrameInfo *)arg;
         if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
@@ -853,19 +853,38 @@ private:
             data[len] = 0;
             String message = String((char *)data);
 
-            // Здесь можно добавить обработку входящих сообщений от клиента
-            // Например, команды управления нагревателем
+            // Пытаемся распарсить JSON
+            DynamicJsonDocument doc(128);
+            DeserializationError error = deserializeJson(doc, message);
 
-            Serial.printf("[WebSocket] Received: %s\n", message.c_str());
+            if (error)
+            {
+                Serial.printf("[WebSocket] Invalid JSON: %s\n", error.c_str());
+                return;
+            }
 
-            // Эхо-ответ для тестирования
-            DynamicJsonDocument doc(256);
-            doc["type"] = "echo";
-            doc["message"] = "received: " + message;
+            String res;
+            serializeJson(doc, res);
 
-            String json;
-            serializeJson(doc, json);
-            ws.textAll(json);
+            // Получаем тип сообщения
+            String type = doc["type"] | "";
+
+            // Обработка ping
+            if (type == "ping")
+            {
+                DynamicJsonDocument pongDoc(128);
+                pongDoc["type"] = "pong";
+
+                String pongJson;
+                serializeJson(pongDoc, pongJson);
+
+                if (client)
+                {
+                    ws.text(client->id(), pongJson);
+                }
+
+                return;
+            }
         }
     }
 

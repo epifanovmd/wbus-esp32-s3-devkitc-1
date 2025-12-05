@@ -120,11 +120,11 @@ public:
 
     bool sendCommand(uint8_t *data, size_t length) override
     {
-        // if (!isAwakeFlag)
-        // {
-        //     Serial.println("❌ TJA1020 is sleeping");
-        //     return false;
-        // }
+        if (!isAwakeFlag)
+        {
+            Serial.println("❌ TJA1020 is sleeping");
+            return false;
+        }
 
         for (int i = 0; i < length; i++)
         {

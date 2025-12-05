@@ -29,9 +29,6 @@ public:
             result.circulationPumpPowerPercent = result.circulationPumpPower / 2.0;
         }
 
-        Serial.println();
-        Serial.println("JSON : " + result.toJson());
-
         return result;
     }
 };

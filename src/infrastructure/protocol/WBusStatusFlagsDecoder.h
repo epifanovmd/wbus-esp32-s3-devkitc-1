@@ -38,9 +38,6 @@ public:
             result.ignitionSignal = (data[8] & 0x01) != 0;
         }
 
-        Serial.println();
-        Serial.println("JSON : " + result.toJson());
-
         return result;
     }
 };
