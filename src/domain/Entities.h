@@ -38,9 +38,9 @@ struct DecodedManufactureDate
     {
         String json = "{";
         json += "\"dateString\":\"" + dateString + "\",";
-        json += "\"day\":" + (String(day || "N/A")    ) + ",";
+        json += "\"day\":" + (String(day || "N/A")) + ",";
         json += "\"month\":" + (String(month || "N/A")) + ",";
-        json += "\"year\":" + (String(year || "N/A")  );
+        json += "\"year\":" + (String(year || "N/A"));
         json += "}";
         return json;
     }
@@ -251,8 +251,8 @@ struct WBusCodeFlags
 
 struct DecodedWBusCode
 {
-    String codeString = "N/A";   // Raw HEX string of W-Bus code
-    WBusCodeFlags flags; // All decoded flags
+    String codeString = "N/A"; // Raw HEX string of W-Bus code
+    WBusCodeFlags flags;       // All decoded flags
 
     String toJson() const
     {
@@ -370,16 +370,23 @@ struct StatusFlags
 
 struct OperatingState
 {
-    String stateName = "N/A";
-    uint8_t stateNumber = 0;
-    String deviceStateFlags = "N/A";
+    String stateCode =  "N/A";          // Код состояния
+    uint8_t stateNumber = 0;            // Номер состояния
+    String deviceStateFlags =  "N/A";   // Флаги устройства
+    String stateName = "N/A";           // Имя состояния
+    String stateDescription = "N/A";    // Описание состояния
+    String flags = "N/A";               // Только флаги (STFL, UEHFL, etc.)
+    String deviceStateInfo = "N/A";     // Полное описание флагов с пояснениями
 
-    String toJson() const
-    {
+    String toJson() const {
         String json = "{";
-        json += "\"stateName\":\"" + stateName + "\",";
+        json += "\"stateCode\":\"" + stateCode + "\",";
         json += "\"stateNumber\":" + String(stateNumber) + ",";
-        json += "\"deviceStateFlags\":\"" + deviceStateFlags + "\"";
+        json += "\"deviceStateFlags\":\"" + deviceStateFlags + "\",";
+        json += "\"stateName\":\"" + stateName + "\",";
+        json += "\"stateDescription\":\"" + stateDescription + "\",";
+        json += "\"flags\":\"" + flags + "\",";
+        json += "\"deviceStateInfo\":\"" + deviceStateInfo + "\"";
         json += "}";
         return json;
     }
@@ -451,6 +458,7 @@ struct ErrorDetails
 
     uint8_t counter; // Количество срабатываний
 
+    String errorCode; // Код ошибки
     String stateCode; // Код состояния работы (первый байт состояния)
     String stateName; // Название состояния ("Heater interlock permanent")
 
@@ -469,6 +477,7 @@ struct ErrorDetails
     String toJson() const
     {
         String json = "{";
+        json += "\"errorCode\":\"" + errorCode + "\",";
         json += "\"status\":\"" + status + "\",";
         json += "\"stateCode\":\"" + stateCode + "\",";
         json += "\"stateName\":\"" + stateName + "\",";

@@ -33,6 +33,16 @@ public:
         return (b < 0x10) ? "0" + String(b, HEX) : String(b, HEX);
     }
 
+    static String formatHexString(uint8_t b)
+    {
+        return formatHexString(byteToHexString(b));
+    }
+
+    static String formatHexString(String str)
+    {
+        return "0x" + str;
+    }
+
     static String bytesToHexString(const uint8_t *data, size_t length)
     {
         String result = "";

@@ -4,6 +4,7 @@
 #include "../../domain/Entities.h"
 #include "../../common/Utils.h"
 #include "../../common/PacketParser.h"
+#include "../../infrastructure/protocol/WBusCommandBuilder.h"
 
 class WBusOperatingStateDecoder
 {
@@ -14,18 +15,104 @@ public:
 
         PacketParser parser;
 
-        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_OPERATING_STATE), PacketParser::WithMinLength(11)))
+        if (parser.parseFromString(response, 
+            WBusCommandBuilder::CMD_READ_SENSOR, 
+            PacketParser::WithIndex(WBusCommandBuilder::SENSOR_OPERATING_STATE), 
+            PacketParser::WithMinLength(11)))
         {
             auto &data = parser.getBytes();
 
-            result.stateName = getStateName(data[4]);
+            // Сохраняем сырые данные
+            result.stateCode = Utils::formatHexString(data[4]);
             result.stateNumber = data[5];
-            result.deviceStateFlags = decodeDeviceStateFlags(data[6]);
+            result.deviceStateFlags = Utils::formatHexString(data[6]);
+            
+            // Декодируем
+            result.stateName = getStateName(data[4]);
+            result.stateDescription = getStateDescription(data[4]);
+            result.flags = decodeFlagsOnly(data[6]);
+            result.deviceStateInfo = decodeFullDeviceStateInfo(data[6]);
         }
 
         return result;
     }
 
+    static String decodeFlagsOnly(uint8_t flags)
+    {
+        String result = "";
+        
+        if (flags & 0x01) result += "STFL, ";
+        if (flags & 0x02) result += "UEHFL, ";
+        if (flags & 0x04) result += "SAFL, ";
+        if (flags & 0x08) result += "RZFL, ";
+        if (flags & 0x10) result += "FLAG_0x10, ";
+        if (flags & 0x20) result += "FLAG_0x20, ";
+        if (flags & 0x40) result += "FLAG_0x40, ";
+        if (flags & 0x80) result += "FLAG_0x80, ";
+        
+        // Убираем последнюю запятую и пробел
+        if (result.length() > 0)
+        {
+            result.remove(result.length() - 2);
+        }
+        else
+        {
+            result = "Нет активных флагов";
+        }
+        
+        return result;
+    }
+    
+    // Полное описание флагов с пояснениями
+    static String decodeFullDeviceStateInfo(uint8_t flags)
+    {
+        String flagsStr = decodeFlagsOnly(flags);
+        String details = "";
+
+        if (flags & 0x01) details += "Система в процессе запуска, ";
+        if (flags & 0x02) details += "Обнаружен перегрев! ";
+        if (flags & 0x04) details += "Система безопасности активна, ";
+        if (flags & 0x08) details += "Нагреватель в рабочем режиме, ";
+
+        if (details.length() > 0)
+        {
+            details.remove(details.length() - 2);
+        } else {
+            details = "Все системы в норме";
+        }
+        
+        return flagsStr + " | " + details + " [" + Utils::formatHexString(flags) + "]";
+    }
+
+    static String getStateDescription(uint8_t stateCode)
+    {
+        if (stateCode == 0x04)
+            return "Нагреватель выключен и готов к работе";
+        if (stateCode >= 0x05 && stateCode <= 0x06)
+            return "Активный процесс горения";
+        if (stateCode >= 0x07 && stateCode <= 0x09)
+            return "Фаза подачи топлива";
+        if (stateCode >= 0x0A && stateCode <= 0x0C)
+            return "Диагностика и измерения";
+        if (stateCode >= 0x10 && stateCode <= 0x1F)
+            return "Подготовка и запуск системы";
+        if (stateCode >= 0x20 && stateCode <= 0x27)
+            return "Процесс запуска";
+        if (stateCode >= 0x28 && stateCode <= 0x3F)
+            return "Контроль и стабилизация";
+        if (stateCode >= 0x41 && stateCode <= 0x44)
+            return "Основной процесс горения";
+        if (stateCode >= 0x45 && stateCode <= 0x4F)
+            return "Завершение работы";
+        if (stateCode >= 0x51 && stateCode <= 0x52)
+            return "Специальные режимы";
+        if (stateCode >= 0x54)
+            return "Аварийные и блокирующие состояния";
+
+        return "Промежуточное состояние системы";
+    }
+
+    // Остальные методы остаются без изменений
     static String getStateName(uint8_t stateCode)
     {
         switch (stateCode)
@@ -63,7 +150,6 @@ public:
         case 0x0F:
             return "Опрос датчика пламени";
 
-        // Состояния запуска и подготовки
         case 0x10:
             return "Охлаждение датчика пламени";
         case 0x11:
@@ -97,7 +183,6 @@ public:
         case 0x1F:
             return "Контролируемая работа";
 
-        // Основные рабочие состояния
         case 0x20:
             return "Период контроля";
         case 0x21:
@@ -163,7 +248,6 @@ public:
         case 0x3F:
             return "Зажигание пламени";
 
-        // Основные режимы работы
         case 0x40:
             return "Стабилизация пламени";
         case 0x41:
@@ -197,7 +281,6 @@ public:
         case 0x4F:
             return "Обновление памяти ошибок";
 
-        // Дополнительные состояния
         case 0x50:
             return "Цикл ожидания";
         case 0x51:
@@ -240,62 +323,5 @@ public:
         default:
             return "Неизвестное состояние (0x" + String(stateCode, HEX) + ")";
         }
-    }
-
-private:
-    static String decodeDeviceStateFlags(uint8_t flags)
-    {
-        String result = "";
-        String details = "";
-
-        // Основные флаги
-        if (flags & 0x01)
-        {
-            result += "STFL, ";
-            details += "Система в процессе запуска, ";
-        }
-        if (flags & 0x02)
-        {
-            result += "UEHFL, ";
-            details += "Обнаружен перегрев! ";
-        }
-        if (flags & 0x04)
-        {
-            result += "SAFL, ";
-            details += "Система безопасности активна, ";
-        }
-        if (flags & 0x08)
-        {
-            result += "RZFL, ";
-            details += "Нагреватель в рабочем режиме, ";
-        }
-
-        // Дополнительные флаги
-        if (flags & 0x10)
-            result += "FLAG_0x10, ";
-        if (flags & 0x20)
-            result += "FLAG_0x20, ";
-        if (flags & 0x40)
-            result += "FLAG_0x40, ";
-        if (flags & 0x80)
-            result += "FLAG_0x80, ";
-
-        // Форматирование результата
-        if (result.length() > 0)
-        {
-            result = result.substring(0, result.length() - 2);
-        }
-        else
-        {
-            result = "Нет активных флагов. ";
-            details = "Все системы в норме. ";
-        }
-
-        if (details.length() > 0)
-        {
-            details = details.substring(0, details.length() - 2);
-        }
-
-        return result + " | " + details + " [0x" + String(flags, HEX) + "]";
     }
 };
