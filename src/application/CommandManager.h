@@ -48,6 +48,7 @@ private:
     IBusManager &busManager;
     CommanReceiver &commanReceiver;
     WBusErrorsDecoder errorsDecoder;
+    PacketParser packetParser;
 
     Command processingCommand;
     ProcessingState state = ProcessingState::IDLE;
@@ -218,8 +219,6 @@ private:
 
     void sendCurrentCommand()
     {
-        PacketParser packetParser;
-
         if (packetParser.parseFromString(processingCommand.data))
         {
             if (busManager.sendCommand(packetParser.getData(), packetParser.getByteCounts()))
