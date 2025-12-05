@@ -10,22 +10,20 @@ public:
     {
         FuelPrewarming result = {0, 0, false};
 
-        if (!Utils::validateASCPacketStructure(response, 0x50, 0x13, 9))
+        PacketParser parser;
+
+        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_FUEL_PREWARMING), PacketParser::WithMinLength(9)))
         {
-            return result;
+            auto &data = parser.getBytes();
+
+            // Байты 4-5: сопротивление (big endian)
+            result.resistance = (data[4] << 8) | data[5];
+            // Байты 6-7: мощность (big endian)
+            result.power = (data[6] << 8) | data[7];
+
+            // Подогрев активен если мощность > 0
+            result.isActive = (result.power > 0);
         }
-
-        uint8_t data[MESSAGE_BUFFER_SIZE];
-        int byteCount;
-        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
-
-        // Байты 4-5: сопротивление (big endian)
-        result.resistance = (data[4] << 8) | data[5];
-        // Байты 6-7: мощность (big endian)
-        result.power = (data[6] << 8) | data[7];
-
-        // Подогрев активен если мощность > 0
-        result.isActive = (result.power > 0);
 
         return result;
     }

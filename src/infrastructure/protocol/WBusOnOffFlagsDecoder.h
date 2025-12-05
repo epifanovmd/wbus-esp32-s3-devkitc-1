@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "../../domain/Entities.h"
 #include "../../common/Utils.h"
+#include "../../common/PacketParser.h"
 
 class WBusOnOffFlagsDecoder
 {
@@ -11,23 +12,21 @@ public:
     {
         OnOffFlags result;
 
-        if (!Utils::validateASCPacketStructure(response, 0x50, 0x03, 6))
+        PacketParser parser;
+
+        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_ON_OFF_FLAGS), PacketParser::WithMinLength(6)))
         {
-            return result;
+            auto &data = parser.getBytes();
+
+            uint8_t flags = data[4];
+            result.combustionAirFan = (flags & 0x01) != 0;
+            result.glowPlug = (flags & 0x02) != 0;
+            result.fuelPump = (flags & 0x04) != 0;
+            result.circulationPump = (flags & 0x08) != 0;
+            result.vehicleFanRelay = (flags & 0x10) != 0;
+            result.nozzleStockHeating = (flags & 0x20) != 0;
+            result.flameIndicator = (flags & 0x40) != 0;
         }
-
-        uint8_t data[MESSAGE_BUFFER_SIZE];
-        int byteCount;
-        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
-
-        uint8_t flags = data[4];
-        result.combustionAirFan = (flags & 0x01) != 0;
-        result.glowPlug = (flags & 0x02) != 0;
-        result.fuelPump = (flags & 0x04) != 0;
-        result.circulationPump = (flags & 0x08) != 0;
-        result.vehicleFanRelay = (flags & 0x10) != 0;
-        result.nozzleStockHeating = (flags & 0x20) != 0;
-        result.flameIndicator = (flags & 0x40) != 0;
 
         return result;
     }

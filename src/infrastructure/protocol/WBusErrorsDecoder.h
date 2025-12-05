@@ -5,6 +5,7 @@
 #include "../../domain/Entities.h"
 #include "../../common/Utils.h"
 #include "./WBusErrorType.h"
+#include "../../common/PacketParser.h"
 
 class WBusErrorsDecoder
 {
@@ -14,20 +15,20 @@ private:
 public:
     WBusErrorsDecoder() {}
 
-    ErrorCollection decodeErrorPacket(const String &packet)
+    ErrorCollection decodeErrorPacket(const String &response)
     {
         ErrorCollection result;
 
-        uint8_t data[MESSAGE_BUFFER_SIZE];
-        int byteCount;
-        Utils::hexStringToByteArray(packet, data, sizeof(data), byteCount);
+        PacketParser parser;
 
-        if (packet.length() < 8 || data[2] != 0xD6 || data[3] != 0x01)
+        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_ERRORS, PacketParser::WithIndex(WBusCommandBuilder::ERROR_READ_LIST), PacketParser::WithMinLength(4)))
         {
-            return result;
+            auto &data = parser.getBytes();
+
+            return decodeErrorList(&data[4], parser.getByteCounts() - 4);
         }
 
-        return decodeErrorList(&data[4], byteCount - 4);
+        return result;
     }
 
     ErrorCollection decodeErrorList(const uint8_t *data, uint8_t dataLength)

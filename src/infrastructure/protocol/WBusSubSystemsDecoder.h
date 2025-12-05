@@ -11,24 +11,26 @@ public:
     {
         SubsystemsStatus result;
 
-        if (!Utils::validateASCPacketStructure(response, 0x50, 0x0F, 10))
+        PacketParser parser;
+
+        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_SUBSYSTEMS_STATUS), PacketParser::WithMinLength(10)))
         {
-            return result;
+            auto &data = parser.getBytes();
+
+            result.glowPlugPower = data[4];
+            result.fuelPumpFrequency = data[5];
+            result.combustionFanPower = data[6];
+            result.unknownByte3 = data[7];
+            result.circulationPumpPower = data[8];
+
+            result.glowPlugPowerPercent = result.glowPlugPower / 2.0;
+            result.fuelPumpFrequencyHz = result.fuelPumpFrequency / 2.0;
+            result.combustionFanPowerPercent = result.combustionFanPower / 2.0;
+            result.circulationPumpPowerPercent = result.circulationPumpPower / 2.0;
         }
-        uint8_t data[MESSAGE_BUFFER_SIZE];
-        int byteCount;
-        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
 
-        result.glowPlugPower = data[4];
-        result.fuelPumpFrequency = data[5];
-        result.combustionFanPower = data[6];
-        result.unknownByte3 = data[7];
-        result.circulationPumpPower = data[8];
-
-        result.glowPlugPowerPercent = result.glowPlugPower / 2.0;
-        result.fuelPumpFrequencyHz = result.fuelPumpFrequency / 2.0;
-        result.combustionFanPowerPercent = result.combustionFanPower / 2.0;
-        result.circulationPumpPowerPercent = result.circulationPumpPower / 2.0;
+        Serial.println();
+        Serial.println("JSON : " + result.toJson());
 
         return result;
     }

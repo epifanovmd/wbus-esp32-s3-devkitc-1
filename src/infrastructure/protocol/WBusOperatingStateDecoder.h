@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "../../domain/Entities.h"
 #include "../../common/Utils.h"
+#include "../../common/PacketParser.h"
 
 class WBusOperatingStateDecoder
 {
@@ -11,18 +12,16 @@ public:
     {
         OperatingState result;
 
-        if (!Utils::validateASCPacketStructure(response, WBusCommandBuilder::CMD_READ_SENSOR, WBusCommandBuilder::SENSOR_OPERATING_STATE, 11))
+        PacketParser parser;
+
+        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_OPERATING_STATE), PacketParser::WithMinLength(11)))
         {
-            return result;
+            auto &data = parser.getBytes();
+
+            result.stateName = getStateName(data[4]);
+            result.stateNumber = data[5];
+            result.deviceStateFlags = decodeDeviceStateFlags(data[6]);
         }
-
-        uint8_t data[MESSAGE_BUFFER_SIZE];
-        int byteCount;
-        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
-
-        result.stateName = getStateName(data[4]);
-        result.stateNumber = data[5];
-        result.deviceStateFlags = decodeDeviceStateFlags(data[6]);
 
         return result;
     }

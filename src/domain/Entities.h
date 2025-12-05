@@ -436,8 +436,7 @@ struct WebastoError
     String toJson() const
     {
         String json = "{";
-        json += "\"code\":" + String(code) + ",";
-        json += "\"hexCode\":\"" + hexCode + "\",";
+        json += "\"code\":\"" + hexCode + "\",";
         json += "\"errorName\":\"" + errorName + "\",";
         json += "\"errorDescription\":\"" + errorDescription + "\",";
         json += "\"counter\":" + String(counter);

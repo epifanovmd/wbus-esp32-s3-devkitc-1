@@ -188,6 +188,8 @@ public:
 
         case EventType::WBUS_ERRORS:
             return "WBUS_ERRORS";
+        case EventType::WBUS_DETAILS_ERROR:
+            return "WBUS_DETAILS_ERROR";
 
         case EventType::SENSOR_OPERATIONAL_INFO:
             return "SENSOR_OPERATIONAL_INFO";

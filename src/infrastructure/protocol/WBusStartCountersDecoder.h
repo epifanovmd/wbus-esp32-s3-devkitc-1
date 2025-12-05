@@ -10,18 +10,16 @@ public:
     {
         StartCounters result = {0, 0, 0};
 
-        if (!Utils::validateASCPacketStructure(response, 0x50, 0x0C, 11))
+        PacketParser parser;
+
+        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_START_COUNTERS), PacketParser::WithMinLength(11)))
         {
-            return result;
+            auto &data = parser.getBytes();
+
+            result.shStarts = (data[4] << 8) | data[5];
+            result.zhStarts = (data[6] << 8) | data[7];
+            result.totalStarts = (data[8] << 8) | data[9];
         }
-
-        uint8_t data[MESSAGE_BUFFER_SIZE];
-        int byteCount;
-        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
-
-        result.shStarts = (data[4] << 8) | data[5];
-        result.zhStarts = (data[6] << 8) | data[7];
-        result.totalStarts = (data[8] << 8) | data[9];
 
         return result;
     }

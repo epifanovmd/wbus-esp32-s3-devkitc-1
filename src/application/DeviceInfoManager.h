@@ -39,161 +39,96 @@ public:
     requestSerialNumber(loop);
   }
 
-  void requestWBusVersion(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestWBusVersion(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_VERSION), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_VERSION), loop);
   }
 
-  void requestDeviceName(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestDeviceName(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_NAME), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_NAME), loop);
   }
 
-  void requestWBusCode(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestWBusCode(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_CODE), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_WBUS_CODE), loop);
   }
 
-  void requestDeviceID(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestDeviceID(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_ID), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_DEVICE_ID), loop);
   }
 
-  void requestControllerManufactureDate(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestControllerManufactureDate(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CTRL_MFG_DATE), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CTRL_MFG_DATE), loop);
   }
 
-  void requestHeaterManufactureDate(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestHeaterManufactureDate(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_HEATER_MFG_DATE), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_HEATER_MFG_DATE), loop);
   }
 
-  void requestCustomerID(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestCustomerID(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CUSTOMER_ID), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_CUSTOMER_ID), loop);
   }
 
-  void requestSerialNumber(bool loop = false, std::function<void(String, String)> callback = nullptr) override
+  void requestSerialNumber(bool loop = false) override
   {
-    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_SERIAL_NUMBER), callback, loop);
+    commandManager.addCommand(WBusCommandBuilder::createReadInfo(WBusCommandBuilder::INFO_SERIAL_NUMBER), loop);
   }
 
   // =========================================================================
 
   void handleWBusVersionResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
   {
-    if (!rx.isEmpty())
-    {
-      wbusVersion = WBusInfoDecoder::decodeWBusVersion(rx);
-      eventBus.publish(EventType::WBUS_VERSION, wbusVersion);
-
-      if (callback)
-      {
-        callback(tx, rx, &wbusVersion);
-      }
-    }
+    wbusVersion = WBusInfoDecoder::decodeWBusVersion(rx);
+    eventBus.publish(EventType::WBUS_VERSION, wbusVersion);
   }
 
-  void handleDeviceNameResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
+  void handleDeviceNameResponse(String tx, String rx)
   {
-    if (!rx.isEmpty())
-    {
-      deviceName = WBusInfoDecoder::decodeDeviceName(rx);
-      eventBus.publish(EventType::DEVICE_NAME, deviceName);
-
-      if (callback)
-      {
-        callback(tx, rx, &deviceName);
-      }
-    }
+    deviceName = WBusInfoDecoder::decodeDeviceName(rx);
+    eventBus.publish(EventType::DEVICE_NAME, deviceName);
   }
 
-  void handleWBusCodeResponse(String tx, String rx, std::function<void(String, String, DecodedWBusCode *)> callback = nullptr)
+  void handleWBusCodeResponse(String tx, String rx)
   {
-    if (!rx.isEmpty())
-    {
-      wBusCode = WBusInfoDecoder::decodeWBusCode(rx);
-      eventBus.publish<DecodedWBusCode>(EventType::WBUS_CODE, wBusCode);
-
-      if (callback)
-      {
-        callback(tx, rx, &wBusCode);
-      }
-    }
+    wBusCode = WBusInfoDecoder::decodeWBusCode(rx);
+    eventBus.publish<DecodedWBusCode>(EventType::WBUS_CODE, wBusCode);
   }
 
-  void handleDeviceIDResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
+  void handleDeviceIDResponse(String tx, String rx)
   {
-    if (!rx.isEmpty())
-    {
-      deviceID = WBusInfoDecoder::decodeDeviceID(rx);
-      eventBus.publish(EventType::DEVICE_ID, deviceID);
-
-      if (callback)
-      {
-        callback(tx, rx, &deviceID);
-      }
-    }
+    deviceID = WBusInfoDecoder::decodeDeviceID(rx);
+    eventBus.publish(EventType::DEVICE_ID, deviceID);
   }
 
-  void handleControllerManufactureDateResponse(String tx, String rx, std::function<void(String, String, DecodedManufactureDate *)> callback = nullptr)
+  void handleControllerManufactureDateResponse(String tx, String rx)
   {
-    if (!rx.isEmpty())
-    {
-      DecodedManufactureDate date = WBusInfoDecoder::decodeControllerManufactureDate(rx);
-      controllerManufactureDate = date.dateString;
-      eventBus.publish<DecodedManufactureDate>(EventType::CONTRALLER_MANUFACTURE_DATE, date);
-
-      if (callback)
-      {
-        callback(tx, rx, &date);
-      }
-    }
+    DecodedManufactureDate date = WBusInfoDecoder::decodeControllerManufactureDate(rx);
+    controllerManufactureDate = date.dateString;
+    eventBus.publish<DecodedManufactureDate>(EventType::CONTRALLER_MANUFACTURE_DATE, date);
   }
 
-  void handleHeaterManufactureDateResponse(String tx, String rx, std::function<void(String, String, DecodedManufactureDate *)> callback = nullptr)
+  void handleHeaterManufactureDateResponse(String tx, String rx)
   {
-    if (!rx.isEmpty())
-    {
-      DecodedManufactureDate date = WBusInfoDecoder::decodeHeaterManufactureDate(rx);
-      heaterManufactureDate = date.dateString;
-      eventBus.publish<DecodedManufactureDate>(EventType::HEATER_MANUFACTURE_DATE, date);
-
-      if (callback)
-      {
-        callback(tx, rx, &date);
-      }
-    }
+    DecodedManufactureDate date = WBusInfoDecoder::decodeHeaterManufactureDate(rx);
+    heaterManufactureDate = date.dateString;
+    eventBus.publish<DecodedManufactureDate>(EventType::HEATER_MANUFACTURE_DATE, date);
   }
 
-  void handleCustomerIDResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
+  void handleCustomerIDResponse(String tx, String rx)
   {
-    if (!rx.isEmpty())
-    {
-      customerID = WBusInfoDecoder::decodeCustomerID(rx);
-      eventBus.publish(EventType::CUSTOMER_ID, customerID);
-
-      if (callback)
-      {
-        callback(tx, rx, &customerID);
-      }
-    }
+    customerID = WBusInfoDecoder::decodeCustomerID(rx);
+    eventBus.publish(EventType::CUSTOMER_ID, customerID);
   }
 
-  void handleSerialNumberResponse(String tx, String rx, std::function<void(String, String, String *)> callback = nullptr)
+  void handleSerialNumberResponse(String tx, String rx)
   {
-    if (!rx.isEmpty())
-    {
-
-      serialNumber = WBusInfoDecoder::decodeSerialNumber(rx);
-      eventBus.publish(EventType::SERIAL_NUMBER, serialNumber);
-
-      if (callback)
-      {
-        callback(tx, rx, &serialNumber);
-      }
-    }
+    serialNumber = WBusInfoDecoder::decodeSerialNumber(rx);
+    eventBus.publish(EventType::SERIAL_NUMBER, serialNumber);
   }
 
   // Геттеры (остаются без изменений)

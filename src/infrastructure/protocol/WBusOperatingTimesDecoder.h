@@ -10,20 +10,18 @@ public:
     {
         OperatingTimes result = {0, 0, 0, 0, 0};
 
-        if (!Utils::validateASCPacketStructure(response, 0x50, WBusCommandBuilder::SENSOR_OPERATING_TIMES, 12))
+        PacketParser parser;
+
+        if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_OPERATING_TIMES), PacketParser::WithMinLength(13)))
         {
-            return result;
+            auto &data = parser.getBytes();
+
+            result.workingHours = (data[4] << 8) | data[5];
+            result.workingMinutes = data[6];
+            result.operatingHours = (data[7] << 8) | data[8];
+            result.operatingMinutes = data[9];
+            result.startCounter = ((data[10] << 8) | data[11]);
         }
-
-        uint8_t data[MESSAGE_BUFFER_SIZE];
-        int byteCount;
-        Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
-
-        result.workingHours = (data[4] << 8) | data[5];
-        result.workingMinutes = data[6];
-        result.operatingHours = (data[7] << 8) | data[8];
-        result.operatingMinutes = data[9];
-        result.startCounter = ((data[10] << 8) | data[11]);
 
         return result;
     }

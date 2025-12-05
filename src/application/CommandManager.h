@@ -8,7 +8,6 @@
 #include "../common/Timer.h"
 #include "../core/EventBus.h"
 #include "../core/ConfigManager.h"
-#include "../infrastructure/protocol/WBusCommand.h"
 #include "../infrastructure/protocol/WBusErrorsDecoder.h"
 #include "../interfaces/IBusManager.h"
 #include "../domain/Events.h"
@@ -61,8 +60,7 @@ public:
     {
     }
 
-    bool addCommand(const String &command, std::function<void(String, String)> callback = nullptr,
-                    bool loop = false)
+    bool addCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
     {
         if (getTotalQueueSize() >= 30 || containsCommand(command))
             return false;
@@ -71,7 +69,7 @@ public:
         return true;
     }
 
-    bool addPriorityCommand(const String &command, std::function<void(String, String)> callback = nullptr, bool loop = false)
+    bool addPriorityCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
     {
         if (getTotalQueueSize() >= 30 || containsPriorityCommand(command))
             return false;
@@ -220,20 +218,20 @@ private:
 
     void sendCurrentCommand()
     {
-        WBusCommand wBusCommand(processingCommand.data);
+        PacketParser packetParser;
 
-        if (!wBusCommand.isValid())
-            return;
-
-        if (busManager.sendCommand(wBusCommand.data, wBusCommand.byteCount))
+        if (packetParser.parseFromString(processingCommand.data))
         {
-            state = ProcessingState::SENDING;
-            timeoutTimer.reset();
-            eventBus.publish(EventType::COMMAND_SENT, processingCommand.data);
-        }
-        else
-        {
-            complete();
+            if (busManager.sendCommand(packetParser.getData(), packetParser.getByteCounts()))
+            {
+                state = ProcessingState::SENDING;
+                timeoutTimer.reset();
+                eventBus.publish(EventType::COMMAND_SENT, processingCommand.data);
+            }
+            else
+            {
+                complete();
+            }
         }
     }
 

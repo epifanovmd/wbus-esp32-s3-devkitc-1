@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "../../domain/Entities.h"
 #include "../../common/Utils.h"
+#include "../../common/PacketParser.h"
 
 class WBusFuelSettingsDecoder
 {
@@ -11,19 +12,17 @@ public:
   {
     FuelSettings result;
 
-    if (!Utils::validateASCPacketStructure(response, 0x50, 0x04, 8))
+    PacketParser parser;
+
+    if (parser.parseFromString(response, WBusCommandBuilder::CMD_READ_SENSOR, PacketParser::WithIndex(WBusCommandBuilder::SENSOR_FUEL_SETTINGS), PacketParser::WithMinLength(8)))
     {
-      return result;
+      auto &data = parser.getBytes();
+
+      result.fuelType = data[4];
+      result.maxHeatingTime = data[5];
+      result.ventilationFactor = data[6];
+      result.fuelTypeName = determineFuelTypeName(result.fuelType);
     }
-
-    uint8_t data[MESSAGE_BUFFER_SIZE];
-    int byteCount;
-    Utils::hexStringToByteArray(response, data, sizeof(data), byteCount);
-
-    result.fuelType = data[4];
-    result.maxHeatingTime = data[5];
-    result.ventilationFactor = data[6];
-    result.fuelTypeName = determineFuelTypeName(result.fuelType);
 
     return result;
   }

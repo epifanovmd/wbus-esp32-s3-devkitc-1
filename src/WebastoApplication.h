@@ -201,7 +201,7 @@ private:
         if (!keepAliveCommand.isEmpty() && busDriver.isConnected())
         {
             heaterController.checkWebastoStatus();
-            commandManager.addPriorityCommand(keepAliveCommand, [this](String tx, String rx)
+            commandManager.addPriorityCommand(keepAliveCommand, false, [this](String tx, String rx)
                                               { eventBus.publish(EventType::KEEP_ALLIVE_SENT); });
         }
     }

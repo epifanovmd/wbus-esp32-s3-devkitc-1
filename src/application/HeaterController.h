@@ -78,7 +78,7 @@ public:
         deviceInfoManager.requestWBusCode();
 
         // Запускаем диагностику
-        commandManager.addCommand(WBusCommandBuilder::createDiagnostic(), [this](String tx, String rx)
+        commandManager.addCommand(WBusCommandBuilder::createDiagnostic(), false, [this](String tx, String rx)
                                   { handleDiagnosticResponse(tx, rx); });
     }
 
@@ -102,7 +102,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createParkHeat(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createParkHeat(minutes), false, [this, minutes](String tx, String rx)
                                           { 
                                             sensorManager.requestStatusFlags();
                                             handleStartParkingHeatResponse(tx, rx, minutes); });
@@ -112,7 +112,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createVentilation(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createVentilation(minutes), false, [this, minutes](String tx, String rx)
                                           { 
                                             sensorManager.requestStatusFlags();
                                             handleStartVentilationResponse(tx, rx, minutes); });
@@ -122,7 +122,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createSupplementalHeat(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createSupplementalHeat(minutes), false, [this, minutes](String tx, String rx)
                                           { 
                                             sensorManager.requestStatusFlags();
                                             handleStartSupplementalHeatResponse(tx, rx, minutes); });
@@ -132,7 +132,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createBoostMode(minutes), [this, minutes](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createBoostMode(minutes), false, [this, minutes](String tx, String rx)
                                           { 
                                             sensorManager.requestStatusFlags();
                                             handleStartBoostModeResponse(tx, rx, minutes); });
@@ -142,7 +142,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createCirculationPumpControl(enable), [this, enable](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createCirculationPumpControl(enable), false, [this, enable](String tx, String rx)
                                           { 
                                             sensorManager.requestStatusFlags();
                                             handleControlCirculationPumpResponse(tx, rx, enable); });
@@ -152,7 +152,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createShutdown(), [this](String tx, String rx)
+        commandManager.addPriorityCommand(WBusCommandBuilder::createShutdown(), false, [this](String tx, String rx)
                                           { handleShutdownResponse(tx, rx); });
     }
 
@@ -164,7 +164,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createTestCombustionFan(seconds, powerPercent),
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestCombustionFan(seconds, powerPercent), false,
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -176,7 +176,7 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createTestFuelPump(seconds, frequencyHz),
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestFuelPump(seconds, frequencyHz), false,
                                           [this, seconds, frequencyHz](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -189,6 +189,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestGlowPlug(seconds, powerPercent),
+                                          false,
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -200,7 +201,8 @@ public:
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createTestCirculationPump(seconds, powerPercent),
+        commandManager.addPriorityCommand(WBusCommandBuilder::createTestCirculationPump(seconds, powerPercent), false,
+                                      
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -213,6 +215,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestVehicleFan(seconds),
+            false,
                                           [this, seconds](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -225,6 +228,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestSolenoidValve(seconds),
+                                          false,
                                           [this, seconds](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
@@ -237,6 +241,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createTestFuelPreheating(seconds, powerPercent),
+                                          false,
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();

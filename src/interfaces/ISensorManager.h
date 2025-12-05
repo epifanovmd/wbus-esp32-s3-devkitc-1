@@ -8,16 +8,16 @@ public:
 
     virtual void requestAllSensorData(bool loop = false) = 0;
 
-    virtual void requestStatusFlags(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestOnOffFlags(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestFuelSettings(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestOperationalInfo(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestOperatingTimes(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestOperatingState(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestBurningDuration(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestStartCounters(bool loop = false, std::function<void(String, String)> callback = nullptr) = 0;
-    virtual void requestSubsystemsStatus(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
-    virtual void requestFuelPrewarming(bool loop = false, std::function<void(String tx, String rx)> callback = nullptr) = 0;
+    virtual void requestStatusFlags(bool loop = false) = 0;
+    virtual void requestOnOffFlags(bool loop = false) = 0;
+    virtual void requestFuelSettings(bool loop = false) = 0;
+    virtual void requestOperationalInfo(bool loop = false) = 0;
+    virtual void requestOperatingTimes(bool loop = false) = 0;
+    virtual void requestOperatingState(bool loop = false) = 0;
+    virtual void requestBurningDuration(bool loop = false) = 0;
+    virtual void requestStartCounters(bool loop = false) = 0;
+    virtual void requestSubsystemsStatus(bool loop = false) = 0;
+    virtual void requestFuelPrewarming(bool loop = false) = 0;
 
     virtual OperationalMeasurements getOperationalMeasurementsData() = 0;
     virtual FuelSettings getFuelSettingsData() = 0;
