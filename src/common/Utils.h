@@ -92,4 +92,16 @@ public:
         cleanData.replace(" ", "");
         return cleanData.startsWith("4f047f");
     }
+
+    static String formatSizeBytes(size_t bytes)
+    {
+        if (bytes < 1024)
+            return String(bytes) + " B";
+        else if (bytes < 1024 * 1024)
+            return String(bytes / 1024.0, 1) + " KB";
+        else if (bytes < 1024 * 1024 * 1024)
+            return String(bytes / (1024.0 * 1024.0), 1) + " MB";
+        else
+            return String(bytes / (1024.0 * 1024.0 * 1024.0), 1) + " GB";
+    }
 };

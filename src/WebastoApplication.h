@@ -63,16 +63,6 @@ public:
         Serial.println("🚗 Webasto W-Bus Controller");
         Serial.println("===============================================");
 
-        // Сначала инициализируем LittleFS
-        if (!LittleFS.begin(true))
-        {
-            Serial.println("❌ LittleFS initialization failed");
-        }
-        else
-        {
-            Serial.println("✅ LittleFS initialized");
-        }
-
         // Теперь загружаем конфигурацию
         if (!configManager.loadConfig())
         {
@@ -96,11 +86,8 @@ public:
         busDriver.connect();
 
         initialized = true;
-        Serial.println();
-        Serial.println("✅ Webasto Application initialized successfully");
-        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString());
 
-        printHelp();
+        Serial.println("✅ Webasto Application initialized successfully");
     }
 
     void process()

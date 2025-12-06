@@ -4,8 +4,6 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <LittleFS.h>
-#include "./domain/Events.h"
-#include "./ApiHelpers.h"
 #include "./common/Version.h"
 
 class SystemHandlers
@@ -13,19 +11,7 @@ class SystemHandlers
 private:
     AsyncWebServer &server;
 
-    // Вспомогательные методы для форматирования
-    String formatBytes(size_t bytes)
-    {
-        if (bytes < 1024)
-            return String(bytes) + " B";
-        else if (bytes < 1024 * 1024)
-            return String(bytes / 1024.0, 1) + " KB";
-        else if (bytes < 1024 * 1024 * 1024)
-            return String(bytes / (1024.0 * 1024.0), 1) + " MB";
-        else
-            return String(bytes / (1024.0 * 1024.0 * 1024.0), 1) + " GB";
-    }
-
+    // Форматирование частоты процессора
     String formatFrequency(uint32_t frequency)
     {
         if (frequency < 1000)
@@ -34,6 +20,7 @@ private:
             return String(frequency / 1000.0, 1) + " GHz";
     }
 
+    // Режим WiFi в текстовом виде
     String getWiFiModeString(wifi_mode_t mode)
     {
         switch (mode)
@@ -51,6 +38,7 @@ private:
         }
     }
 
+    // Информация о чипе
     String getChipInfo()
     {
         String info = ESP.getChipModel();
@@ -60,35 +48,67 @@ private:
         return info;
     }
 
-    void addMemoryInfo(DynamicJsonDocument &doc)
+    // Полная информация о системе
+    void addSystemInfo(DynamicJsonDocument &doc)
     {
+        JsonObject system = doc.createNestedObject("system");
+
+        // Основная информация о чипе
+        system["chipModel"] = ESP.getChipModel();
+        system["chipRevision"] = ESP.getChipRevision();
+        system["chipCores"] = ESP.getChipCores();
+        system["chipDescription"] = getChipInfo();
+
+        // ID устройства
+        char chipId[13];
+        snprintf(chipId, sizeof(chipId), "%08X", (uint32_t)ESP.getEfuseMac());
+        system["chipId"] = chipId;
+
+        // Частота процессора
+        system["cpuFrequencyMhz"] = ESP.getCpuFreqMHz();
+        system["cpuFrequencyFormatted"] = formatFrequency(ESP.getCpuFreqMHz());
+
+        // Версии
+        system["sdkVersion"] = ESP.getSdkVersion();
+        system["firmwareVersion"] = FIRMWARE_VERSION;
+        system["compileDate"] = __DATE__;
+        system["compileTime"] = __TIME__;
+
+        // Информация о памяти
         JsonObject memory = doc.createNestedObject("memory");
 
+        // Heap память
         size_t heapFree = ESP.getFreeHeap();
         size_t heapTotal = ESP.getHeapSize();
         size_t heapUsed = heapTotal - heapFree;
+        float heapUsagePercent = (heapTotal > 0) ? (heapUsed * 100.0) / heapTotal : 0;
 
-        memory["heapTotal"] = formatBytes(heapTotal);
-        memory["heapFree"] = formatBytes(heapFree);
-        memory["heapUsed"] = formatBytes(heapUsed);
-        memory["heapUsagePercent"] = (heapTotal > 0) ? String((heapUsed * 100) / heapTotal) + "%" : "N/A";
+        memory["heap"]["total"] = heapTotal;
+        memory["heap"]["free"] = heapFree;
+        memory["heap"]["used"] = heapUsed;
+        memory["heap"]["totalFormatted"] = String(heapTotal / 1024.0, 1) + " KB";
+        memory["heap"]["freeFormatted"] = String(heapFree / 1024.0, 1) + " KB";
+        memory["heap"]["usedFormatted"] = String(heapUsed / 1024.0, 1) + " KB";
+        memory["heap"]["usagePercent"] = String(heapUsagePercent, 1) + "%";
 
+        // PSRAM (если есть)
         if (ESP.getPsramSize() > 0)
         {
-            JsonObject psram = memory.createNestedObject("psram");
             size_t psramFree = ESP.getFreePsram();
             size_t psramTotal = ESP.getPsramSize();
             size_t psramUsed = psramTotal - psramFree;
+            float psramUsagePercent = (psramTotal > 0) ? (psramUsed * 100.0) / psramTotal : 0;
 
-            psram["total"] = formatBytes(psramTotal);
-            psram["free"] = formatBytes(psramFree);
-            psram["used"] = formatBytes(psramUsed);
-            psram["usagePercent"] = (psramTotal > 0) ? String((psramUsed * 100) / psramTotal) + "%" : "N/A";
+            memory["psram"]["total"] = psramTotal;
+            memory["psram"]["free"] = psramFree;
+            memory["psram"]["used"] = psramUsed;
+            memory["psram"]["totalFormatted"] = String(psramTotal / 1024.0 / 1024.0, 1) + " MB";
+            memory["psram"]["freeFormatted"] = String(psramFree / 1024.0 / 1024.0, 1) + " MB";
+            memory["psram"]["usedFormatted"] = String(psramUsed / 1024.0 / 1024.0, 1) + " MB";
+            memory["psram"]["usagePercent"] = String(psramUsagePercent, 1) + "%";
         }
-    }
 
-    void addStorageInfo(DynamicJsonDocument &doc)
-    {
+        // Информация о хранилище
         JsonObject storage = doc.createNestedObject("storage");
 
         size_t flashSize = ESP.getFlashChipSize();
@@ -96,30 +116,41 @@ private:
         size_t freeSketchSpace = ESP.getFreeSketchSpace();
         size_t usedBySketch = sketchSize;
 
-        storage["flashTotal"] = formatBytes(flashSize);
-        storage["sketchSize"] = formatBytes(sketchSize);
-        storage["freeForOTA"] = formatBytes(freeSketchSpace);
-        storage["maxOTASize"] = formatBytes(freeSketchSpace - 0x1000);
+        storage["flashTotal"] = flashSize;
+        storage["flashTotalFormatted"] = String(flashSize / 1024.0 / 1024.0, 1) + " MB";
+        storage["sketchSize"] = sketchSize;
+        storage["sketchSizeFormatted"] = String(sketchSize / 1024.0, 1) + " KB";
+        storage["freeForOTA"] = freeSketchSpace;
+        storage["freeForOTAFormatted"] = String(freeSketchSpace / 1024.0, 1) + " KB";
+        storage["maxOTASize"] = freeSketchSpace - 0x1000;
+        storage["maxOTASizeFormatted"] = String((freeSketchSpace - 0x1000) / 1024.0, 1) + " KB";
 
         // LittleFS информация
         if (LittleFS.begin(true))
         {
             size_t totalBytes = LittleFS.totalBytes();
             size_t usedBytes = LittleFS.usedBytes();
-            storage["littlefsTotal"] = formatBytes(totalBytes);
-            storage["littlefsUsed"] = formatBytes(usedBytes);
-            storage["littlefsFree"] = formatBytes(totalBytes - usedBytes);
-            storage["littlefsUsagePercent"] = (totalBytes > 0) ? String((usedBytes * 100) / totalBytes) + "%" : "N/A";
-        }
-    }
+            size_t freeBytes = totalBytes - usedBytes;
+            float littlefsUsagePercent = (totalBytes > 0) ? (usedBytes * 100.0) / totalBytes : 0;
 
-    void addWiFiInfo(DynamicJsonDocument &doc)
-    {
+            storage["littlefs"]["total"] = totalBytes;
+            storage["littlefs"]["used"] = usedBytes;
+            storage["littlefs"]["free"] = freeBytes;
+            storage["littlefs"]["totalFormatted"] = String(totalBytes / 1024.0, 1) + " KB";
+            storage["littlefs"]["usedFormatted"] = String(usedBytes / 1024.0, 1) + " KB";
+            storage["littlefs"]["freeFormatted"] = String(freeBytes / 1024.0, 1) + " KB";
+            storage["littlefs"]["usagePercent"] = String(littlefsUsagePercent, 1) + "%";
+            LittleFS.end();
+        }
+
+        // Информация о WiFi
         JsonObject wifi = doc.createNestedObject("wifi");
 
         wifi_mode_t mode = WiFi.getMode();
         wifi["mode"] = getWiFiModeString(mode);
+        wifi["hostname"] = WiFi.getHostname();
 
+        // Access Point информация
         if (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA)
         {
             JsonObject ap = wifi.createNestedObject("accessPoint");
@@ -128,49 +159,59 @@ private:
             ap["connectedClients"] = WiFi.softAPgetStationNum();
         }
 
+        // Station информация
         if (mode == WIFI_MODE_STA || mode == WIFI_MODE_APSTA)
         {
             JsonObject sta = wifi.createNestedObject("station");
-            sta["status"] = (WiFi.status() == WL_CONNECTED) ? "Connected" : "Disconnected";
+            sta["status"] = (WiFi.status() == WL_CONNECTED) ? "connected" : "disconnected";
+
             if (WiFi.status() == WL_CONNECTED)
             {
+                sta["ssid"] = WiFi.SSID();
                 sta["ip"] = WiFi.localIP().toString();
                 sta["gateway"] = WiFi.gatewayIP().toString();
                 sta["subnet"] = WiFi.subnetMask().toString();
+                sta["dns"] = WiFi.dnsIP().toString();
                 sta["mac"] = WiFi.macAddress();
-                sta["rssi"] = String(WiFi.RSSI()) + " dBm";
-                sta["ssid"] = WiFi.SSID();
+                sta["rssi"] = WiFi.RSSI();
+                sta["rssiFormatted"] = String(WiFi.RSSI()) + " dBm";
                 sta["bssid"] = WiFi.BSSIDstr();
-                sta["channel"] = String(WiFi.channel());
+                sta["channel"] = WiFi.channel();
             }
         }
+
+        // Сетевая статистика
+        JsonObject network = doc.createNestedObject("network");
+        network["localIP"] = WiFi.localIP().toString();
+        network["macAddress"] = WiFi.macAddress();
+
+        // Uptime системы
+        JsonObject uptime = doc.createNestedObject("uptime");
+        unsigned long seconds = millis() / 1000;
+        unsigned long minutes = seconds / 60;
+        unsigned long hours = minutes / 60;
+        unsigned long days = hours / 24;
+
+        uptime["milliseconds"] = millis();
+        uptime["formatted"] = String(days) + "d " +
+                              String(hours % 24) + "h " +
+                              String(minutes % 60) + "m " +
+                              String(seconds % 60) + "s";
     }
 
-    void addSystemInfo(DynamicJsonDocument &doc)
+    // Отправка JSON ответа
+    void sendJsonResponse(AsyncWebServerRequest *request, DynamicJsonDocument &doc)
     {
-        JsonObject system = doc.createNestedObject("system");
+        String json;
+        serializeJson(doc, json);
 
-        system["chip"] = getChipInfo();
-        system["cpuFrequency"] = formatFrequency(ESP.getCpuFreqMHz());
-        system["sdkVersion"] = ESP.getSdkVersion();
-        system["firmwareVersion"] = FIRMWARE_VERSION;
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response->addHeader("Pragma", "no-cache");
+        response->addHeader("Expires", "0");
 
-        // Время работы
-        uint32_t uptime = millis() / 1000;
-        uint32_t days = uptime / 86400;
-        uint32_t hours = (uptime % 86400) / 3600;
-        uint32_t minutes = (uptime % 3600) / 60;
-        uint32_t seconds = uptime % 60;
-
-        char uptimeStr[64];
-        snprintf(uptimeStr, sizeof(uptimeStr), "%ud %02uh %02um %02us",
-                 days, hours, minutes, seconds);
-        system["uptime"] = uptimeStr;
-
-// Температура (если доступно)
-#ifdef TEMP_SENSOR
-        system["temperature"] = String(temperatureRead(), 1) + "°C";
-#endif
+        request->send(response);
     }
 
 public:
@@ -178,24 +219,14 @@ public:
 
     void setupEndpoints()
     {
+        // Полная информация о системе
         server.on("/api/system/info", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
                   {
                       handleSystemInfo(request);
                   });
 
-        server.on("/api/system/info/minimal", HTTP_GET,
-                  [this](AsyncWebServerRequest *request)
-                  {
-                      handleSystemInfoMinimal(request);
-                  });
-
-        server.on("/api/system/info/detailed", HTTP_GET,
-                  [this](AsyncWebServerRequest *request)
-                  {
-                      handleSystemInfoDetailed(request);
-                  });
-
+        // Перезагрузка системы
         server.on("/api/system/restart", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
                   {
@@ -203,120 +234,33 @@ public:
                   });
     }
 
-    // =========================================================================
-    // ОБРАБОТЧИКИ HTTP ЗАПРОСОВ
-    // =========================================================================
-
+    // Обработчик получения полной информации
     void handleSystemInfo(AsyncWebServerRequest *request)
     {
-        DynamicJsonDocument doc(1024);
-
-        // Основная информация
-        addSystemInfo(doc);
-        addMemoryInfo(doc);
-        addStorageInfo(doc);
-        addWiFiInfo(doc);
-
-        ApiHelpers::sendJsonDocument(request, doc);
-    }
-
-    void handleSystemInfoMinimal(AsyncWebServerRequest *request)
-    {
-        DynamicJsonDocument doc(512);
-
-        doc["chip"] = getChipInfo();
-        doc["firmwareVersion"] = FIRMWARE_VERSION;
-
-        // Время работы
-        uint32_t uptime = millis() / 1000;
-        char uptimeStr[32];
-        snprintf(uptimeStr, sizeof(uptimeStr), "%uh %02um",
-                 uptime / 3600, (uptime % 3600) / 60);
-        doc["uptime"] = uptimeStr;
-
-        // Память
-        size_t heapFree = ESP.getFreeHeap();
-        size_t heapTotal = ESP.getHeapSize();
-        doc["heap"] = formatBytes(heapFree) + " / " + formatBytes(heapTotal);
-        doc["heapUsage"] = String(((heapTotal - heapFree) * 100) / heapTotal) + "%";
-
-        // WiFi
-        wifi_mode_t mode = WiFi.getMode();
-        doc["wifiMode"] = getWiFiModeString(mode);
-
-        if (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA)
-        {
-            doc["apIp"] = WiFi.softAPIP().toString();
-            doc["connectedClients"] = WiFi.softAPgetStationNum();
-        }
-
-        ApiHelpers::sendJsonDocument(request, doc);
-    }
-
-    void handleSystemInfoDetailed(AsyncWebServerRequest *request)
-    {
         DynamicJsonDocument doc(4096);
+        doc["status"] = "ok";
+        doc["timestamp"] = millis();
 
-        // Подробная системная информация
-        JsonObject system = doc.createNestedObject("system");
-        system["chipModel"] = ESP.getChipModel();
-        system["chipRevision"] = ESP.getChipRevision();
-        system["chipCores"] = ESP.getChipCores();
-        system["cpuFrequencyMhz"] = ESP.getCpuFreqMHz();
-        system["cpuFrequencyFormatted"] = formatFrequency(ESP.getCpuFreqMHz());
-        system["sdkVersion"] = ESP.getSdkVersion();
-        system["firmwareVersion"] = FIRMWARE_VERSION;
-        system["compileDate"] = __DATE__;
-        system["compileTime"] = __TIME__;
+        addSystemInfo(doc);
 
-        // ID устройства
-        char chipId[13];
-        snprintf(chipId, sizeof(chipId), "%08X", (uint32_t)ESP.getEfuseMac());
-        system["chipId"] = chipId;
-
-        // Время работы
-        uint32_t uptime = millis() / 1000;
-        system["uptimeSeconds"] = uptime;
-        system["uptimeMilliseconds"] = millis();
-
-        uint32_t days = uptime / 86400;
-        uint32_t hours = (uptime % 86400) / 3600;
-        uint32_t minutes = (uptime % 3600) / 60;
-        uint32_t seconds = uptime % 60;
-        char uptimeStr[64];
-        snprintf(uptimeStr, sizeof(uptimeStr), "%u days, %02u:%02u:%02u",
-                 days, hours, minutes, seconds);
-        system["uptimeFormatted"] = uptimeStr;
-
-        // Подробная информация о памяти
-        addMemoryInfo(doc);
-
-        // Подробная информация о хранилище
-        addStorageInfo(doc);
-
-        // Подробная информация о WiFi
-        addWiFiInfo(doc);
-
-        // Сетевая информация
-        JsonObject network = doc.createNestedObject("network");
-        network["hostname"] = WiFi.getHostname();
-        network["dns"] = WiFi.dnsIP().toString();
-
-        ApiHelpers::sendJsonDocument(request, doc);
+        sendJsonResponse(request, doc);
     }
 
+    // Обработчик перезагрузки
     void handleSystemRestart(AsyncWebServerRequest *request)
     {
-        DynamicJsonDocument doc(128);
+        DynamicJsonDocument doc(256);
+        doc["status"] = "ok";
         doc["message"] = "System will restart in 1 second";
+        doc["timestamp"] = millis();
 
-        ApiHelpers::sendJsonDocument(request, doc);
+        sendJsonResponse(request, doc);
 
-        // Даем время на отправку ответа
+        // Логируем и даем время на отправку ответа
+        Serial.println("🔄 System restart requested via API");
         delay(100);
 
-        // Регистрируем задачу на перезагрузку
-        Serial.println("🔄 System restart requested via API");
+        // Перезагрузка
         ESP.restart();
     }
 };

@@ -31,22 +31,21 @@ private:
     SystemHandlers systemHandlers;
     EventHandlers eventHandlers;
     uint16_t port;
-    bool enabled = false;
 
 public:
-    AsyncApiServer(DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr,
-                   ErrorsManager &errorsMngr, HeaterController &heaterCtrl,
-                   uint16_t serverPort = 80) : server(serverPort),
-                                               webSocketManager(heaterCtrl),
-                                               deviceInfoManager(deviceInfoMngr),
-                                               sensorManager(sensorMngr),
-                                               errorsManager(errorsMngr),
-                                               heaterController(heaterCtrl),
-                                               webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
-                                               otaHandlers(server),
-                                               systemHandlers(server),
-                                               eventHandlers(webSocketManager),
-                                               port(serverPort) {}
+    AsyncApiServer(
+        DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr, ErrorsManager &errorsMngr, HeaterController &heaterCtrl, uint16_t serverPort = 80)
+        : server(serverPort),
+          webSocketManager(heaterCtrl),
+          deviceInfoManager(deviceInfoMngr),
+          sensorManager(sensorMngr),
+          errorsManager(errorsMngr),
+          heaterController(heaterCtrl),
+          webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
+          otaHandlers(server),
+          systemHandlers(server),
+          eventHandlers(webSocketManager),
+          port(serverPort) {}
 
     bool initialize()
     {
@@ -55,6 +54,10 @@ public:
             Serial.println("❌ LittleFS initialization failed");
             return false;
         }
+        else
+        {
+            Serial.println("✅ LittleFS initialized");
+        }
 
         if (!LittleFS.exists("/index.html"))
         {
@@ -62,7 +65,6 @@ public:
         }
 
         eventHandlers.setupEventHandlers();
-
         server.addHandler(&webSocketManager.getWebSocket());
 
         DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
@@ -80,10 +82,10 @@ public:
                           { handleNotFound(request); });
 
         server.begin();
-        enabled = true;
 
-        Serial.println("✅ Async WebServer started on port " + String(port));
+        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString() + ":" + String(port));
         Serial.println("✅ WebSocket available at ws://" + WiFi.softAPIP().toString() + "/ws");
+
         ApiHelpers::printAvailableEndpoints();
 
         return true;
