@@ -1,4 +1,4 @@
-#pragma once
+#pragma once 
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
@@ -24,12 +24,11 @@ public:
                        DeviceInfoManager &deviceInfoMngr,
                        SensorManager &sensorMngr,
                        ErrorsManager &errorsMngr,
-                       HeaterController &heaterCtrl)
-        : server(serv),
-          deviceInfoManager(deviceInfoMngr),
-          sensorManager(sensorMngr),
-          errorsManager(errorsMngr),
-          heaterController(heaterCtrl) {}
+                       HeaterController &heaterCtrl) : server(serv),
+                                                       deviceInfoManager(deviceInfoMngr),
+                                                       sensorManager(sensorMngr),
+                                                       errorsManager(errorsMngr),
+                                                       heaterController(heaterCtrl) {}
 
     void setupEndpoints()
     {
@@ -38,92 +37,132 @@ public:
         // =========================================================================
         server.on("/api/connect", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleConnect(request); });
+                  {
+                      handleConnect(request);
+                  });
 
         server.on("/api/disconnect", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleDisconnect(request); });
+                  {
+                      handleDisconnect(request);
+                  });
 
         server.on("/api/status", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
-                  { handleGetStatus(request); });
+                  {
+                      handleGetStatus(request);
+                  });
 
         // =========================================================================
         // ОСНОВНЫЕ КОМАНДЫ УПРАВЛЕНИЯ
         // =========================================================================
         server.on("/api/start/parking", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleStartParking(request); });
+                  {
+                      handleStartParking(request);
+                  });
 
         server.on("/api/start/ventilation", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleStartVentilation(request); });
+                  {
+                      handleStartVentilation(request);
+                  });
 
         server.on("/api/start/supplemental", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleStartSupplemental(request); });
+                  {
+                      handleStartSupplemental(request);
+                  });
 
         server.on("/api/start/boost", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleStartBoost(request); });
+                  {
+                      handleStartBoost(request);
+                  });
 
         server.on("/api/control/circulation-pump", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleControlCirculationPump(request); });
+                  {
+                      handleControlCirculationPump(request);
+                  });
 
         server.on("/api/shutdown", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleShutdown(request); });
+                  {
+                      handleShutdown(request);
+                  });
 
         // =========================================================================
         // ТЕСТИРОВАНИЕ КОМПОНЕНТОВ
         // =========================================================================
         server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/combustion-fan",
                                                           [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                          { handleTestCombustionFan(request, json); }));
+                                                          {
+                                                              handleTestCombustionFan(request, json);
+                                                          }));
 
         server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/fuel-pump",
                                                           [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                          { handleTestFuelPump(request, json); }));
+                                                          {
+                                                              handleTestFuelPump(request, json);
+                                                          }));
 
         server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/glow-plug",
                                                           [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                          { handleTestGlowPlug(request, json); }));
+                                                          {
+                                                              handleTestGlowPlug(request, json);
+                                                          }));
 
         server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/circulation-pump",
                                                           [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                          { handleTestCirculationPump(request, json); }));
+                                                          {
+                                                              handleTestCirculationPump(request, json);
+                                                          }));
 
         server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/vehicle-fan",
                                                           [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                          { handleTestVehicleFan(request, json); }));
+                                                          {
+                                                              handleTestVehicleFan(request, json);
+                                                          }));
 
         server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/solenoid",
                                                           [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                          { handleTestSolenoid(request, json); }));
+                                                          {
+                                                              handleTestSolenoid(request, json);
+                                                          }));
 
         server.addHandler(new AsyncCallbackJsonWebHandler("/api/test/fuel-preheating",
                                                           [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                          { handleTestFuelPreheating(request, json); }));
+                                                          {
+                                                              handleTestFuelPreheating(request, json);
+                                                          }));
 
         // =========================================================================
         // ЧТЕНИЕ ДАННЫХ
         // =========================================================================
         server.on("/api/device/info", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
-                  { handleGetDeviceInfo(request); });
+                  {
+                      handleGetDeviceInfo(request);
+                  });
 
         server.on("/api/sensors/data", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
-                  { handleGetSensorsData(request); });
+                  {
+                      handleGetSensorsData(request);
+                  });
 
         server.on("/api/errors", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
-                  { handleGetErrors(request); });
+                  {
+                      handleGetErrors(request);
+                  });
 
         server.on("/api/errors/clear", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleClearErrors(request); });
+                  {
+                      handleClearErrors(request);
+                  });
     }
 
     // =========================================================================

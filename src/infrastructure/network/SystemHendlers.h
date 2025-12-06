@@ -6,7 +6,7 @@
 #include <LittleFS.h>
 #include "./domain/Events.h"
 #include "./ApiHelpers.h"
-#include "./common/Constants.h"
+#include "./common/Version.h"
 
 class SystemHandlers
 {
@@ -181,19 +181,27 @@ public:
     {
         server.on("/api/system/info", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
-                  { handleSystemInfo(request); });
+                  {
+                      handleSystemInfo(request);
+                  });
 
         server.on("/api/system/info/minimal", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
-                  { handleSystemInfoMinimal(request); });
+                  {
+                      handleSystemInfoMinimal(request);
+                  });
 
         server.on("/api/system/info/detailed", HTTP_GET,
                   [this](AsyncWebServerRequest *request)
-                  { handleSystemInfoDetailed(request); });
+                  {
+                      handleSystemInfoDetailed(request);
+                  });
 
         server.on("/api/system/restart", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
-                  { handleSystemRestart(request); });
+                  {
+                      handleSystemRestart(request);
+                  });
     }
 
     // =========================================================================

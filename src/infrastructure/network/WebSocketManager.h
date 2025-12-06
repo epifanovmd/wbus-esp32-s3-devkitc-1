@@ -12,15 +12,18 @@ private:
     HeaterController &heaterController;
 
 public:
-    WebSocketManager(HeaterController &heaterCtrl)
-        : ws("/ws"), heaterController(heaterCtrl)
+    WebSocketManager(HeaterController &heaterCtrl) : ws("/ws"),
+                                                     heaterController(heaterCtrl)
     {
         ws.onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client,
                           AwsEventType type, void *arg, uint8_t *data, size_t len)
                    { handleWebSocketEvent(server, client, type, arg, data, len); });
     }
 
-    AsyncWebSocket &getWebSocket() { return ws; }
+    AsyncWebSocket &getWebSocket()
+    {
+        return ws;
+    }
 
     void process()
     {
@@ -58,8 +61,8 @@ private:
         case WS_EVT_CONNECT:
         {
             IPAddress ip = client->remoteIP();
-            Serial.printf("[WebSocket] Client #%u connected from %d.%d.%d.%d\n", 
-                         client->id(), ip[0], ip[1], ip[2], ip[3]);
+            Serial.printf("[WebSocket] Client #%u connected from %d.%d.%d.%d\n",
+                          client->id(), ip[0], ip[1], ip[2], ip[3]);
             sendInitialState(client);
             break;
         }
@@ -75,7 +78,7 @@ private:
         }
     }
 
-    void handleWebSocketMessage(AsyncWebSocketClient *client, void *arg, 
+    void handleWebSocketMessage(AsyncWebSocketClient *client, void *arg,
                                 uint8_t *data, size_t len)
     {
         AwsFrameInfo *info = (AwsFrameInfo *)arg;

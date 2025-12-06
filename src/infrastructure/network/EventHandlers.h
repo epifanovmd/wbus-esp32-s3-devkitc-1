@@ -13,8 +13,7 @@ private:
     WebSocketManager &webSocketManager;
 
 public:
-    EventHandlers(WebSocketManager &wsMngr)
-        : webSocketManager(wsMngr) {}
+    EventHandlers(WebSocketManager &wsMngr) : webSocketManager(wsMngr) {}
 
     void broadcastJson(EventType eventType,
                        const String &json)

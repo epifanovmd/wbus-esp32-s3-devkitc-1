@@ -36,18 +36,17 @@ private:
 public:
     AsyncApiServer(DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr,
                    ErrorsManager &errorsMngr, HeaterController &heaterCtrl,
-                   uint16_t serverPort = 80)
-        : server(serverPort),
-          webSocketManager(heaterCtrl),
-          deviceInfoManager(deviceInfoMngr),
-          sensorManager(sensorMngr),
-          errorsManager(errorsMngr),
-          heaterController(heaterCtrl),
-          webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
-          otaHandlers(server),
-          systemHandlers(server),
-          eventHandlers(webSocketManager),
-          port(serverPort) {}
+                   uint16_t serverPort = 80) : server(serverPort),
+                                               webSocketManager(heaterCtrl),
+                                               deviceInfoManager(deviceInfoMngr),
+                                               sensorManager(sensorMngr),
+                                               errorsManager(errorsMngr),
+                                               heaterController(heaterCtrl),
+                                               webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
+                                               otaHandlers(server),
+                                               systemHandlers(server),
+                                               eventHandlers(webSocketManager),
+                                               port(serverPort) {}
 
     bool initialize()
     {
