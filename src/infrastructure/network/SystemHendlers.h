@@ -110,7 +110,6 @@ private:
             storage["littlefsUsed"] = formatBytes(usedBytes);
             storage["littlefsFree"] = formatBytes(totalBytes - usedBytes);
             storage["littlefsUsagePercent"] = (totalBytes > 0) ? String((usedBytes * 100) / totalBytes) + "%" : "N/A";
-            LittleFS.end();
         }
     }
 
