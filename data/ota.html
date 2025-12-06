@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Webasto OTA Update</title>
+  <meta charset="utf-8">
+  <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      .container { max-width: 600px; margin: 0 auto; }
+      .form-group { margin: 15px 0; }
+      label { display: block; margin-bottom: 5px; }
+      input[type="file"] { padding: 10px; border: 1px solid #ddd; }
+      button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+      .progress { width: 100%; height: 20px; background: #f0f0f0; margin: 10px 0; }
+      .progress-bar { height: 100%; background: #007bff; width: 0%; transition: width 0.3s; }
+      .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+      .success { background: #d4edda; color: #155724; }
+      .error { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Webasto Firmware Update</h1>
+
+  <div class="form-group">
+    <label for="firmwareFile">Select firmware (.bin file):</label>
+    <input type="file" id="firmwareFile" accept=".bin">
+  </div>
+
+  <div class="form-group">
+    <label>Authentication:</label>
+    <input type="text" id="username" placeholder="Username" value="admin">
+    <input type="password" id="password" placeholder="Password" value="Epifan123">
+  </div>
+
+  <button onclick="uploadFirmware()">Upload & Update</button>
+
+  <div class="progress" id="progressContainer" style="display: none;">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div id="status"></div>
+
+  <div style="margin-top: 20px;">
+    <button onclick="checkStatus()">Check Update Status</button>
+    <button onclick="getSystemInfo()">System Info</button>
+  </div>
+
+  <pre id="output"></pre>
+</div>
+
+<script>
+  function showStatus(message, type = 'info') {
+    const status = document.getElementById('status');
+    status.innerHTML = message;
+    status.className = 'status ' + type;
+    status.style.display = 'block';
+  }
+
+  function showProgress(percent) {
+    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('progressBar').style.width = percent + '%';
+  }
+
+  async function uploadFirmware() {
+    const fileInput = document.getElementById('firmwareFile');
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    if (!fileInput.files.length) {
+      showStatus('Please select a firmware file', 'error');
+      return;
+    }
+
+    const file = fileInput.files[0];
+    if (!file.name.endsWith('.bin')) {
+      showStatus('Only .bin files are allowed', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('firmware', file);
+
+    showStatus('Uploading firmware...', 'info');
+    showProgress(0);
+
+    try {
+      const response = await fetch('http://192.168.4.1/api/system/update', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa(username + ':' + password)
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+
+      if (response.ok) {
+        showStatus('Update successful! Device will reboot...', 'success');
+      } else {
+        showStatus('Error: ' + data.error, 'error');
+      }
+    } catch (error) {
+      showStatus('Upload failed: ' + error.message, 'error');
+    }
+  }
+
+  async function checkStatus() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+      const response = await fetch('/api/system/update/status', {
+        headers: {
+          'Authorization': 'Basic ' + btoa(username + ':' + password)
+        }
+      });
+
+      const data = await response.json();
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      showStatus('Status checked successfully', 'success');
+    } catch (error) {
+      showStatus('Failed to check status: ' + error.message, 'error');
+    }
+  }
+
+  async function getSystemInfo() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+      const response = await fetch('/api/system/info', {
+        headers: {
+          'Authorization': 'Basic ' + btoa(username + ':' + password)
+        }
+      });
+
+      const data = await response.json();
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      showStatus('System info retrieved', 'success');
+    } catch (error) {
+      showStatus('Failed to get system info: ' + error.message, 'error');
+    }
+  }
+</script>
+</body>
+</html>

@@ -3,8 +3,6 @@
 #include "core/EventBus.h"
 #include "core/ConfigManager.h"
 #include "infrastructure/hardware/TJA1020Driver.h"
-// #include "infrastructure/network/WebSocketServer.h"
-// #include "infrastructure/network/ApiServer.h"
 #include "infrastructure/network/AsyncWebServer.h"
 #include "application/CommandManager.h"
 #include "application/SensorManager.h"
@@ -27,6 +25,7 @@ private:
 
     // Аппаратный слой
     TJA1020Driver busDriver;
+    HardwareSerial KLineSerial;
 
     // Приемник W-Bus пакетов
     CommanReceiver commanReceiver;
@@ -51,7 +50,7 @@ private:
 
 public:
     WebastoApplication()
-        : eventBus(EventBus::getInstance()), configManager(ConfigManager::getInstance()), busDriver(KLineSerial, eventBus), commanReceiver(KLineSerial, eventBus), commandManager(eventBus, busDriver, commanReceiver), deviceInfoManager(eventBus, commandManager), sensorManager(eventBus, commandManager), errorsManager(eventBus, commandManager), heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager), snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController), asyncWebServer(deviceInfoManager, sensorManager, errorsManager, heaterController, configManager.getConfig().network.webPort)
+        : eventBus(EventBus::getInstance()), configManager(ConfigManager::getInstance()), KLineSerial(1), busDriver(KLineSerial, eventBus), commanReceiver(KLineSerial, eventBus), commandManager(eventBus, busDriver, commanReceiver), deviceInfoManager(eventBus, commandManager), sensorManager(eventBus, commandManager), errorsManager(eventBus, commandManager), heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager), snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController), asyncWebServer(deviceInfoManager, sensorManager, errorsManager, heaterController, configManager.getConfig().network.webPort)
     {
         commandManager.setTimeout(2000);
         commandManager.setInterval(150);

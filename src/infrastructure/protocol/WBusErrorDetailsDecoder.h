@@ -27,7 +27,7 @@ private:
         {
             if (!first)
                 flags += ", ";
-            flags += "Активная ошибка";
+            flags += "Активна";
         }
 
         if (flags.isEmpty())
