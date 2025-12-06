@@ -90,36 +90,8 @@ public:
 
     static void printAvailableEndpoints()
     {
-        Serial.println();
-        Serial.println("🌐 Available API Endpoints:");
-        Serial.println("  GET  /                    - Web interface");
-        Serial.println("  WS   /ws                  - WebSocket connection");
-        Serial.println();
-        Serial.println("  POST /api/connect         - Connect to Webasto");
-        Serial.println("  POST /api/disconnect      - Disconnect from Webasto");
-        Serial.println("  GET  /api/status          - Get system status");
-        Serial.println();
-        Serial.println("  POST /api/start/parking   - Start parking heat");
-        Serial.println("  POST /api/start/ventilation - Start ventilation");
-        Serial.println("  POST /api/start/supplemental - Start supplemental heat");
-        Serial.println("  POST /api/start/boost     - Start boost mode");
-        Serial.println("  POST /api/shutdown        - Shutdown heater");
-        Serial.println();
-        Serial.println("  POST /api/test/combustion-fan - Test combustion fan");
-        Serial.println("  POST /api/test/fuel-pump  - Test fuel pump");
-        Serial.println("  POST /api/test/glow-plug  - Test glow plug");
-        Serial.println("  POST /api/test/circulation-pump - Test circulation pump");
-        Serial.println("  POST /api/test/vehicle-fan - Test vehicle fan");
-        Serial.println("  POST /api/test/solenoid   - Test solenoid valve");
-        Serial.println("  POST /api/test/fuel-preheating - Test fuel preheating");
-        Serial.println();
-        Serial.println("  GET  /api/device/info     - Get device information");
-        Serial.println("  GET  /api/sensors/data    - Get sensors data");
-        Serial.println("  GET  /api/errors          - Get errors list");
-        Serial.println("  POST /api/errors/clear    - Clear errors");
-        Serial.println();
-        Serial.println("  GET  /api/system/info     - Get system information");
-        Serial.println("  POST /api/system/restart  - Restart system");
-        Serial.println();
+        // Serial.println();
+        // Serial.println("🌐 Available API Endpoints:");
+        // Serial.println();
     }
 };

@@ -93,6 +93,7 @@ public:
     void process()
     {
         webSocketManager.process();
+        otaHandlers.process();
     }
 
     void broadcastJson(EventType eventType,
