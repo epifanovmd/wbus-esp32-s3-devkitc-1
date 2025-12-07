@@ -96,7 +96,8 @@ public:
 
         server.begin();
 
-        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString() + ":" + String(configManager.getConfig().network.port || 80));
+        uint16_t port = configManager.getConfig().network.port;
+        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString() + ":" + String((port > 0) ? port : 80));
         Serial.println("✅ WebSocket available at ws://" + WiFi.softAPIP().toString() + "/ws");
 
         ApiHelpers::printAvailableEndpoints();
