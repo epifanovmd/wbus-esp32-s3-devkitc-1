@@ -63,6 +63,9 @@ enum class EventType
     FUEL_PREWARMING,
     BURNING_DURATION_STATS,
     START_COUNTERS,
+
+    // Ota events
+    OTA,
 };
 
 struct Event
@@ -213,6 +216,9 @@ public:
             return "START_COUNTERS";
         case EventType::COMMAND_NAK_RESPONSE:
             return "COMMAND_NAK_RESPONSE";
+
+        case EventType::OTA:
+            return "OTA";
 
         default:
             return "UNKNOWN_EVENT";

@@ -125,23 +125,18 @@ private:
         storage["maxOTASize"] = freeSketchSpace - 0x1000;
         storage["maxOTASizeFormatted"] = String((freeSketchSpace - 0x1000) / 1024.0, 1) + " KB";
 
-        // LittleFS информация
-        if (LittleFS.begin(true))
-        {
-            size_t totalBytes = LittleFS.totalBytes();
-            size_t usedBytes = LittleFS.usedBytes();
-            size_t freeBytes = totalBytes - usedBytes;
-            float littlefsUsagePercent = (totalBytes > 0) ? (usedBytes * 100.0) / totalBytes : 0;
+        size_t totalBytes = LittleFS.totalBytes();
+        size_t usedBytes = LittleFS.usedBytes();
+        size_t freeBytes = totalBytes - usedBytes;
+        float littlefsUsagePercent = (totalBytes > 0) ? (usedBytes * 100.0) / totalBytes : 0;
 
-            storage["littlefs"]["total"] = totalBytes;
-            storage["littlefs"]["used"] = usedBytes;
-            storage["littlefs"]["free"] = freeBytes;
-            storage["littlefs"]["totalFormatted"] = String(totalBytes / 1024.0, 1) + " KB";
-            storage["littlefs"]["usedFormatted"] = String(usedBytes / 1024.0, 1) + " KB";
-            storage["littlefs"]["freeFormatted"] = String(freeBytes / 1024.0, 1) + " KB";
-            storage["littlefs"]["usagePercent"] = String(littlefsUsagePercent, 1) + "%";
-            LittleFS.end();
-        }
+        storage["littlefs"]["total"] = totalBytes;
+        storage["littlefs"]["used"] = usedBytes;
+        storage["littlefs"]["free"] = freeBytes;
+        storage["littlefs"]["totalFormatted"] = String(totalBytes / 1024.0, 1) + " KB";
+        storage["littlefs"]["usedFormatted"] = String(usedBytes / 1024.0, 1) + " KB";
+        storage["littlefs"]["freeFormatted"] = String(freeBytes / 1024.0, 1) + " KB";
+        storage["littlefs"]["usagePercent"] = String(littlefsUsagePercent, 1) + "%";
 
         // Информация о WiFi
         JsonObject wifi = doc.createNestedObject("wifi");

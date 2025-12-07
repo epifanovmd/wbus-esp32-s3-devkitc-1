@@ -11,14 +11,15 @@ class TJA1020Driver : public IBusManager
 private:
     HardwareSerial &serial;
     EventBus &eventBus;
+    ConfigManager &configManager;
     const BusConfig &config;
 
     ConnectionState connectionState = ConnectionState::DISCONNECTED;
     bool isAwakeFlag = false;
 
 public:
-    TJA1020Driver(HardwareSerial &serialRef, EventBus &bus)
-        : serial(serialRef), eventBus(bus), config(ConfigManager::getInstance().getConfig().bus) {}
+    TJA1020Driver(ConfigManager &configMmngr, HardwareSerial &serialRef, EventBus &bus)
+        : serial(serialRef), eventBus(bus), configManager(configMmngr), config(configManager.getConfig().bus) {}
 
     bool initialize() override
     {

@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include "core/EventBus.h"
 #include "core/ConfigManager.h"
+#include "core/FileSystemManager.h"
 #include "infrastructure/hardware/TJA1020Driver.h"
 #include "infrastructure/network/AsyncWebServer.h"
 #include "application/CommandManager.h"
@@ -21,7 +22,8 @@ class WebastoApplication
 {
 private:
     EventBus &eventBus;
-    ConfigManager &configManager;
+    ConfigManager configManager;
+    FileSystemManager fileSystemManager;
 
     // Аппаратный слой
     TJA1020Driver busDriver;
@@ -50,7 +52,19 @@ private:
 
 public:
     WebastoApplication()
-        : eventBus(EventBus::getInstance()), configManager(ConfigManager::getInstance()), KLineSerial(1), busDriver(KLineSerial, eventBus), commanReceiver(KLineSerial, eventBus), commandManager(eventBus, busDriver, commanReceiver), deviceInfoManager(eventBus, commandManager), sensorManager(eventBus, commandManager), errorsManager(eventBus, commandManager), heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager), snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController), asyncWebServer(deviceInfoManager, sensorManager, errorsManager, heaterController, configManager.getConfig().network.webPort)
+        : eventBus(EventBus::getInstance())
+        , fileSystemManager()
+        , configManager(fileSystemManager)
+        , KLineSerial(1)
+        , busDriver(configManager, KLineSerial, eventBus)
+        , commanReceiver(KLineSerial, eventBus)
+        , commandManager(configManager, eventBus, busDriver, commanReceiver)
+        , deviceInfoManager(eventBus, commandManager)
+        , sensorManager(eventBus, commandManager)
+        , errorsManager(eventBus, commandManager)
+        , heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager)
+        , snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController)
+        , asyncWebServer(fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController)
     {
         commandManager.setTimeout(2000);
         commandManager.setInterval(150);
@@ -118,7 +132,7 @@ public:
 private:
     void setupWiFi()
     {
-        const NetworkConfig &netConfig = configManager.getConfig().network;
+        auto &netConfig = configManager.getConfig().network;
 
         Serial.println();
         Serial.println("📡 Starting Access Point...");

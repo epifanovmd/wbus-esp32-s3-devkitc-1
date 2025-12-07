@@ -23,10 +23,6 @@ enum class ProcessingState
     BREAK_RESET // BREAK сигнал сброшен
 };
 
-Timer queueTimer(100);
-Timer timeoutTimer(2000, false);
-Timer breakTimer(50, false);
-
 struct Command
 {
     String data;
@@ -44,22 +40,35 @@ private:
     std::queue<Command> priorityQueue; // Приоритетная очередь
     std::queue<Command> normalQueue;   // Обычная очередь
 
+    ConfigManager &configManager;
+
     EventBus &eventBus;
-    const BusConfig &config;
     IBusManager &busManager;
     CommanReceiver &commanReceiver;
+
     WBusErrorsDecoder errorsDecoder;
     PacketParser packetParser;
 
     Command processingCommand;
     ProcessingState state = ProcessingState::IDLE;
     uint8_t currentRetries = 0;
-    const uint8_t MAX_RETRIES = 5;
+    uint8_t maxRetires;
+
+    Timer queueTimer;
+    Timer timeoutTimer;
+    Timer breakTimer;
 
 public:
-    CommandManager(EventBus &bus, IBusManager &busMngr, CommanReceiver &receiver)
-        : eventBus(bus), config(ConfigManager::getInstance().getConfig().bus), commanReceiver(receiver), busManager(busMngr)
+    CommandManager(ConfigManager &confgiMngr, EventBus &bus, IBusManager &busMngr, CommanReceiver &receiver)
+        : configManager(confgiMngr),
+          eventBus(bus),
+          commanReceiver(receiver),
+          busManager(busMngr),
+          queueTimer(confgiMngr.getConfig().bus.queueInterval),
+          timeoutTimer(confgiMngr.getConfig().bus.commandTimeout, false),
+          breakTimer(50, false)
     {
+        maxRetires = confgiMngr.getConfig().bus.maxRetries;
     }
 
     bool addCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
@@ -271,7 +280,7 @@ private:
     {
         currentRetries++;
 
-        if (currentRetries > MAX_RETRIES)
+        if (currentRetries > maxRetires)
         {
             eventBus.publish(EventType::COMMAND_SENT_ERRROR, processingCommand.data);
             clear();
@@ -280,7 +289,7 @@ private:
         {
             eventBus.publish<ConnectionTimeoutEvent>(EventType::COMMAND_SENT_TIMEOUT, {currentRetries, processingCommand.data});
             Serial.println();
-            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(MAX_RETRIES) + ": " + processingCommand.data);
+            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(maxRetires) + ": " + processingCommand.data);
 
             state = ProcessingState::BREAK_SET;
         }

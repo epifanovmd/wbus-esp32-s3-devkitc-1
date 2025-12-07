@@ -3,6 +3,7 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include <Update.h>
+#include "./WebSocketManager.h"
 #include "./common/Version.h"
 #include "./common/Utils.h"
 #include "./ApiHelpers.h"
@@ -11,6 +12,9 @@ class OtaHandlers
 {
 private:
     AsyncWebServer &server;
+    WebSocketManager &webSocketManager;
+    ConfigManager &configManager;
+    FileSystemManager& fsManager;
 
     struct OtaState
     {
@@ -20,14 +24,16 @@ private:
         uint32_t startTime = 0;
         bool rebootScheduled = false;
         uint32_t rebootTime = 0;
+        int lastBroadcastProgress = -1; // Для предотвращения спама
     } otaState;
 
 public:
-    OtaHandlers(AsyncWebServer &serv) : server(serv) {}
+    OtaHandlers(AsyncWebServer &serv, WebSocketManager &wsMngr, ConfigManager &configMngr, FileSystemManager& fsMgr)
+        : server(serv), webSocketManager(wsMngr), configManager(configMngr), fsManager(fsMgr) {}
 
     void setupEndpoints()
     {
-        // Главная OTA страница
+        // OTA страница
         server.on("/ota", HTTP_GET, [](AsyncWebServerRequest *request)
                   {
             if (LittleFS.exists("/ota.html")) {
@@ -36,24 +42,16 @@ public:
                 request->send(404, "text/plain", "OTA page not found");
             } });
 
-        // Запрос на обновление
+        // OTA обновление
         server.on("/api/system/update", HTTP_POST, [this](AsyncWebServerRequest *request)
                   {
-                // Проверяем, не идет ли уже обновление
                 if (otaState.inProgress) {
                     ApiHelpers::sendJsonError(request, "OTA update already in progress", 400);
                     return;
-                } },
-                  // Обработчик загрузки файла
-                  [this](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
+                } }, [this](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
                   { handleOtaUpload(request, filename, index, data, len, final); });
 
-        // Статус OTA
-        server.on("/api/system/update/status", HTTP_GET,
-                  [this](AsyncWebServerRequest *request)
-                  {
-                      handleOtaStatus(request);
-                  });
+        // WebSocket эндпоинт уже настраивается в основном коде
     }
 
     void process()
@@ -66,49 +64,141 @@ public:
         }
     }
 
+    // Метод для отправки прогресса через WebSocket
+    void broadcastProgress()
+    {
+        if (!otaState.inProgress || otaState.totalSize == 0)
+            return;
+
+        int progress = (otaState.receivedSize * 100) / otaState.totalSize;
+
+        // Отправляем только если прогресс изменился на 1% или больше
+        if (abs(progress - otaState.lastBroadcastProgress) >= 1)
+        {
+            otaState.lastBroadcastProgress = progress;
+
+            DynamicJsonDocument doc(256);
+            doc["type"] = "ota_progress";
+            doc["progress"] = progress;
+            doc["received"] = otaState.receivedSize;
+            doc["total"] = otaState.totalSize;
+            doc["elapsed"] = (millis() - otaState.startTime) / 1000;
+
+            // Рассчитываем скорость
+            if (otaState.receivedSize > 0)
+            {
+                uint32_t elapsed = millis() - otaState.startTime;
+                if (elapsed > 0)
+                {
+                    uint32_t speed = (otaState.receivedSize * 1000) / elapsed;
+                    doc["speed"] = speed;
+
+                    // Оставшееся время
+                    if (speed > 0)
+                    {
+                        uint32_t remaining = (otaState.totalSize - otaState.receivedSize) / speed;
+                        doc["remaining"] = remaining;
+                    }
+                }
+            }
+
+            String json;
+            serializeJson(doc, json);
+            webSocketManager.broadcastJson(EventType::OTA, json);
+
+            // Также выводим в Serial для отладки
+            if (progress % 10 == 0)
+            {
+                Serial.printf("📊 OTA Progress: %d%% (%u/%u bytes)\n",
+                              progress, otaState.receivedSize, otaState.totalSize);
+            }
+        }
+    }
+
+    // Отправка успешного завершения
+    void broadcastComplete(const String &filename)
+    {
+        DynamicJsonDocument doc(128);
+        doc["type"] = "ota_complete";
+        doc["filename"] = filename;
+        doc["size"] = otaState.receivedSize;
+        doc["duration"] = (millis() - otaState.startTime) / 1000;
+
+        String json;
+        serializeJson(doc, json);
+        webSocketManager.broadcastJson(EventType::OTA, json);
+    }
+
+    // Отправка ошибки
+    void broadcastError(const String &message)
+    {
+        DynamicJsonDocument doc(128);
+        doc["type"] = "ota_error";
+        doc["message"] = message;
+
+        String json;
+        serializeJson(doc, json);
+        webSocketManager.broadcastJson(EventType::OTA, json);
+    }
+
 private:
-    // Основной обработчик загрузки OTA
+    // Обработчик загрузки
     void handleOtaUpload(AsyncWebServerRequest *request, const String &filename,
                          size_t index, uint8_t *data, size_t len, bool final)
     {
-        // Начало загрузки
         if (index == 0)
         {
             if (!beginOtaUpdate(request, filename))
+                return;
+        }
+
+        if (!otaState.inProgress)
+            return;
+
+        // Используем FileSystemManager для проверки свободного места
+        if (final && len == 0)
+        {
+            // Проверка свободного места перед началом
+            size_t totalBytes, usedBytes;
+            fsManager.getInfo(totalBytes, usedBytes);
+            size_t freeBytes = totalBytes - usedBytes;
+
+            if (otaState.totalSize > freeBytes)
             {
+                String error = "Not enough space. Need: " +
+                               String(otaState.totalSize) +
+                               " bytes, Free: " +
+                               String(freeBytes) + " bytes";
+                broadcastError(error);
+                otaState.inProgress = false;
                 return;
             }
         }
 
-        // Пропускаем если OTA не начата
-        if (!otaState.inProgress)
-            return;
-
-        // Записываем данные
         if (len > 0 && !writeOtaData(data, len))
         {
             otaState.inProgress = false;
+            broadcastError("Write failed");
             return;
         }
 
-        // Завершение загрузки
+        broadcastProgress();
+
         if (final)
         {
             finalizeOtaUpdate(request, filename);
         }
     }
 
-    // Инициализация OTA обновления
+    // Инициализация OTA
     bool beginOtaUpdate(AsyncWebServerRequest *request, const String &filename)
     {
-        // Проверка типа файла
         if (!filename.endsWith(".bin"))
         {
-            ApiHelpers::sendJsonError(request, "Invalid file type. Only .bin files allowed", 400);
+            ApiHelpers::sendJsonError(request, "Only .bin files allowed", 400);
             return false;
         }
 
-        // Получаем размер файла
         otaState.totalSize = request->contentLength();
         if (otaState.totalSize == 0)
         {
@@ -116,17 +206,14 @@ private:
             return false;
         }
 
-        // Проверяем размер
         size_t maxSize = ESP.getFreeSketchSpace() - 0x1000;
         if (otaState.totalSize > maxSize)
         {
             ApiHelpers::sendJsonError(request,
-                                      "File too large. Max: " + String(maxSize) + " bytes, Got: " + String(otaState.totalSize) + " bytes",
-                                      400);
+                                      String("File too large. Max: ") + String(maxSize) + " bytes", 400);
             return false;
         }
 
-        // Начинаем обновление
         if (!Update.begin(otaState.totalSize, U_FLASH))
         {
             ApiHelpers::sendJsonError(request,
@@ -134,19 +221,11 @@ private:
             return false;
         }
 
-        // Настраиваем коллбэк прогресса
-        Update.onProgress([this](size_t progress, size_t total)
-                          {
-            if ((progress * 100 / total) % 10 == 0) {
-                Serial.printf("📥 OTA Progress: %d%% (%u/%u bytes)\n", 
-                    (progress * 100) / total, progress, total);
-            } });
-
-        // Инициализируем состояние
         otaState.inProgress = true;
         otaState.receivedSize = 0;
         otaState.startTime = millis();
         otaState.rebootScheduled = false;
+        otaState.lastBroadcastProgress = -1;
 
         Serial.printf("📦 OTA Started: %s (%u bytes)\n", filename.c_str(), otaState.totalSize);
         return true;
@@ -158,7 +237,7 @@ private:
         size_t written = Update.write(data, len);
         if (written != len)
         {
-            Serial.printf("❌ Write failed: written %u, expected %u\n", written, len);
+            Serial.printf("❌ Write failed: %u/%u bytes\n", written, len);
             Update.end(false);
             return false;
         }
@@ -167,70 +246,30 @@ private:
         return true;
     }
 
-    // Завершение обновления
+    // Завершение
     void finalizeOtaUpdate(AsyncWebServerRequest *request, const String &filename)
     {
-        Serial.println("✅ Firmware upload complete, finalizing...");
+        Serial.println("✅ Finalizing update...");
 
         if (Update.end(true))
         {
+            broadcastComplete(filename);
             sendSuccessResponse(request, filename);
         }
         else
         {
-            ApiHelpers::sendJsonError(request,
-                                      "Update finalization failed: " + String(Update.errorString()), 400);
-            Serial.println("❌ OTA update failed: " + String(Update.errorString()));
+            String error = "Update failed: " + String(Update.errorString());
+            broadcastError(error);
+            ApiHelpers::sendJsonError(request, error, 400);
         }
 
         otaState.inProgress = false;
     }
 
-    // Статус OTA
-    void handleOtaStatus(AsyncWebServerRequest *request)
-    {
-        DynamicJsonDocument doc(512);
-
-        if (otaState.inProgress)
-        {
-            int progress = otaState.totalSize > 0 ? (otaState.receivedSize * 100) / otaState.totalSize : 0;
-
-            doc["status"] = "in_progress";
-            doc["progress"] = progress;
-            doc["receivedBytes"] = otaState.receivedSize;
-            doc["totalBytes"] = otaState.totalSize;
-            doc["elapsedTime"] = (millis() - otaState.startTime) / 1000;
-
-            // Скорость загрузки
-            if (otaState.receivedSize > 0)
-            {
-                uint32_t elapsed = millis() - otaState.startTime;
-                uint32_t speed = elapsed > 0 ? (otaState.receivedSize * 1000) / elapsed : 0;
-                doc["speedBps"] = speed;
-                doc["speed"] = Utils::formatSizeBytes(speed) + "/s";
-            }
-        }
-        else
-        {
-            doc["status"] = "idle";
-            doc["firmwareVersion"] = FIRMWARE_VERSION;
-            doc["freeSpace"] = ESP.getFreeSketchSpace();
-            doc["maxOtaSize"] = ESP.getFreeSketchSpace() - 0x1000;
-            doc["rebootScheduled"] = otaState.rebootScheduled;
-
-            if (otaState.rebootScheduled)
-            {
-                doc["rebootIn"] = (otaState.rebootTime - millis()) / 1000;
-            }
-        }
-
-        ApiHelpers::sendJsonDocument(request, doc);
-    }
-
     // Успешный ответ
     void sendSuccessResponse(AsyncWebServerRequest *request, const String &filename)
     {
-        DynamicJsonDocument doc(256);
+        DynamicJsonDocument doc(128);
         doc["status"] = "success";
         doc["message"] = "Firmware updated successfully. Rebooting...";
         doc["filename"] = filename;
@@ -245,10 +284,11 @@ private:
                       filename.c_str(), otaState.receivedSize, millis() - otaState.startTime);
         Serial.println("🔄 Scheduled reboot in 2 seconds...");
 
-        // Отправляем ответ и закрываем соединение
-        AsyncWebServerResponse *response = request->beginResponse(200, "application/json");
-        doc.shrinkToFit();
-        serializeJson(doc, response);
+        // ИСПРАВЛЕННАЯ СТРОКА: Сначала сериализуем в строку
+        String json;
+        serializeJson(doc, json);
+
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
         response->addHeader("Connection", "close");
         request->send(response);
     }

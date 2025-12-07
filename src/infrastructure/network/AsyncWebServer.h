@@ -3,7 +3,6 @@
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 #include <ArduinoJson.h>
-#include <LittleFS.h>
 #include "./domain/Events.h"
 #include "./common/Constants.h"
 #include "./OtaHandlers.h"
@@ -11,6 +10,7 @@
 #include "./SystemHendlers.h"
 #include "./EventHandlers.h"
 #include "./WebSocketManager.h"
+#include "./core/FileSystemManager.h"
 #include "./ApiHelpers.h"
 #include "../../application/HeaterController.h"
 #include "../../application/ErrorsManager.h"
@@ -22,6 +22,9 @@ class AsyncApiServer
 private:
     AsyncWebServer server;
     WebSocketManager webSocketManager;
+
+    FileSystemManager &fsManager;
+    ConfigManager &configManager;
     DeviceInfoManager &deviceInfoManager;
     SensorManager &sensorManager;
     ErrorsManager &errorsManager;
@@ -30,26 +33,33 @@ private:
     OtaHandlers otaHandlers;
     SystemHandlers systemHandlers;
     EventHandlers eventHandlers;
-    uint16_t port;
 
 public:
     AsyncApiServer(
-        DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr, ErrorsManager &errorsMngr, HeaterController &heaterCtrl, uint16_t serverPort = 80)
-        : server(serverPort),
-          webSocketManager(heaterCtrl),
+        FileSystemManager &fsMgr,
+        ConfigManager &configMngr,
+        DeviceInfoManager &deviceInfoMngr,
+        SensorManager &sensorMngr,
+        ErrorsManager &errorsMngr,
+        HeaterController &heaterCtrl)
+        : server(configMngr.getConfig().network.port),
+          fsManager(fsMgr),
+          configManager(configMngr),
           deviceInfoManager(deviceInfoMngr),
           sensorManager(sensorMngr),
           errorsManager(errorsMngr),
           heaterController(heaterCtrl),
           webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
-          otaHandlers(server),
+          otaHandlers(server, webSocketManager, configMngr, fsManager),
           systemHandlers(server),
-          eventHandlers(webSocketManager),
-          port(serverPort) {}
+          webSocketManager(heaterCtrl),
+          eventHandlers(webSocketManager)
+    {
+    }
 
     bool initialize()
     {
-        if (!LittleFS.begin(true))
+        if (!fsManager.begin())
         {
             Serial.println("❌ LittleFS initialization failed");
             return false;
@@ -59,7 +69,7 @@ public:
             Serial.println("✅ LittleFS initialized");
         }
 
-        if (!LittleFS.exists("/index.html"))
+        if (!fsManager.exists("/index.html"))
         {
             Serial.println("⚠️  index.html not found");
         }
@@ -83,7 +93,7 @@ public:
 
         server.begin();
 
-        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString() + ":" + String(port));
+        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString() + ":" + String(configManager.getConfig().network.port || 80));
         Serial.println("✅ WebSocket available at ws://" + WiFi.softAPIP().toString() + "/ws");
 
         ApiHelpers::printAvailableEndpoints();

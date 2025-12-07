@@ -1,8 +1,7 @@
-// src/core/ConfigManager.h
 #pragma once
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include "FileSystemManager.h"
 
 struct BusConfig
 {
@@ -24,7 +23,7 @@ struct NetworkConfig
 {
     String ssid = "Webasto_WiFi";
     String password = "Epifan123";
-    uint16_t webPort = 80;
+    uint16_t port = 80;
 };
 
 struct AppConfig
@@ -36,41 +35,38 @@ struct AppConfig
 class ConfigManager
 {
 private:
+    FileSystemManager &fsManager;
     AppConfig config;
     String configPath = "/config.json";
+    bool configLoaded = false;
 
 public:
-    static ConfigManager &getInstance()
-    {
-        static ConfigManager instance;
-        return instance;
-    }
+    ConfigManager(FileSystemManager &fsMgr) : fsManager(fsMgr) {}
 
     const AppConfig &getConfig() const { return config; }
+    bool isConfigLoaded() const { return configLoaded; }
 
     bool loadConfig()
     {
-        // Проверяем, смонтирована ли файловая система
-        bool fsMounted = LittleFS.begin(true);
-
-        if (!fsMounted)
+        // Инициализируем файловую систему, если нужно
+        if (!fsManager.isInitialized() && !fsManager.begin())
         {
-            Serial.println("⚠️  LittleFS not mounted, using defaults");
+            Serial.println("⚠️  Cannot load config: filesystem not available");
             return false;
         }
 
-        if (!LittleFS.exists(configPath))
+        if (!fsManager.exists(configPath))
         {
             Serial.println("⚠️  Config file not found, using defaults");
             // Пытаемся сохранить конфиг по умолчанию
-            return saveConfig();
+            configLoaded = saveConfig();
+            return configLoaded;
         }
 
-        File file = LittleFS.open(configPath, "r");
+        File file = fsManager.open(configPath, "r");
         if (!file)
         {
             Serial.println("❌ Failed to open config file");
-            LittleFS.end(); // Закрываем файловую систему
             return false;
         }
 
@@ -81,7 +77,6 @@ public:
         if (error)
         {
             Serial.println("❌ Failed to parse config file: " + String(error.c_str()));
-            LittleFS.end(); // Закрываем файловую систему
             return false;
         }
 
@@ -94,21 +89,18 @@ public:
         // Load network config
         config.network.ssid = doc["network"]["ssid"] | "Webasto_WiFi";
         config.network.password = doc["network"]["password"] | "Epifan123";
-        config.network.webPort = doc["network"]["webPort"] | 80;
+        config.network.port = doc["network"]["port"] | 80;
 
+        configLoaded = true;
         Serial.println("✅ Config loaded successfully");
-        LittleFS.end(); // Закрываем файловую систему
         return true;
     }
 
     bool saveConfig()
     {
-        // Проверяем, смонтирована ли файловая система
-        bool fsMounted = LittleFS.begin(true);
-
-        if (!fsMounted)
+        if (!fsManager.isInitialized() && !fsManager.begin())
         {
-            Serial.println("❌ LittleFS not mounted, cannot save config");
+            Serial.println("❌ Cannot save config: filesystem not available");
             return false;
         }
 
@@ -121,21 +113,20 @@ public:
 
         doc["network"]["ssid"] = config.network.ssid;
         doc["network"]["password"] = config.network.password;
-        doc["network"]["webPort"] = config.network.webPort;
+        doc["network"]["port"] = config.network.port;
 
-        File file = LittleFS.open(configPath, "w");
+        File file = fsManager.open(configPath, "w");
         if (!file)
         {
             Serial.println("❌ Failed to create config file");
-            LittleFS.end(); // Закрываем файловую систему
             return false;
         }
 
         serializeJson(doc, file);
         file.close();
 
+        configLoaded = true;
         Serial.println("✅ Config saved successfully");
-        LittleFS.end(); // Закрываем файловую систему
         return true;
     }
 
@@ -147,9 +138,18 @@ public:
         Serial.println("    Command Timeout: " + String(config.bus.commandTimeout));
         Serial.println("    Max Retries: " + String(config.bus.maxRetries));
         Serial.println("    Queue Interval: " + String(config.bus.queueInterval));
+        Serial.println("    NSLP Pin: " + String(config.bus.NSLP_PIN));
+        Serial.println("    NWAKE Pin: " + String(config.bus.NWAKE_PIN));
         Serial.println("  Network:");
         Serial.println("    SSID: " + config.network.ssid);
         Serial.println("    Password: " + config.network.password);
-        Serial.println("    Web Port: " + String(config.network.webPort));
+        Serial.println("    Port: " + String(config.network.port));
+    }
+
+    // Метод для обновления конфигурации
+    bool updateConfig(const AppConfig &newConfig)
+    {
+        config = newConfig;
+        return saveConfig();
     }
 };
