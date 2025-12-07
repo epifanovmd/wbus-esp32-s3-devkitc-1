@@ -43,28 +43,28 @@ public:
     // Сбросить конфигурацию к значениям по умолчанию
     server.on("/api/config/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
               {
-                      // Используем метод ConfigManager
-                      ConfigUpdateResult result = configManager.resetToDefaults();
-                      
-                      DynamicJsonDocument responseDoc(256);
-                      
-                      if (result == ConfigUpdateResult::SUCCESS || 
-                          result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED) {
-                          
-                          responseDoc["status"] = "success";
-                          responseDoc["message"] = "Configuration reset to defaults";
-                          responseDoc["restartRequired"] = (result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED);
-                          
-                          if (result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED) {
-                              responseDoc["restartMessage"] = "Controller will restart in 2 seconds";
-                          }
-                          
-                          ApiHelpers::sendJsonDocument(request, responseDoc);
-                      } else {
-                          responseDoc["status"] = "error";
-                          responseDoc["message"] = "Failed to reset configuration";
-                          ApiHelpers::sendJsonDocument(request, responseDoc, 500);
-                      } });
+      // Используем метод ConfigManager
+      ConfigUpdateResult result = configManager.resetToDefaults();
+
+      DynamicJsonDocument responseDoc(256);
+
+      if (result == ConfigUpdateResult::SUCCESS ||
+        result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED) {
+
+        responseDoc["status"] = "success";
+        responseDoc["message"] = "Configuration reset to defaults";
+        responseDoc["restartRequired"] = (result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED);
+
+        if (result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED) {
+          responseDoc["restartMessage"] = "Controller will restart in 2 seconds";
+        }
+
+        ApiHelpers::sendJsonDocument(request, responseDoc);
+      } else {
+        responseDoc["status"] = "error";
+        responseDoc["message"] = "Failed to reset configuration";
+        ApiHelpers::sendJsonDocument(request, responseDoc, 500);
+      } });
 
     // Скачать конфиг файл
     server.on("/api/config/download", HTTP_GET, [this](AsyncWebServerRequest *request)
