@@ -300,32 +300,36 @@ public:
     {
         Serial.println("🔄 Resetting configuration to defaults...");
 
-        // Создаем конфиг с дефолтными значениями
-        config.configVersion = 2;
-        config.deviceId = "webasto-001";
+        // Создаем новые структуры с дефолтными значениями
+        // (конструкторы структур уже инициализируют значения по умолчанию)
+        AppConfig defaultConfig;
 
-        // Сбрасываем bus конфигурацию
-        config.bus.baudRate = 2400;
-        config.bus.commandTimeout = 2000;
-        config.bus.maxRetries = 5;
-        config.bus.queueInterval = 150;
-        config.bus.maxQueueSize = 30;
-        config.bus.maxPriorityQueueSize = 10;
-        config.bus.breakSignalDuration = 50;
-        config.bus.keepAliveInterval = 15000;
-        config.bus.nslpPin = 7;
-        config.bus.nwakePin = 6;
-        config.bus.rxdPullupPin = 8;
-        config.bus.rxTjaPin = 18;
-        config.bus.txTjaPin = 17;
-        config.bus.serialConfig = "8E1";
+        // Копируем дефолтные значения в текущий конфиг
+        config.configVersion = defaultConfig.configVersion;
+        config.deviceId = defaultConfig.deviceId;
 
-        // Сбрасываем network конфигурацию
-        config.network.ssid = "Webasto_WiFi";
-        config.network.password = "Epifan123";
-        config.network.port = 80;
-        config.network.otaUsername = "admin";
-        config.network.otaPassword = "Epifan123";
+        // Копируем bus конфигурацию
+        config.bus.baudRate = defaultConfig.bus.baudRate;
+        config.bus.commandTimeout = defaultConfig.bus.commandTimeout;
+        config.bus.maxRetries = defaultConfig.bus.maxRetries;
+        config.bus.queueInterval = defaultConfig.bus.queueInterval;
+        config.bus.maxQueueSize = defaultConfig.bus.maxQueueSize;
+        config.bus.maxPriorityQueueSize = defaultConfig.bus.maxPriorityQueueSize;
+        config.bus.breakSignalDuration = defaultConfig.bus.breakSignalDuration;
+        config.bus.keepAliveInterval = defaultConfig.bus.keepAliveInterval;
+        config.bus.nslpPin = defaultConfig.bus.nslpPin;
+        config.bus.nwakePin = defaultConfig.bus.nwakePin;
+        config.bus.rxdPullupPin = defaultConfig.bus.rxdPullupPin;
+        config.bus.rxTjaPin = defaultConfig.bus.rxTjaPin;
+        config.bus.txTjaPin = defaultConfig.bus.txTjaPin;
+        config.bus.serialConfig = defaultConfig.bus.serialConfig;
+
+        // Копируем network конфигурацию
+        config.network.ssid = defaultConfig.network.ssid;
+        config.network.password = defaultConfig.network.password;
+        config.network.port = defaultConfig.network.port;
+        config.network.otaUsername = defaultConfig.network.otaUsername;
+        config.network.otaPassword = defaultConfig.network.otaPassword;
 
         // Сохраняем в файл
         bool saved = saveConfig();
