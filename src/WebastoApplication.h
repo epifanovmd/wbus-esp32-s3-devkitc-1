@@ -30,7 +30,7 @@ private:
     HardwareSerial KLineSerial;
 
     // Приемник W-Bus пакетов
-    CommanReceiver commanReceiver;
+    CommandReceiver commandReceiver;
     // Управление командами
     CommandManager commandManager;
 
@@ -57,8 +57,8 @@ public:
         , configManager(fileSystemManager)
         , KLineSerial(1)
         , busDriver(configManager, KLineSerial, eventBus)
-        , commanReceiver(KLineSerial, eventBus)
-        , commandManager(configManager, eventBus, busDriver, commanReceiver)
+        , commandReceiver(KLineSerial, eventBus)
+        , commandManager(configManager, eventBus, busDriver, commandReceiver)
         , deviceInfoManager(eventBus, commandManager)
         , sensorManager(eventBus, commandManager)
         , errorsManager(eventBus, commandManager)
@@ -66,8 +66,8 @@ public:
         , snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController)
         , asyncWebServer(fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController)
     {
-        commandManager.setTimeout(2000);
-        commandManager.setInterval(150);
+        commandManager.setTimeout(configManager.getConfig().bus.commandTimeout);
+        commandManager.setInterval(configManager.getConfig().bus.queueInterval);
     }
 
     void initialize()
@@ -75,6 +75,7 @@ public:
         Serial.begin(115200);
         Serial.println();
         Serial.println("🚗 Webasto W-Bus Controller");
+        Serial.println("Device ID: " + configManager.getConfig().deviceId);
         Serial.println("===============================================");
 
         // Теперь загружаем конфигурацию
@@ -109,7 +110,7 @@ public:
         if (!initialized)
             return;
 
-        commanReceiver.process();
+        commandReceiver.process();
         commandManager.process();
         // Keep-alive логика
         if (keepAliveTimer.isReady())
@@ -138,6 +139,8 @@ private:
         Serial.println("📡 Starting Access Point...");
         Serial.println("  SSID: " + netConfig.ssid);
         Serial.println("  Password: " + netConfig.password);
+        Serial.println("  Port: " + String(netConfig.port));
+        
 
         WiFi.mode(WIFI_AP);
         bool apStarted = WiFi.softAP(netConfig.ssid, netConfig.password);

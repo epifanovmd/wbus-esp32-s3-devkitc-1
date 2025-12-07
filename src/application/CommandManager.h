@@ -44,7 +44,7 @@ private:
 
     EventBus &eventBus;
     IBusManager &busManager;
-    CommanReceiver &commanReceiver;
+    CommandReceiver &commandReceiver;
 
     WBusErrorsDecoder errorsDecoder;
     PacketParser packetParser;
@@ -59,21 +59,21 @@ private:
     Timer breakTimer;
 
 public:
-    CommandManager(ConfigManager &confgiMngr, EventBus &bus, IBusManager &busMngr, CommanReceiver &receiver)
-        : configManager(confgiMngr),
+   CommandManager(ConfigManager &configMngr, EventBus &bus, IBusManager &busMngr, CommandReceiver &receiver)
+        : configManager(configMngr),
           eventBus(bus),
-          commanReceiver(receiver),
+          commandReceiver(receiver),
           busManager(busMngr),
-          queueTimer(confgiMngr.getConfig().bus.queueInterval),
-          timeoutTimer(confgiMngr.getConfig().bus.commandTimeout, false),
-          breakTimer(50, false)
+          queueTimer(configMngr.getConfig().bus.queueInterval),
+          timeoutTimer(configMngr.getConfig().bus.commandTimeout, false),
+          breakTimer(configMngr.getConfig().bus.breakSignalDuration, false)
     {
-        maxRetires = confgiMngr.getConfig().bus.maxRetries;
+        maxRetires = configManager.getConfig().bus.maxRetries;
     }
 
     bool addCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
     {
-        if (getTotalQueueSize() >= 30 || containsCommand(command))
+        if (getTotalQueueSize() >= configManager.getConfig().bus.maxQueueSize || containsCommand(command))
             return false;
 
         normalQueue.push(Command(command, callback, loop));
@@ -82,7 +82,7 @@ public:
 
     bool addPriorityCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
     {
-        if (getTotalQueueSize() >= 30 || containsPriorityCommand(command))
+        if (getTotalQueueSize() >= configManager.getConfig().bus.maxPriorityQueueSize || containsPriorityCommand(command))
             return false;
 
         priorityQueue.push(Command(command, callback, loop));
@@ -102,10 +102,10 @@ public:
             break;
 
         case ProcessingState::SENDING:
-            if (commanReceiver.isRxReceived())
+            if (commandReceiver.isRxReceived())
             {
                 // ✅ Ответ получен
-                complete(commanReceiver.getRxData());
+                complete(commandReceiver.getRxData());
             }
             else if (timeoutTimer.isReady())
             {

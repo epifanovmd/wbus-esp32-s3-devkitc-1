@@ -122,7 +122,7 @@ struct KLineReceivedData
   }
 };
 
-class CommanReceiver
+class CommandReceiver
 {
 private:
   HardwareSerial &serial;
@@ -131,7 +131,7 @@ private:
   String currentTx;
 
 public:
-  CommanReceiver(HardwareSerial &serialRef, EventBus &bus) : serial(serialRef),
+  CommandReceiver(HardwareSerial &serialRef, EventBus &bus) : serial(serialRef),
                                                              eventBus(bus) {}
 
   void process()

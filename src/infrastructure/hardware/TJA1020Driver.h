@@ -24,18 +24,21 @@ public:
     bool initialize() override
     {
         // Инициализация пинов управления TJA1020
-        pinMode(config.NSLP_PIN, OUTPUT);
-        pinMode(config.NWAKE_PIN, OUTPUT);
-        pinMode(config.RXD_PULLUP, OUTPUT);
+        pinMode(config.nslpPin, OUTPUT);
+        pinMode(config.nwakePin, OUTPUT);
+        pinMode(config.rxdPullupPin, OUTPUT);
 
         // Подтяжка RXD к 3.3V
-        digitalWrite(config.RXD_PULLUP, HIGH);
+        digitalWrite(config.rxdPullupPin, HIGH);
 
         // Изначально спящий режим
-        digitalWrite(config.NSLP_PIN, LOW);
-        digitalWrite(config.NWAKE_PIN, HIGH);
+        digitalWrite(config.nslpPin, LOW);
+        digitalWrite(config.nwakePin, HIGH);
 
         Serial.println("✅ TJA1020 Driver initialized");
+        Serial.println("  NSLP Pin: " + String(config.nslpPin));
+        Serial.println("  NWAKE Pin: " + String(config.nwakePin));
+        Serial.println("  RXD Pullup Pin: " + String(config.rxdPullupPin));
         return true;
     }
 
@@ -43,7 +46,7 @@ public:
     {
         if (connectionState == ConnectionState::CONNECTING)
         {
-            Serial.println("⚠️  Already connecting...");
+            Serial.println("⚠️ Already connecting...");
             return false;
         }
 
@@ -74,39 +77,41 @@ public:
 
     void wakeUp() override
     {
-        digitalWrite(config.NSLP_PIN, HIGH);
+        digitalWrite(config.nslpPin, HIGH);
         delay(10);
 
-        digitalWrite(config.NWAKE_PIN, LOW);
+        digitalWrite(config.nwakePin, LOW);
         delay(2);
-        digitalWrite(config.NWAKE_PIN, HIGH);
+        digitalWrite(config.nwakePin, HIGH);
 
-        delay(50);
+        delay(config.breakSignalDuration);
         isAwakeFlag = true;
 
-        // Инициализация UART из оригинального кода
-        serial.begin(config.baudRate, SERIAL_8E1, config.RX_TJA_PIN, config.TX_TJA_PIN);
+        // Инициализация UART с параметрами из конфига
+        serial.begin(config.baudRate, config.getSerialConfig(), config.rxTjaPin, config.txTjaPin);
 
         Serial.println("🔔 TJA1020 awakened");
+        Serial.println("  Baud Rate: " + String(config.baudRate));
+        Serial.println("  Serial Config: " + config.serialConfig);
     }
 
     void sendBreak() override
     {
         sendBreakSignal(true);
-        delay(50);
+        delay(config.breakSignalDuration);
 
         sendBreakSignal(false);
-        delay(50);
+        delay(config.breakSignalDuration);
     }
 
     void sleep() override
     {
-        digitalWrite(config.TX_TJA_PIN, HIGH);
+        digitalWrite(config.txTjaPin, HIGH);
         delay(10);
 
         serial.end();
-        digitalWrite(config.NSLP_PIN, LOW);
-        digitalWrite(config.NWAKE_PIN, HIGH);
+        digitalWrite(config.nslpPin, LOW);
+        digitalWrite(config.nwakePin, HIGH);
 
         delay(10);
         isAwakeFlag = false;
@@ -141,7 +146,7 @@ public:
     {
         if (set)
         {
-            // BREAK set - удерживаем линию в LOW (как в оригинале)
+            // BREAK set - удерживаем линию в LOW
             serial.write(0x00); // Отправляем нулевой байт для BREAK
         }
         else
@@ -151,7 +156,7 @@ public:
         }
     }
 
-    // Методы для работы с serial (нужны для WBusReceiver)
+    // Методы для работы с serial
     int available() override
     {
         return serial.available();

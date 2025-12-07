@@ -14,7 +14,7 @@ private:
     AsyncWebServer &server;
     WebSocketManager &webSocketManager;
     ConfigManager &configManager;
-    FileSystemManager& fsManager;
+    FileSystemManager &fsManager;
 
     struct OtaState
     {
@@ -28,14 +28,21 @@ private:
     } otaState;
 
 public:
-    OtaHandlers(AsyncWebServer &serv, WebSocketManager &wsMngr, ConfigManager &configMngr, FileSystemManager& fsMgr)
+    OtaHandlers(AsyncWebServer &serv, WebSocketManager &wsMngr, ConfigManager &configMngr, FileSystemManager &fsMgr)
         : server(serv), webSocketManager(wsMngr), configManager(configMngr), fsManager(fsMgr) {}
 
     void setupEndpoints()
     {
         // OTA страница
-        server.on("/ota", HTTP_GET, [](AsyncWebServerRequest *request)
+        server.on("/ota", HTTP_GET, [this](AsyncWebServerRequest *request)
                   {
+                      if (!request->authenticate(
+                          configManager.getConfig().network.otaUsername.c_str(),
+                          configManager.getConfig().network.otaPassword.c_str()))
+                      {
+                          return request->requestAuthentication();
+                      }
+
             if (LittleFS.exists("/ota.html")) {
                 request->send(LittleFS, "/ota.html", "text/html");
             } else {
@@ -45,6 +52,13 @@ public:
         // OTA обновление
         server.on("/api/system/update", HTTP_POST, [this](AsyncWebServerRequest *request)
                   {
+                      if (!request->authenticate(
+                          configManager.getConfig().network.otaUsername.c_str(),
+                          configManager.getConfig().network.otaPassword.c_str()))
+                      {
+                          return request->requestAuthentication();
+                      }
+
                 if (otaState.inProgress) {
                     ApiHelpers::sendJsonError(request, "OTA update already in progress", 400);
                     return;

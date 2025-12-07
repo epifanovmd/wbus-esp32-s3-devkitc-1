@@ -9,6 +9,7 @@
 #include "./WebastoApiHandlers.h"
 #include "./SystemHendlers.h"
 #include "./EventHandlers.h"
+#include "./ConfigApiHandlers.h"
 #include "./WebSocketManager.h"
 #include "./core/FileSystemManager.h"
 #include "./ApiHelpers.h"
@@ -33,6 +34,7 @@ private:
     OtaHandlers otaHandlers;
     SystemHandlers systemHandlers;
     EventHandlers eventHandlers;
+    ConfigApiHandlers configApiHandlers;
 
 public:
     AsyncApiServer(
@@ -53,7 +55,8 @@ public:
           otaHandlers(server, webSocketManager, configMngr, fsManager),
           systemHandlers(server),
           webSocketManager(heaterCtrl),
-          eventHandlers(webSocketManager)
+          eventHandlers(webSocketManager),
+          configApiHandlers(server, configMngr, fsManager)
     {
     }
 
@@ -124,6 +127,7 @@ private:
         webastoApiHandlers.setupEndpoints();
         otaHandlers.setupEndpoints();
         systemHandlers.setupEndpoints();
+        configApiHandlers.setupEndpoints();
     }
     void handleNotFound(AsyncWebServerRequest *request)
     {
