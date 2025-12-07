@@ -58,6 +58,15 @@ struct AppConfig
     NetworkConfig network;
 };
 
+enum class ConfigUpdateResult
+{
+    SUCCESS,
+    SUCCESS_RESTART_REQUIRED,
+    ERROR_INVALID_VERSION,
+    ERROR_SAVE_FAILED,
+    ERROR_OTHER
+};
+
 class ConfigManager
 {
 private:
@@ -66,16 +75,28 @@ private:
     String configPath = "/config.json";
     bool configLoaded = false;
 
+    // Флаг для отслеживания необходимости перезагрузки
+    bool restartRequired = false;
+
+    // Время, когда была запрошена перезагрузка
+    unsigned long restartRequestTime = 0;
+
+    // Задержка перед перезагрузкой (мс)
+    static const unsigned long RESTART_DELAY = 2000;
+
 public:
     ConfigManager(FileSystemManager &fsMgr) : fsManager(fsMgr) {}
 
-    const AppConfig &getConfig() const
+    const AppConfig &getConfig() const { return config; }
+    bool isConfigLoaded() const { return configLoaded; }
+    bool isRestartRequired() const { return restartRequired; }
+
+    void checkRestart()
     {
-        return config;
-    }
-    bool isConfigLoaded() const
-    {
-        return configLoaded;
+        if (restartRequired && millis() - restartRequestTime >= RESTART_DELAY)
+        {
+            performRestart();
+        }
     }
 
     bool loadConfig()
@@ -196,69 +217,172 @@ public:
         return true;
     }
 
-    bool updateConfig(const JsonObject &newConfig)
+    ConfigUpdateResult updateConfig(const JsonObject &newConfig)
     {
-        // Обновляем только если версия конфига >= 2
-        if (newConfig.containsKey("configVersion") && newConfig["configVersion"] >= 2)
+        // Проверяем версию конфига
+        if (!newConfig.containsKey("configVersion") || newConfig["configVersion"] < 2)
         {
-            // Обновляем deviceId если есть
-            if (newConfig.containsKey("deviceId"))
-                config.deviceId = newConfig["deviceId"].as<String>();
-
-            // Обновляем bus конфигурацию
-            if (newConfig.containsKey("bus"))
-            {
-                JsonObject bus = newConfig["bus"];
-                if (bus.containsKey("baudRate"))
-                    config.bus.baudRate = bus["baudRate"];
-                if (bus.containsKey("commandTimeout"))
-                    config.bus.commandTimeout = bus["commandTimeout"];
-                if (bus.containsKey("maxRetries"))
-                    config.bus.maxRetries = bus["maxRetries"];
-                if (bus.containsKey("queueInterval"))
-                    config.bus.queueInterval = bus["queueInterval"];
-                if (bus.containsKey("maxQueueSize"))
-                    config.bus.maxQueueSize = bus["maxQueueSize"];
-                if (bus.containsKey("maxPriorityQueueSize"))
-                    config.bus.maxPriorityQueueSize = bus["maxPriorityQueueSize"];
-                if (bus.containsKey("breakSignalDuration"))
-                    config.bus.breakSignalDuration = bus["breakSignalDuration"];
-                if (bus.containsKey("keepAliveInterval"))
-                    config.bus.keepAliveInterval = bus["keepAliveInterval"];
-                if (bus.containsKey("nslpPin"))
-                    config.bus.nslpPin = bus["nslpPin"];
-                if (bus.containsKey("nwakePin"))
-                    config.bus.nwakePin = bus["nwakePin"];
-                if (bus.containsKey("rxdPullupPin"))
-                    config.bus.rxdPullupPin = bus["rxdPullupPin"];
-                if (bus.containsKey("rxTjaPin"))
-                    config.bus.rxTjaPin = bus["rxTjaPin"];
-                if (bus.containsKey("txTjaPin"))
-                    config.bus.txTjaPin = bus["txTjaPin"];
-                if (bus.containsKey("serialConfig"))
-                    config.bus.serialConfig = bus["serialConfig"].as<String>();
-            }
-
-            // Обновляем network конфигурацию
-            if (newConfig.containsKey("network"))
-            {
-                JsonObject network = newConfig["network"];
-                if (network.containsKey("ssid"))
-                    config.network.ssid = network["ssid"].as<String>();
-                if (network.containsKey("password"))
-                    config.network.password = network["password"].as<String>();
-                if (network.containsKey("port"))
-                    config.network.port = network["port"];
-                if (network.containsKey("otaUsername"))
-                    config.network.otaUsername = network["otaUsername"].as<String>();
-                if (network.containsKey("otaPassword"))
-                    config.network.otaPassword = network["otaPassword"].as<String>();
-            }
-
-            // Сохраняем обновленную конфигурацию
-            return saveConfig();
+            return ConfigUpdateResult::ERROR_INVALID_VERSION;
         }
-        return false;
+
+        bool needsRestart = false;
+
+        // Сохраняем старые значения для сравнения
+        uint32_t oldBaudRate = config.bus.baudRate;
+        String oldSerialConfig = config.bus.serialConfig;
+        uint8_t oldNslpPin = config.bus.nslpPin;
+        uint8_t oldNwakePin = config.bus.nwakePin;
+        uint8_t oldRxdPullupPin = config.bus.rxdPullupPin;
+        uint8_t oldRxTjaPin = config.bus.rxTjaPin;
+        uint8_t oldTxTjaPin = config.bus.txTjaPin;
+
+        uint16_t oldPort = config.network.port;
+
+        // Обновляем deviceId если есть
+        if (newConfig.containsKey("deviceId"))
+        {
+            config.deviceId = newConfig["deviceId"].as<String>();
+        }
+
+        // Обновляем bus конфигурацию
+        if (newConfig.containsKey("bus"))
+        {
+            JsonObject bus = newConfig["bus"];
+
+            // Проверяем изменения, требующие перезагрузки
+            if (bus.containsKey("baudRate") && bus["baudRate"] != oldBaudRate)
+            {
+                needsRestart = true;
+                config.bus.baudRate = bus["baudRate"];
+            }
+            if (bus.containsKey("serialConfig"))
+            {
+                String newSerialConfig = bus["serialConfig"].as<String>();
+                if (newSerialConfig != oldSerialConfig)
+                {
+                    needsRestart = true;
+                    config.bus.serialConfig = newSerialConfig;
+                }
+            }
+            if (bus.containsKey("nslpPin") && bus["nslpPin"] != oldNslpPin)
+            {
+                needsRestart = true;
+                config.bus.nslpPin = bus["nslpPin"];
+            }
+            if (bus.containsKey("nwakePin") && bus["nwakePin"] != oldNwakePin)
+            {
+                needsRestart = true;
+                config.bus.nwakePin = bus["nwakePin"];
+            }
+            if (bus.containsKey("rxdPullupPin") && bus["rxdPullupPin"] != oldRxdPullupPin)
+            {
+                needsRestart = true;
+                config.bus.rxdPullupPin = bus["rxdPullupPin"];
+            }
+            if (bus.containsKey("rxTjaPin") && bus["rxTjaPin"] != oldRxTjaPin)
+            {
+                needsRestart = true;
+                config.bus.rxTjaPin = bus["rxTjaPin"];
+            }
+            if (bus.containsKey("txTjaPin") && bus["txTjaPin"] != oldTxTjaPin)
+            {
+                needsRestart = true;
+                config.bus.txTjaPin = bus["txTjaPin"];
+            }
+
+            // Параметры, не требующие перезагрузки
+            if (bus.containsKey("commandTimeout"))
+                config.bus.commandTimeout = bus["commandTimeout"];
+            if (bus.containsKey("maxRetries"))
+                config.bus.maxRetries = bus["maxRetries"];
+            if (bus.containsKey("queueInterval"))
+                config.bus.queueInterval = bus["queueInterval"];
+            if (bus.containsKey("maxQueueSize"))
+                config.bus.maxQueueSize = bus["maxQueueSize"];
+            if (bus.containsKey("maxPriorityQueueSize"))
+                config.bus.maxPriorityQueueSize = bus["maxPriorityQueueSize"];
+            if (bus.containsKey("breakSignalDuration"))
+                config.bus.breakSignalDuration = bus["breakSignalDuration"];
+            if (bus.containsKey("keepAliveInterval"))
+                config.bus.keepAliveInterval = bus["keepAliveInterval"];
+        }
+
+        // Обновляем network конфигурацию
+        if (newConfig.containsKey("network"))
+        {
+            JsonObject network = newConfig["network"];
+
+            // Смена порта требует перезагрузки сервера
+            if (network.containsKey("port") && network["port"] != oldPort)
+            {
+                needsRestart = true;
+                config.network.port = network["port"];
+            }
+
+            // Остальные сетевые параметры не требуют перезагрузки
+            if (network.containsKey("ssid"))
+                config.network.ssid = network["ssid"].as<String>();
+            if (network.containsKey("password"))
+                config.network.password = network["password"].as<String>();
+            if (network.containsKey("otaUsername"))
+                config.network.otaUsername = network["otaUsername"].as<String>();
+            if (network.containsKey("otaPassword"))
+                config.network.otaPassword = network["otaPassword"].as<String>();
+        }
+
+        // Сохраняем обновленную конфигурацию
+        if (saveConfig())
+        {
+            if (needsRestart)
+            {
+                requestRestart();
+                return ConfigUpdateResult::SUCCESS_RESTART_REQUIRED;
+            }
+            return ConfigUpdateResult::SUCCESS;
+        }
+
+        return ConfigUpdateResult::ERROR_SAVE_FAILED;
+    }
+
+    ConfigUpdateResult resetToDefaults()
+    {
+        Serial.println("🔄 Resetting configuration to defaults...");
+
+        // Создаем новый конфиг с дефолтными значениями
+        AppConfig defaultConfig;
+
+        // Сравниваем с текущими значениями для определения необходимости перезагрузки
+        bool needsRestart = false;
+
+        if (config.bus.baudRate != defaultConfig.bus.baudRate ||
+            config.bus.serialConfig != defaultConfig.bus.serialConfig ||
+            config.bus.nslpPin != defaultConfig.bus.nslpPin ||
+            config.bus.nwakePin != defaultConfig.bus.nwakePin ||
+            config.bus.rxdPullupPin != defaultConfig.bus.rxdPullupPin ||
+            config.bus.rxTjaPin != defaultConfig.bus.rxTjaPin ||
+            config.bus.txTjaPin != defaultConfig.bus.txTjaPin ||
+            config.network.port != defaultConfig.network.port)
+        {
+            needsRestart = true;
+        }
+
+        // Применяем дефолтные значения
+        config = defaultConfig;
+
+        // Сохраняем в файл
+        if (saveConfig())
+        {
+            if (needsRestart)
+            {
+                requestRestart();
+                return ConfigUpdateResult::SUCCESS_RESTART_REQUIRED;
+            }
+            Serial.println("✅ Configuration reset to defaults");
+            return ConfigUpdateResult::SUCCESS;
+        }
+
+        Serial.println("❌ Failed to save default configuration");
+        return ConfigUpdateResult::ERROR_SAVE_FAILED;
     }
 
     String getConfigJson() const
@@ -296,55 +420,6 @@ public:
         return json;
     }
 
-    bool resetToDefaults()
-    {
-        Serial.println("🔄 Resetting configuration to defaults...");
-
-        // Создаем новые структуры с дефолтными значениями
-        // (конструкторы структур уже инициализируют значения по умолчанию)
-        AppConfig defaultConfig;
-
-        // Копируем дефолтные значения в текущий конфиг
-        config.configVersion = defaultConfig.configVersion;
-        config.deviceId = defaultConfig.deviceId;
-
-        // Копируем bus конфигурацию
-        config.bus.baudRate = defaultConfig.bus.baudRate;
-        config.bus.commandTimeout = defaultConfig.bus.commandTimeout;
-        config.bus.maxRetries = defaultConfig.bus.maxRetries;
-        config.bus.queueInterval = defaultConfig.bus.queueInterval;
-        config.bus.maxQueueSize = defaultConfig.bus.maxQueueSize;
-        config.bus.maxPriorityQueueSize = defaultConfig.bus.maxPriorityQueueSize;
-        config.bus.breakSignalDuration = defaultConfig.bus.breakSignalDuration;
-        config.bus.keepAliveInterval = defaultConfig.bus.keepAliveInterval;
-        config.bus.nslpPin = defaultConfig.bus.nslpPin;
-        config.bus.nwakePin = defaultConfig.bus.nwakePin;
-        config.bus.rxdPullupPin = defaultConfig.bus.rxdPullupPin;
-        config.bus.rxTjaPin = defaultConfig.bus.rxTjaPin;
-        config.bus.txTjaPin = defaultConfig.bus.txTjaPin;
-        config.bus.serialConfig = defaultConfig.bus.serialConfig;
-
-        // Копируем network конфигурацию
-        config.network.ssid = defaultConfig.network.ssid;
-        config.network.password = defaultConfig.network.password;
-        config.network.port = defaultConfig.network.port;
-        config.network.otaUsername = defaultConfig.network.otaUsername;
-        config.network.otaPassword = defaultConfig.network.otaPassword;
-
-        // Сохраняем в файл
-        bool saved = saveConfig();
-        if (saved)
-        {
-            Serial.println("✅ Configuration reset to defaults");
-        }
-        else
-        {
-            Serial.println("❌ Failed to save default configuration");
-        }
-
-        return saved;
-    }
-
     void printConfig()
     {
         Serial.println("📋 Current Configuration:");
@@ -371,5 +446,23 @@ public:
         Serial.println("    Port: " + String(config.network.port));
         Serial.println("    OTA Username: " + config.network.otaUsername);
         Serial.println("    OTA Password: " + config.network.otaPassword);
+    }
+
+private:
+    // Запрос перезагрузки
+    void requestRestart()
+    {
+        restartRequired = true;
+        restartRequestTime = millis();
+        Serial.println("⚠️ Restart requested. Controller will reboot in " +
+                       String(RESTART_DELAY / 1000) + " seconds...");
+    }
+
+    // Выполнение перезагрузки
+    void performRestart()
+    {
+        Serial.println("🔄 Performing controller restart...");
+        delay(100); // Даем время на запись в Serial
+        ESP.restart();
     }
 };
