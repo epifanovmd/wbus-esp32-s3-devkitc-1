@@ -238,7 +238,7 @@ private:
     void sendSuccessResponse(AsyncWebServerRequest *request, const String &filename)
     {
         DynamicJsonDocument doc(128);
-        doc["status"] = "success";
+
         doc["message"] = "Firmware updated successfully. Rebooting...";
         doc["filename"] = filename;
         doc["size"] = otaState.receivedSize;
