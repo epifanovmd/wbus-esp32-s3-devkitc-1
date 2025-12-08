@@ -65,7 +65,7 @@ enum class EventType
     START_COUNTERS,
 
     // Ota events
-    OTA,
+    OTA_PROGRESS,
 };
 
 struct Event
@@ -217,8 +217,8 @@ public:
         case EventType::COMMAND_NAK_RESPONSE:
             return "COMMAND_NAK_RESPONSE";
 
-        case EventType::OTA:
-            return "OTA";
+        case EventType::OTA_PROGRESS:
+            return "OTA_PROGRESS";
 
         default:
             return "UNKNOWN_EVENT";

@@ -34,11 +34,21 @@ public:
       ApiHelpers::sendJsonResponse(request, json); });
 
     // Обновить конфигурацию
-    server.addHandler(new AsyncCallbackJsonWebHandler("/api/config",
-                                                      [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                      {
-                                                        handleUpdateConfig(request, json);
-                                                      }));
+    server.addHandler(new AsyncCallbackJsonWebHandler(
+        "/api/config",
+        [this](AsyncWebServerRequest *request, JsonVariant &json)
+        {
+          if (!json.is<JsonObject>())
+          {
+            ApiHelpers::sendJsonError(request, "Invalid JSON", 400);
+            return;
+          }
+
+          JsonObject newConfig = json.as<JsonObject>();
+
+          ConfigUpdateResult result = configManager.updateConfig(newConfig);
+          handleUpdateConfig(request, result);
+        }));
 
     // Сбросить конфигурацию к значениям по умолчанию
     server.on("/api/config/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
@@ -46,25 +56,7 @@ public:
       // Используем метод ConfigManager
       ConfigUpdateResult result = configManager.resetToDefaults();
 
-      DynamicJsonDocument responseDoc(256);
-
-      if (result == ConfigUpdateResult::SUCCESS ||
-        result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED) {
-
-        responseDoc["status"] = "success";
-        responseDoc["message"] = "Configuration reset to defaults";
-        responseDoc["restartRequired"] = (result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED);
-
-        if (result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED) {
-          responseDoc["restartMessage"] = "Controller will restart in 2 seconds";
-        }
-
-        ApiHelpers::sendJsonDocument(request, responseDoc);
-      } else {
-        responseDoc["status"] = "error";
-        responseDoc["message"] = "Failed to reset configuration";
-        ApiHelpers::sendJsonDocument(request, responseDoc, 500);
-      } });
+         handleUpdateConfig(request, result); });
 
     // Скачать конфиг файл
     server.on("/api/config/download", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -78,48 +70,18 @@ public:
   }
 
 private:
-  void handleUpdateConfig(AsyncWebServerRequest *request, JsonVariant &json)
+  void handleUpdateConfig(AsyncWebServerRequest *request, ConfigUpdateResult &result)
   {
-    if (!json.is<JsonObject>())
-    {
-      ApiHelpers::sendJsonError(request, "Invalid JSON", 400);
-      return;
-    }
-
-    JsonObject newConfig = json.as<JsonObject>();
-
-    ConfigUpdateResult result = configManager.updateConfig(newConfig);
-
     DynamicJsonDocument responseDoc(256);
 
-    switch (result)
+    if (result == ConfigUpdateResult::SUCCESS || result == ConfigUpdateResult::SUCCESS_RESTART_REQUIRED)
     {
-    case ConfigUpdateResult::SUCCESS:
-      responseDoc["status"] = "success";
-      responseDoc["message"] = "Configuration updated successfully";
-      responseDoc["restartRequired"] = false;
-      ApiHelpers::sendJsonDocument(request, responseDoc);
-      break;
-
-    case ConfigUpdateResult::SUCCESS_RESTART_REQUIRED:
-      responseDoc["status"] = "success";
-      responseDoc["message"] = "Configuration updated successfully";
-      responseDoc["restartRequired"] = true;
-      responseDoc["restartMessage"] = "Controller will restart in 2 seconds";
-      ApiHelpers::sendJsonDocument(request, responseDoc);
-      break;
-
-    case ConfigUpdateResult::ERROR_INVALID_VERSION:
-      ApiHelpers::sendJsonError(request, "Invalid config version. Only version 2 is supported", 400);
-      break;
-
-    case ConfigUpdateResult::ERROR_SAVE_FAILED:
+      String json = configManager.getConfigJson();
+      ApiHelpers::sendJsonResponse(request, json);
+    }
+    else
+    {
       ApiHelpers::sendJsonError(request, "Failed to save configuration", 500);
-      break;
-
-    default:
-      ApiHelpers::sendJsonError(request, "Failed to update configuration", 500);
-      break;
     }
   }
 };

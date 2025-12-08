@@ -39,6 +39,8 @@ public:
         Serial.println("  NSLP Pin: " + String(config.nslpPin));
         Serial.println("  NWAKE Pin: " + String(config.nwakePin));
         Serial.println("  RXD Pullup Pin: " + String(config.rxdPullupPin));
+        Serial.println("  TX Pin: " + String(config.txTjaPin));
+        Serial.println("  RX Pin: " + String(config.rxTjaPin));
         return true;
     }
 

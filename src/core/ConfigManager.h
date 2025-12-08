@@ -46,13 +46,10 @@ struct NetworkConfig
     String ssid = "Webasto_WiFi";
     String password = "Epifan123";
     uint16_t port = 80;
-    String otaUsername = "admin";
-    String otaPassword = "Epifan123";
 };
 
 struct AppConfig
 {
-    uint8_t configVersion = 2;
     String deviceId = "webasto-001";
     BusConfig bus;
     NetworkConfig network;
@@ -62,7 +59,6 @@ enum class ConfigUpdateResult
 {
     SUCCESS,
     SUCCESS_RESTART_REQUIRED,
-    ERROR_INVALID_VERSION,
     ERROR_SAVE_FAILED,
     ERROR_OTHER
 };
@@ -78,26 +74,12 @@ private:
     // Флаг для отслеживания необходимости перезагрузки
     bool restartRequired = false;
 
-    // Время, когда была запрошена перезагрузка
-    unsigned long restartRequestTime = 0;
-
-    // Задержка перед перезагрузкой (мс)
-    static const unsigned long RESTART_DELAY = 2000;
-
 public:
     ConfigManager(FileSystemManager &fsMgr) : fsManager(fsMgr) {}
 
     const AppConfig &getConfig() const { return config; }
     bool isConfigLoaded() const { return configLoaded; }
     bool isRestartRequired() const { return restartRequired; }
-
-    void checkRestart()
-    {
-        if (restartRequired && millis() - restartRequestTime >= RESTART_DELAY)
-        {
-            performRestart();
-        }
-    }
 
     bool loadConfig()
     {
@@ -133,7 +115,6 @@ public:
         }
 
         // Загружаем базовую информацию
-        config.configVersion = doc["configVersion"] | 2;
         config.deviceId = doc["deviceId"] | "webasto-001";
 
         // Загружаем конфигурацию шины
@@ -158,11 +139,9 @@ public:
         config.network.ssid = network["ssid"] | "Webasto_WiFi";
         config.network.password = network["password"] | "Epifan123";
         config.network.port = network["port"] | 80;
-        config.network.otaUsername = network["otaUsername"] | "admin";
-        config.network.otaPassword = network["otaPassword"] | "Epifan123";
 
         configLoaded = true;
-        Serial.println("✅ Config loaded successfully (version: " + String(config.configVersion) + ")");
+        Serial.println("✅ Config loaded successfully");
         return true;
     }
 
@@ -176,7 +155,6 @@ public:
 
         DynamicJsonDocument doc(2048);
 
-        doc["configVersion"] = config.configVersion;
         doc["deviceId"] = config.deviceId;
 
         JsonObject bus = doc.createNestedObject("bus");
@@ -199,8 +177,6 @@ public:
         network["ssid"] = config.network.ssid;
         network["password"] = config.network.password;
         network["port"] = config.network.port;
-        network["otaUsername"] = config.network.otaUsername;
-        network["otaPassword"] = config.network.otaPassword;
 
         File file = fsManager.open(configPath, "w");
         if (!file)
@@ -219,12 +195,6 @@ public:
 
     ConfigUpdateResult updateConfig(const JsonObject &newConfig)
     {
-        // Проверяем версию конфига
-        if (!newConfig.containsKey("configVersion") || newConfig["configVersion"] < 2)
-        {
-            return ConfigUpdateResult::ERROR_INVALID_VERSION;
-        }
-
         bool needsRestart = false;
 
         // Сохраняем старые значения для сравнения
@@ -324,10 +294,6 @@ public:
                 config.network.ssid = network["ssid"].as<String>();
             if (network.containsKey("password"))
                 config.network.password = network["password"].as<String>();
-            if (network.containsKey("otaUsername"))
-                config.network.otaUsername = network["otaUsername"].as<String>();
-            if (network.containsKey("otaPassword"))
-                config.network.otaPassword = network["otaPassword"].as<String>();
         }
 
         // Сохраняем обновленную конфигурацию
@@ -389,7 +355,6 @@ public:
     {
         DynamicJsonDocument doc(2048);
 
-        doc["configVersion"] = config.configVersion;
         doc["deviceId"] = config.deviceId;
 
         JsonObject bus = doc.createNestedObject("bus");
@@ -412,8 +377,8 @@ public:
         network["ssid"] = config.network.ssid;
         network["password"] = config.network.password;
         network["port"] = config.network.port;
-        network["otaUsername"] = config.network.otaUsername;
-        network["otaPassword"] = config.network.otaPassword;
+
+        doc["restartRequired"] = restartRequired;
 
         String json;
         serializeJson(doc, json);
@@ -423,7 +388,6 @@ public:
     void printConfig()
     {
         Serial.println("📋 Current Configuration:");
-        Serial.println("  Version: " + String(config.configVersion));
         Serial.println("  Device ID: " + config.deviceId);
         Serial.println("  Bus:");
         Serial.println("    Baud Rate: " + String(config.bus.baudRate));
@@ -444,8 +408,6 @@ public:
         Serial.println("    SSID: " + config.network.ssid);
         Serial.println("    Password: " + config.network.password);
         Serial.println("    Port: " + String(config.network.port));
-        Serial.println("    OTA Username: " + config.network.otaUsername);
-        Serial.println("    OTA Password: " + config.network.otaPassword);
     }
 
 private:
@@ -453,16 +415,6 @@ private:
     void requestRestart()
     {
         restartRequired = true;
-        restartRequestTime = millis();
-        Serial.println("⚠️ Restart requested. Controller will reboot in " +
-                       String(RESTART_DELAY / 1000) + " seconds...");
-    }
-
-    // Выполнение перезагрузки
-    void performRestart()
-    {
-        Serial.println("🔄 Performing controller restart...");
-        delay(100); // Даем время на запись в Serial
-        ESP.restart();
+        Serial.println("⚠️ Restart requested");
     }
 };

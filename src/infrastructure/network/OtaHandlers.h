@@ -33,39 +33,21 @@ public:
 
     void setupEndpoints()
     {
-        // OTA страница
-        server.on("/ota", HTTP_GET, [this](AsyncWebServerRequest *request)
-                  {
-                      if (!request->authenticate(
-                          configManager.getConfig().network.otaUsername.c_str(),
-                          configManager.getConfig().network.otaPassword.c_str()))
-                      {
-                          return request->requestAuthentication();
-                      }
-
-            if (LittleFS.exists("/ota.html")) {
-                request->send(LittleFS, "/ota.html", "text/html");
-            } else {
-                request->send(404, "text/plain", "OTA page not found");
-            } });
-
         // OTA обновление
         server.on("/api/system/update", HTTP_POST, [this](AsyncWebServerRequest *request)
                   {
-                      if (!request->authenticate(
-                          configManager.getConfig().network.otaUsername.c_str(),
-                          configManager.getConfig().network.otaPassword.c_str()))
-                      {
-                          return request->requestAuthentication();
-                      }
+                    //   if (!request->authenticate(
+                    //       configManager.getConfig().network.otaUsername.c_str(),
+                    //       configManager.getConfig().network.otaPassword.c_str()))
+                    //   {
+                    //       return request->requestAuthentication();
+                    //   }
 
                 if (otaState.inProgress) {
                     ApiHelpers::sendJsonError(request, "OTA update already in progress", 400);
                     return;
                 } }, [this](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
                   { handleOtaUpload(request, filename, index, data, len, final); });
-
-        // WebSocket эндпоинт уже настраивается в основном коде
     }
 
     void process()
@@ -92,11 +74,10 @@ public:
             otaState.lastBroadcastProgress = progress;
 
             DynamicJsonDocument doc(256);
-            doc["type"] = "ota_progress";
+
             doc["progress"] = progress;
             doc["received"] = otaState.receivedSize;
             doc["total"] = otaState.totalSize;
-            doc["elapsed"] = (millis() - otaState.startTime) / 1000;
 
             // Рассчитываем скорость
             if (otaState.receivedSize > 0)
@@ -116,43 +97,16 @@ public:
                 }
             }
 
-            String json;
-            serializeJson(doc, json);
-            webSocketManager.broadcastJson(EventType::OTA, json);
-
             // Также выводим в Serial для отладки
-            if (progress % 10 == 0)
+            if (progress % 2 == 0)
             {
+                String json;
+                serializeJson(doc, json);
+                webSocketManager.broadcastJson(EventType::OTA_PROGRESS, json);
                 Serial.printf("📊 OTA Progress: %d%% (%u/%u bytes)\n",
                               progress, otaState.receivedSize, otaState.totalSize);
             }
         }
-    }
-
-    // Отправка успешного завершения
-    void broadcastComplete(const String &filename)
-    {
-        DynamicJsonDocument doc(128);
-        doc["type"] = "ota_complete";
-        doc["filename"] = filename;
-        doc["size"] = otaState.receivedSize;
-        doc["duration"] = (millis() - otaState.startTime) / 1000;
-
-        String json;
-        serializeJson(doc, json);
-        webSocketManager.broadcastJson(EventType::OTA, json);
-    }
-
-    // Отправка ошибки
-    void broadcastError(const String &message)
-    {
-        DynamicJsonDocument doc(128);
-        doc["type"] = "ota_error";
-        doc["message"] = message;
-
-        String json;
-        serializeJson(doc, json);
-        webSocketManager.broadcastJson(EventType::OTA, json);
     }
 
 private:
@@ -183,7 +137,8 @@ private:
                                String(otaState.totalSize) +
                                " bytes, Free: " +
                                String(freeBytes) + " bytes";
-                broadcastError(error);
+
+                ApiHelpers::sendJsonError(request, error);
                 otaState.inProgress = false;
                 return;
             }
@@ -192,7 +147,8 @@ private:
         if (len > 0 && !writeOtaData(data, len))
         {
             otaState.inProgress = false;
-            broadcastError("Write failed");
+
+            ApiHelpers::sendJsonError(request, "Write failed");
             return;
         }
 
@@ -267,13 +223,11 @@ private:
 
         if (Update.end(true))
         {
-            broadcastComplete(filename);
             sendSuccessResponse(request, filename);
         }
         else
         {
             String error = "Update failed: " + String(Update.errorString());
-            broadcastError(error);
             ApiHelpers::sendJsonError(request, error, 400);
         }
 
@@ -298,7 +252,6 @@ private:
                       filename.c_str(), otaState.receivedSize, millis() - otaState.startTime);
         Serial.println("🔄 Scheduled reboot in 2 seconds...");
 
-        // ИСПРАВЛЕННАЯ СТРОКА: Сначала сериализуем в строку
         String json;
         serializeJson(doc, json);
 

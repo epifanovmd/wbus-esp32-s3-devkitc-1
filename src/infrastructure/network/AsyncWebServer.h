@@ -53,7 +53,7 @@ public:
           heaterController(heaterCtrl),
           webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
           otaHandlers(server, webSocketManager, configMngr, fsManager),
-          systemHandlers(server),
+          systemHandlers(server, configMngr),
           webSocketManager(heaterCtrl),
           eventHandlers(webSocketManager),
           configApiHandlers(server, configMngr, fsManager)

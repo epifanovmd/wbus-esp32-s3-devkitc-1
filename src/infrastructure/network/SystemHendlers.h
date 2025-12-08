@@ -10,6 +10,7 @@ class SystemHandlers
 {
 private:
     AsyncWebServer &server;
+    ConfigManager &configManager;
 
     // Форматирование частоты процессора
     String formatFrequency(uint32_t frequency)
@@ -179,19 +180,8 @@ private:
         JsonObject network = doc.createNestedObject("network");
         network["localIP"] = WiFi.localIP().toString();
         network["macAddress"] = WiFi.macAddress();
-
-        // Uptime системы
-        JsonObject uptime = doc.createNestedObject("uptime");
-        unsigned long seconds = millis() / 1000;
-        unsigned long minutes = seconds / 60;
-        unsigned long hours = minutes / 60;
-        unsigned long days = hours / 24;
-
-        uptime["milliseconds"] = millis();
-        uptime["formatted"] = String(days) + "d " +
-                              String(hours % 24) + "h " +
-                              String(minutes % 60) + "m " +
-                              String(seconds % 60) + "s";
+        network["IP"] = WiFi.softAPIP().toString();
+        network["Port"] = configManager.getConfig().network.port;
     }
 
     // Отправка JSON ответа
@@ -210,7 +200,7 @@ private:
     }
 
 public:
-    SystemHandlers(AsyncWebServer &serv) : server(serv) {}
+    SystemHandlers(AsyncWebServer &serv,ConfigManager &configMngr) : server(serv), configManager(configMngr) {}
 
     void setupEndpoints()
     {
@@ -233,8 +223,6 @@ public:
     void handleSystemInfo(AsyncWebServerRequest *request)
     {
         DynamicJsonDocument doc(4096);
-        doc["status"] = "ok";
-        doc["timestamp"] = millis();
 
         addSystemInfo(doc);
 
@@ -245,9 +233,7 @@ public:
     void handleSystemRestart(AsyncWebServerRequest *request)
     {
         DynamicJsonDocument doc(256);
-        doc["status"] = "ok";
         doc["message"] = "System will restart in 1 second";
-        doc["timestamp"] = millis();
 
         sendJsonResponse(request, doc);
 
