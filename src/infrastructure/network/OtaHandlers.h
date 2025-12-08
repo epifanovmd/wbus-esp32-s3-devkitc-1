@@ -92,7 +92,7 @@ public:
                     if (speed > 0)
                     {
                         uint32_t remaining = (otaState.totalSize - otaState.receivedSize) / speed;
-                        doc["remaining"] = remaining;
+                        doc["remaining"] = remaining + 1;
                     }
                 }
             }

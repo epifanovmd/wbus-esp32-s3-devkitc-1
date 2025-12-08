@@ -241,7 +241,7 @@ public:
         Serial.println("🔄 System restart requested via API");
         delay(100);
 
-        // Перезагрузка
+        // // Перезагрузка
         ESP.restart();
     }
 };
