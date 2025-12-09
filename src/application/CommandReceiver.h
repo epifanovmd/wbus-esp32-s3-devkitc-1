@@ -132,7 +132,7 @@ private:
 
 public:
   CommandReceiver(HardwareSerial &serialRef, EventBus &bus) : serial(serialRef),
-                                                             eventBus(bus) {}
+                                                              eventBus(bus) {}
 
   void process()
   {
@@ -160,12 +160,6 @@ public:
 
         if (receivedData.isPacketComplete())
         {
-          if (receivedData.isReceivingRx)
-          {
-            receivedData.completeRxReception();
-
-            eventBus.publish(EventType::RX_RECEIVED, getRxData());
-          }
           if (receivedData.isReceivingTx)
           {
             receivedData.completeTxReception();
@@ -173,6 +167,28 @@ public:
 
             eventBus.publish(EventType::TX_RECEIVED, getTxData());
           }
+
+          if (receivedData.isReceivingRx)
+          {
+            receivedData.completeRxReception();
+
+            String response = getRxData();
+
+            eventBus.publish(EventType::RX_RECEIVED, response);
+
+            if (Utils::isNakPacket(response))
+            {
+              uint8_t command = Utils::extractByteFromString(currentTx, 2);
+              uint8_t errorCode = Utils::extractByteFromString(response, 4);
+              String commandName = WBusCommandBuilder::getCommandName(command);
+              eventBus.publish<NakResponseEvent>(EventType::COMMAND_NAK_RESPONSE, {currentTx, commandName, errorCode});
+            }
+            else
+            {
+              eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {currentTx, response});
+            }
+          }
+
           receivedData.bytesToRead = 0;
           receivedData.bytesRead = 0;
         }

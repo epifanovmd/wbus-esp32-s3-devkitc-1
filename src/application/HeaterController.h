@@ -156,6 +156,13 @@ public:
                                           { handleShutdownResponse(tx, rx); });
     }
 
+    void fuelCirculation(int seconds) override
+    {
+        breakIfNeeded();
+
+        commandManager.addPriorityCommand(WBusCommandBuilder::createFuelCirculation(seconds), false, [this](String tx, String rx)
+                                          { handleFuelCirculation(tx, rx); });
+    }
     // =========================================================================
     // ТЕСТИРОВАНИЕ КОМПОНЕНТОВ
     // =========================================================================
@@ -399,6 +406,20 @@ public:
         {
             Serial.println();
             Serial.println("❌ Ошибка выключения нагревателя");
+        }
+    }
+
+    void handleFuelCirculation(String tx, String rx)
+    {
+        if (!rx.isEmpty())
+        {
+            Serial.println();
+            Serial.println("🛑 Прокачка топлива включена");
+        }
+        else
+        {
+            Serial.println();
+            Serial.println("❌ Ошибка включения прокачки топлива");
         }
     }
 

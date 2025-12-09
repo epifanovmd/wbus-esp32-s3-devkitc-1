@@ -92,6 +92,11 @@ public:
                       handleShutdown(request);
                   });
 
+        server.on("/api/fuel-circulation", HTTP_POST,
+                  [this](AsyncWebServerRequest *request)
+                  {
+                      handleFuelCirculation(request);
+                  });
         // =========================================================================
         // ТЕСТИРОВАНИЕ КОМПОНЕНТОВ
         // =========================================================================
@@ -260,6 +265,18 @@ public:
     {
         heaterController.shutdown();
         ApiHelpers::sendJsonResponse(request, "{\"status\":\"shutdown\"}");
+    }
+
+        void handleFuelCirculation(AsyncWebServerRequest *request)
+    {
+        int seconds = ApiHelpers::getIntParam(request, "seconds", 60);
+        heaterController.fuelCirculation(seconds);
+
+        DynamicJsonDocument doc(128);
+        doc["status"] = "started";
+        doc["seconds"] = seconds;
+
+        ApiHelpers::sendJsonDocument(request, doc);
     }
 
     void handleTestCombustionFan(AsyncWebServerRequest *request, JsonVariant &json)

@@ -59,7 +59,7 @@ private:
     Timer breakTimer;
 
 public:
-   CommandManager(ConfigManager &configMngr, EventBus &bus, IBusManager &busMngr, CommandReceiver &receiver)
+    CommandManager(ConfigManager &configMngr, EventBus &bus, IBusManager &busMngr, CommandReceiver &receiver)
         : configManager(configMngr),
           eventBus(bus),
           commandReceiver(receiver),
@@ -235,40 +235,28 @@ private:
             {
                 state = ProcessingState::SENDING;
                 timeoutTimer.reset();
-                eventBus.publish(EventType::COMMAND_SENT, processingCommand.data);
             }
             else
             {
-                complete();
+                eventBus.publish(EventType::COMMAND_SENT_ERRROR, processingCommand.data);
+                clear();
             }
         }
     }
 
-    void complete(const String &response = "")
+    void complete(const String &response)
     {
         if (processingCommand.callback)
         {
             processingCommand.callback(processingCommand.data, response);
         }
 
-        if (response.isEmpty())
-        {
-            eventBus.publish(EventType::COMMAND_SENT_ERRROR, processingCommand.data);
-        }
-        else if (Utils::isNakPacket(response))
-        {
-            uint8_t command = Utils::extractByteFromString(processingCommand.data, 2);
-            uint8_t errorCode = Utils::extractByteFromString(response, 4);
-            String commandName = WBusCommandBuilder::getCommandName(command);
-            eventBus.publish<NakResponseEvent>(EventType::COMMAND_NAK_RESPONSE, {processingCommand.data, commandName, errorCode});
-        }
-        else
+        else if (!Utils::isNakPacket(response))
         {
             if (processingCommand.loop)
             {
                 normalQueue.push(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
             }
-            eventBus.publish<CommandReceivedEvent>(EventType::COMMAND_RECEIVED, {processingCommand.data, response});
         }
 
         state = ProcessingState::IDLE;

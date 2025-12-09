@@ -16,6 +16,7 @@ public:
     static const uint8_t CMD_CIRC_PUMP_CTRL = 0x24;
     static const uint8_t CMD_BOOST_MODE = 0x25;
     static const uint8_t CMD_DIAGNOSTIC = 0x38;
+    static const uint8_t CMD_FUEL_CIRCULATION = 0x42;
     static const uint8_t CMD_KEEPALIVE = 0x44;
     static const uint8_t CMD_TEST_COMPONENT = 0x45;
 
@@ -449,7 +450,7 @@ public:
         testCommand("SENSOR_WORKING_DURATION", createReadSensor(SENSOR_WORKING_DURATION), "f4 03 50 0b ac"); // не удается декодировать ответ
         testCommand("SENSOR_START_COUNTERS", createReadSensor(SENSOR_START_COUNTERS), "f4 03 50 0c ab");
         testCommand("SENSOR_SUBSYSTEMS", createReadSensor(SENSOR_SUBSYSTEMS_STATUS), "f4 03 50 0f a8");
-        testCommand("SENSOR_OTHER_DURATION", createReadSensor(SENSOR_OTHER_DURATION), "f4 03 50 10 b7"); // не используется
+        testCommand("SENSOR_OTHER_DURATION", createReadSensor(SENSOR_OTHER_DURATION), "f4 03 50 10 b7");          // не используется
         testCommand("SENSOR_TEMP_THRESHOLDS", createReadSensor(SENSOR_TEMPERATURE_THRESHOLDS), "f4 03 50 11 b6"); // не удается декодировать ответ
         testCommand("SENSOR_VENTILATION_DUR", createReadSensor(SENSOR_VENTILATION_DURATION), "f4 03 50 12 b5");   // не используется
         testCommand("SENSOR_FUEL_PREWARMING", createReadSensor(SENSOR_FUEL_PREWARMING), "f4 03 50 13 b4");
@@ -704,6 +705,21 @@ public:
     static String createKeepAliveBoost()
     {
         return createKeepAlive(CMD_BOOST_MODE);
+    }
+
+    static String createFuelCirculation(uint8_t seconds)
+    {
+        if (seconds < 3)
+            seconds = 3;
+
+        if (seconds % 2 == 0)
+        {
+            seconds--;
+        }
+
+        uint8_t value = (seconds - 1) / 2;
+        uint8_t data[] = {0x00, value};
+        return createCommand(CMD_FUEL_CIRCULATION, 0x03, data, 2);
     }
 
     // =========================================================================

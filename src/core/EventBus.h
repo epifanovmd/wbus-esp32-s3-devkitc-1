@@ -158,8 +158,6 @@ public:
         case EventType::TEST_FUEL_PREHEATING_FAILED:
             return "TEST_FUEL_PREHEATING_FAILED";
 
-        case EventType::COMMAND_SENT:
-            return "COMMAND_SENT";
         case EventType::COMMAND_SENT_TIMEOUT:
             return "COMMAND_SENT_TIMEOUT";
         case EventType::COMMAND_SENT_ERRROR:

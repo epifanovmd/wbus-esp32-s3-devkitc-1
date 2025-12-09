@@ -18,6 +18,7 @@ public:
     virtual void startSupplementalHeat(int minutes = 60) = 0;
     virtual void startBoostMode(int minutes = 60) = 0;
     virtual void controlCirculationPump(bool enable) = 0;
+    virtual void fuelCirculation(int seconds) = 0;
     virtual void shutdown() = 0;
     
     // Тестирование компонентов
