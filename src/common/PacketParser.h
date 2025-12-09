@@ -142,11 +142,21 @@ private:
 
         if (data == nullptr || length < 4 || length != data[1] + 2)
         {
+            if (length < 4)
+            {
+                Serial.println("Слишком короткий пакет, минимальная длинна – 4 байта");
+            }
+            else if (length != data[1] + 2)
+            {
+                Serial.println("Неверная длинна данных, ожидалась: " + String(data[1]) + " | получена: " + String(length - 2));
+            }
+
             return false;
         }
 
         if (minLength > 0 && length < static_cast<size_t>(minLength))
         {
+            Serial.println("Неверная длинна пакета, ожидалась: " + String(minLength) + " | получена: " + String(length));
             return false;
         }
 
@@ -168,6 +178,7 @@ private:
 
         if (!packet.isValid)
         {
+            Serial.println("Неверная контрольная сумма, ожидалась: " + Utils::byteToHexString(Utils::calculateChecksum(data, length - 1)) + " | получена: " + Utils::byteToHexString(packet.checksum));
             return false;
         }
 
@@ -186,12 +197,14 @@ private:
 
             if (actualCommand != expectedCommand)
             {
+                Serial.println("Неверная ACK бит, ожидалась: " + Utils::byteToHexString(expectedCommand) + " | получена: " + Utils::byteToHexString(actualCommand));
                 return false;
             }
         }
 
         if (checkIndex && (packet.bytes.size() < 5 || data[3] != expectedIndex))
         {
+            Serial.println("Неверная индекс, ожидалась: " + Utils::byteToHexString(expectedIndex) + " | получена: " + Utils::byteToHexString(data[3]));
             return false;
         }
 
