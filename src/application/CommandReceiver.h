@@ -4,6 +4,7 @@
 #include "../common/Constants.h"
 #include "../common/Utils.h"
 #include "../core/EventBus.h"
+#include "../infrastructure/protocol/WBusCommandBuilder.h"
 
 enum class KLineReceptionStates
 {

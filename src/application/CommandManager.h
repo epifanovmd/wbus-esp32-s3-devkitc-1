@@ -8,7 +8,6 @@
 #include "../common/Timer.h"
 #include "../core/EventBus.h"
 #include "../core/ConfigManager.h"
-#include "../infrastructure/protocol/WBusCommandBuilder.h"
 #include "../infrastructure/protocol/WBusErrorsDecoder.h"
 #include "../interfaces/IBusManager.h"
 #include "../domain/Events.h"
