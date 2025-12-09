@@ -92,7 +92,7 @@ public:
                       handleShutdown(request);
                   });
 
-        server.on("/api/fuel-circulation", HTTP_POST,
+        server.on("/api/start/fuel-circulation", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
                   {
                       handleFuelCirculation(request);
