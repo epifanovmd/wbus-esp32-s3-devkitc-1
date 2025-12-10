@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
@@ -80,11 +80,17 @@ public:
                       handleStartBoost(request);
                   });
 
-        server.on("/api/control/circulation-pump", HTTP_POST,
-                  [this](AsyncWebServerRequest *request)
-                  {
-                      handleControlCirculationPump(request);
-                  });
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/control/circulation-pump",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleControlCirculationPump(request, json);
+                                                          }));
+
+        server.addHandler(new AsyncCallbackJsonWebHandler("/api/start/fuel-circulation",
+                                                          [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                          {
+                                                              handleFuelCirculation(request, json);
+                                                          }));
 
         server.on("/api/shutdown", HTTP_POST,
                   [this](AsyncWebServerRequest *request)
@@ -92,11 +98,6 @@ public:
                       handleShutdown(request);
                   });
 
-        server.on("/api/start/fuel-circulation", HTTP_POST,
-                  [this](AsyncWebServerRequest *request)
-                  {
-                      handleFuelCirculation(request);
-                  });
         // =========================================================================
         // ТЕСТИРОВАНИЕ КОМПОНЕНТОВ
         // =========================================================================
@@ -199,7 +200,7 @@ public:
 
     void handleStartParking(AsyncWebServerRequest *request)
     {
-        int minutes = ApiHelpers::getIntParam(request, "minutes", 60);
+        int minutes = ApiHelpers::getIntParam(request, "minutes", 59);
         heaterController.startParkingHeat(minutes);
 
         DynamicJsonDocument doc(128);
@@ -212,7 +213,7 @@ public:
 
     void handleStartVentilation(AsyncWebServerRequest *request)
     {
-        int minutes = ApiHelpers::getIntParam(request, "minutes", 60);
+        int minutes = ApiHelpers::getIntParam(request, "minutes", 59);
         heaterController.startVentilation(minutes);
 
         DynamicJsonDocument doc(128);
@@ -225,7 +226,7 @@ public:
 
     void handleStartSupplemental(AsyncWebServerRequest *request)
     {
-        int minutes = ApiHelpers::getIntParam(request, "minutes", 60);
+        int minutes = ApiHelpers::getIntParam(request, "minutes", 59);
         heaterController.startSupplementalHeat(minutes);
 
         DynamicJsonDocument doc(128);
@@ -238,7 +239,7 @@ public:
 
     void handleStartBoost(AsyncWebServerRequest *request)
     {
-        int minutes = ApiHelpers::getIntParam(request, "minutes", 60);
+        int minutes = ApiHelpers::getIntParam(request, "minutes", 59);
         heaterController.startBoostMode(minutes);
 
         DynamicJsonDocument doc(128);
@@ -249,9 +250,10 @@ public:
         ApiHelpers::sendJsonDocument(request, doc);
     }
 
-    void handleControlCirculationPump(AsyncWebServerRequest *request)
+    void handleControlCirculationPump(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        bool enable = ApiHelpers::getBoolParam(request, "enable", false);
+
+        int enable = json["enable"] | false;
         heaterController.controlCirculationPump(enable);
 
         DynamicJsonDocument doc(128);
@@ -267,9 +269,11 @@ public:
         ApiHelpers::sendJsonResponse(request, "{\"status\":\"shutdown\"}");
     }
 
-        void handleFuelCirculation(AsyncWebServerRequest *request)
+    void handleFuelCirculation(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        int seconds = ApiHelpers::getIntParam(request, "seconds", 60);
+        int seconds = json["seconds"] | 59;
+
+        seconds = constrain(seconds, 1, 59);
         heaterController.fuelCirculation(seconds);
 
         DynamicJsonDocument doc(128);

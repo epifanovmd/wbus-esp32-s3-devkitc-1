@@ -13,10 +13,10 @@ public:
     virtual void disconnect() = 0;
     
     // Основные команды управления
-    virtual void startParkingHeat(int minutes = 60) = 0;
-    virtual void startVentilation(int minutes = 60) = 0;
-    virtual void startSupplementalHeat(int minutes = 60) = 0;
-    virtual void startBoostMode(int minutes = 60) = 0;
+    virtual void startParkingHeat(int minutes = 59) = 0;
+    virtual void startVentilation(int minutes = 59) = 0;
+    virtual void startSupplementalHeat(int minutes = 59) = 0;
+    virtual void startBoostMode(int minutes = 59) = 0;
     virtual void controlCirculationPump(bool enable) = 0;
     virtual void fuelCirculation(int seconds) = 0;
     virtual void shutdown() = 0;

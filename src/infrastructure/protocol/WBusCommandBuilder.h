@@ -639,25 +639,25 @@ public:
 
     static String createParkHeat(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 60);
+        minutes = constrain(minutes, 1, 59);
         return createCommandWithByte(CMD_PARK_HEAT, minutes);
     }
 
     static String createVentilation(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 60);
+        minutes = constrain(minutes, 1, 59);
         return createCommandWithByte(CMD_VENTILATE, minutes);
     }
 
     static String createSupplementalHeat(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 60);
+        minutes = constrain(minutes, 1, 59);
         return createCommandWithByte(CMD_SUPP_HEAT, minutes);
     }
 
     static String createBoostMode(uint8_t minutes = 59)
     {
-        minutes = constrain(minutes, 1, 60);
+        minutes = constrain(minutes, 1, 59);
         return createCommandWithByte(CMD_BOOST_MODE, minutes);
     }
 

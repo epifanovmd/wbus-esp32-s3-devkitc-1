@@ -98,7 +98,7 @@ public:
     // ОСНОВНЫЕ КОМАНДЫ УПРАВЛЕНИЯ
     // =========================================================================
 
-    void startParkingHeat(int minutes = 60) override
+    void startParkingHeat(int minutes = 59) override
     {
         breakIfNeeded();
 
@@ -108,7 +108,7 @@ public:
                                             handleStartParkingHeatResponse(tx, rx, minutes); });
     }
 
-    void startVentilation(int minutes = 60) override
+    void startVentilation(int minutes = 59) override
     {
         breakIfNeeded();
 
@@ -118,7 +118,7 @@ public:
                                             handleStartVentilationResponse(tx, rx, minutes); });
     }
 
-    void startSupplementalHeat(int minutes = 60) override
+    void startSupplementalHeat(int minutes = 59) override
     {
         breakIfNeeded();
 
@@ -128,7 +128,7 @@ public:
                                             handleStartSupplementalHeatResponse(tx, rx, minutes); });
     }
 
-    void startBoostMode(int minutes = 60) override
+    void startBoostMode(int minutes = 59) override
     {
         breakIfNeeded();
 
@@ -148,6 +148,14 @@ public:
                                             handleControlCirculationPumpResponse(tx, rx, enable); });
     }
 
+    void fuelCirculation(int seconds) override
+    {
+        breakIfNeeded();
+
+        commandManager.addPriorityCommand(WBusCommandBuilder::createFuelCirculation(seconds), false, [this, seconds](String tx, String rx)
+                                          { handleFuelCirculation(tx, rx, seconds); });
+    }
+
     void shutdown() override
     {
         breakIfNeeded();
@@ -156,13 +164,6 @@ public:
                                           { handleShutdownResponse(tx, rx); });
     }
 
-    void fuelCirculation(int seconds) override
-    {
-        breakIfNeeded();
-
-        commandManager.addPriorityCommand(WBusCommandBuilder::createFuelCirculation(seconds), false, [this](String tx, String rx)
-                                          { handleFuelCirculation(tx, rx); });
-    }
     // =========================================================================
     // ТЕСТИРОВАНИЕ КОМПОНЕНТОВ
     // =========================================================================
@@ -409,12 +410,12 @@ public:
         }
     }
 
-    void handleFuelCirculation(String tx, String rx)
+    void handleFuelCirculation(String tx, String rx, int seconds)
     {
         if (!rx.isEmpty())
         {
             Serial.println();
-            Serial.println("🛑 Прокачка топлива включена");
+            Serial.println("🛑 Прокачка топлива включена: " + String(seconds) + "сек, ");
         }
         else
         {
