@@ -227,7 +227,7 @@ private:
             flags.powerInWatts = (byteVal & 0x10) != 0;
             // flags.ZH5 = (byteVal & 0x20) != 0;
             flags.flameIndicator = (byteVal & 0x40) != 0;
-            flags.nozzleStockHeating = (byteVal & 0x80) != 0;
+            flags.fuelPreheating = (byteVal & 0x80) != 0;
             break;
 
         case 5: // Byte 5

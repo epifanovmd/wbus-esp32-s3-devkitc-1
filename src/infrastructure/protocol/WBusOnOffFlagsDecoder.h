@@ -24,7 +24,7 @@ public:
             result.fuelPump = (flags & 0x04) != 0;
             result.circulationPump = (flags & 0x08) != 0;
             result.vehicleFanRelay = (flags & 0x10) != 0;
-            result.nozzleStockHeating = (flags & 0x20) != 0;
+            result.fuelPreheating = (flags & 0x20) != 0;
             result.flameIndicator = (flags & 0x40) != 0;
         }
 

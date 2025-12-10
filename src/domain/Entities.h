@@ -84,7 +84,7 @@ struct WBusCodeFlags
     bool powerInWatts; // 0x10: Heating energy is in watts (if not set, in percent divided by 2)
     // bool ZH5;                // 0x20: Unknown (ZH)
     bool flameIndicator;     // 0x40: Flame indicator (FI)
-    bool nozzleStockHeating; // 0x80: Nozzle Stock heating
+    bool fuelPreheating; // 0x80: Fuel Preheating
 
     // Byte 5 flags
     bool fuelPrewarmingReadable; // 0x80: Fuel prewarming resistance and power can be read
@@ -137,7 +137,7 @@ struct WBusCodeFlags
         json += "\"powerInWatts\":" + String(powerInWatts ? "true" : "false") + ",";
         // json += "\"ZH5\":" + String(ZH5 ? "true" : "false") + ",";
         json += "\"flameIndicator\":" + String(flameIndicator ? "true" : "false") + ",";
-        json += "\"nozzleStockHeating\":" + String(nozzleStockHeating ? "true" : "false") + ",";
+        json += "\"fuelPreheating\":" + String(fuelPreheating ? "true" : "false") + ",";
 
         // Byte 5
         json += "\"fuelPrewarmingReadable\":" + String(fuelPrewarmingReadable ? "true" : "false") + ",";
@@ -237,7 +237,7 @@ struct WBusCodeFlags
         powerInWatts = false;
         // ZH5 = false;
         flameIndicator = false;
-        nozzleStockHeating = false;
+        fuelPreheating = false;
 
         // Byte 5
         fuelPrewarmingReadable = false;
@@ -319,7 +319,7 @@ struct OnOffFlags
     bool fuelPump = false;
     bool circulationPump = false;
     bool vehicleFanRelay = false;
-    bool nozzleStockHeating = false;
+    bool fuelPreheating = false;
     bool flameIndicator = false;
 
     String toJson() const
@@ -330,7 +330,7 @@ struct OnOffFlags
         json += "\"fuelPump\":" + String(fuelPump ? "true" : "false") + ",";
         json += "\"circulationPump\":" + String(circulationPump ? "true" : "false") + ",";
         json += "\"vehicleFanRelay\":" + String(vehicleFanRelay ? "true" : "false") + ",";
-        json += "\"nozzleStockHeating\":" + String(nozzleStockHeating ? "true" : "false") + ",";
+        json += "\"fuelPreheating\":" + String(fuelPreheating ? "true" : "false") + ",";
         json += "\"flameIndicator\":" + String(flameIndicator ? "true" : "false");
         json += "}";
         return json;
