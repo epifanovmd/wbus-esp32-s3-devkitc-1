@@ -90,7 +90,6 @@ public:
     void disconnect() override
     {
         commandManager.clear();
-        commandManager.setInterval(150);
         setConnectionState(ConnectionState::DISCONNECTED);
     }
 

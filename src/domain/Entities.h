@@ -4,6 +4,58 @@
 #include <map>
 #include <vector>
 
+struct BusConfig
+{
+    uint32_t baudRate = 2400;
+    uint32_t commandTimeout = 2000;
+    uint8_t maxRetries = 5;
+    uint32_t queueInterval = 150;
+    uint32_t maxQueueSize = 30;
+    uint32_t maxPriorityQueueSize = 10;
+    uint32_t breakSignalDuration = 50;
+    uint32_t keepAliveInterval = 15000;
+
+    // Пины для управления TJA1020
+    uint8_t nslpPin = 7;
+    uint8_t nwakePin = 6;
+    uint8_t rxdPullupPin = 8;
+    uint8_t rxTjaPin = 18;
+    uint8_t txTjaPin = 17;
+
+    // Серийная конфигурация (хранится как строка, преобразуется при использовании)
+    String serialConfig = "8E1";
+
+    // Вспомогательный метод для получения конфигурации UART
+    uint32_t getSerialConfig() const
+    {
+        if (serialConfig == "8N1")
+            return SERIAL_8N1;
+        if (serialConfig == "8E1")
+            return SERIAL_8E1;
+        if (serialConfig == "8O1")
+            return SERIAL_8O1;
+        if (serialConfig == "7E1")
+            return SERIAL_7E1;
+        if (serialConfig == "7O1")
+            return SERIAL_7O1;
+        return SERIAL_8E1; // по умолчанию
+    }
+};
+
+struct NetworkConfig
+{
+    String ssid = "Webasto_WiFi";
+    String password = "Epifan123";
+    uint16_t port = 80;
+};
+
+struct AppConfig
+{
+    String deviceId = "webasto-001";
+    BusConfig bus;
+    NetworkConfig network;
+};
+
 enum class WebastoState
 {
     OFF,

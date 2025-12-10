@@ -55,3 +55,8 @@ unsigned long Timer::getElapsedTime()
 {
     return millis() - _lastExecution;
 }
+
+unsigned long Timer::getCurrentInterval()
+{
+    return _interval;
+}

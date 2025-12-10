@@ -2,6 +2,12 @@
 #pragma once
 #include "Entities.h"
 
+
+struct AppConfigUpdateEvent
+{
+    AppConfig config;
+};
+
 struct ConnectionTimeoutEvent
 {
     int retrie;

@@ -16,8 +16,6 @@
 #include "common/Constants.h"
 #include "infrastructure/protocol/WBusCommandBuilder.h"
 
-Timer keepAliveTimer(15000);
-
 class WebastoApplication
 {
 private:
@@ -43,6 +41,8 @@ private:
 
     AsyncApiServer asyncWebServer;
 
+    Timer keepAliveTimer;
+
     // Состояние приложения
     bool initialized = false;
 
@@ -52,19 +52,7 @@ private:
 
 public:
     WebastoApplication()
-        : eventBus(EventBus::getInstance())
-        , fileSystemManager()
-        , configManager(fileSystemManager)
-        , KLineSerial(1)
-        , busDriver(configManager, KLineSerial, eventBus)
-        , commandReceiver(KLineSerial, eventBus)
-        , commandManager(configManager, eventBus, busDriver, commandReceiver)
-        , deviceInfoManager(eventBus, commandManager)
-        , sensorManager(eventBus, commandManager)
-        , errorsManager(eventBus, commandManager)
-        , heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager)
-        , snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController)
-        , asyncWebServer(fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController)
+        : eventBus(EventBus::getInstance()), fileSystemManager(), configManager(eventBus, fileSystemManager), KLineSerial(1), busDriver(configManager, KLineSerial, eventBus), commandReceiver(KLineSerial, eventBus), commandManager(configManager, eventBus, busDriver, commandReceiver), deviceInfoManager(eventBus, commandManager), sensorManager(eventBus, commandManager), errorsManager(eventBus, commandManager), heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager), snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController), asyncWebServer(fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController), keepAliveTimer(15000)
     {
         commandManager.setTimeout(configManager.getConfig().bus.commandTimeout);
         commandManager.setInterval(configManager.getConfig().bus.queueInterval);
@@ -140,7 +128,6 @@ private:
         Serial.println("  SSID: " + netConfig.ssid);
         Serial.println("  Password: " + netConfig.password);
         Serial.println("  Port: " + String(netConfig.port));
-        
 
         WiFi.mode(WIFI_AP);
         bool apStarted = WiFi.softAP(netConfig.ssid, netConfig.password);
@@ -193,6 +180,14 @@ private:
                                const auto &connectionEvent = static_cast<const TypedEvent<HeaterStateChangedEvent> &>(event);
                                Serial.println();
                                Serial.print("🔄 Состояние изменено: " + status.getStateName(connectionEvent.data.oldState) + " → " + status.getStateName(connectionEvent.data.newState));
+                           });
+
+        eventBus.subscribe(EventType::APP_CONFIG_UPDATE,
+                           [this, status](const Event &event)
+                           {
+                               const auto &configEvent = static_cast<const TypedEvent<AppConfigUpdateEvent> &>(event);
+
+                               keepAliveTimer.setInterval(configEvent.data.config.bus.keepAliveInterval);
                            });
     }
 

@@ -66,6 +66,8 @@ enum class EventType
 
     // Ota events
     OTA_PROGRESS,
+
+    APP_CONFIG_UPDATE
 };
 
 struct Event

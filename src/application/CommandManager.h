@@ -51,7 +51,6 @@ private:
     Command processingCommand;
     ProcessingState state = ProcessingState::IDLE;
     uint8_t currentRetries = 0;
-    uint8_t maxRetires;
 
     Timer queueTimer;
     Timer timeoutTimer;
@@ -67,7 +66,16 @@ public:
           timeoutTimer(configMngr.getConfig().bus.commandTimeout, false),
           breakTimer(configMngr.getConfig().bus.breakSignalDuration, false)
     {
-        maxRetires = configManager.getConfig().bus.maxRetries;
+        eventBus.subscribe(EventType::APP_CONFIG_UPDATE,
+                           [this](const Event &event)
+                           {
+                               const auto &configEvent = static_cast<
+                                   const TypedEvent<AppConfigUpdateEvent> &>(event);
+
+                               setInterval(configEvent.data.config.bus.queueInterval);
+                               setTimeout(configEvent.data.config.bus.commandTimeout);
+                               setBreakTimeout(configEvent.data.config.bus.breakSignalDuration);
+                           });
     }
 
     bool addCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
@@ -192,6 +200,10 @@ public:
         timeoutTimer.setInterval(timeout);
     }
 
+    void setBreakTimeout(unsigned long timeout)
+    {
+        breakTimer.setInterval(timeout);
+    }
     bool isEmpty() const
     {
         return isQueueEmpty() && state == ProcessingState::IDLE;
@@ -267,7 +279,9 @@ private:
     {
         currentRetries++;
 
-        if (currentRetries > maxRetires)
+        uint8_t maxRetries = configManager.getConfig().bus.maxRetries;
+
+        if (currentRetries > maxRetries)
         {
             eventBus.publish(EventType::COMMAND_SENT_ERRROR, processingCommand.data);
             clear();
@@ -276,7 +290,7 @@ private:
         {
             eventBus.publish<ConnectionTimeoutEvent>(EventType::COMMAND_SENT_TIMEOUT, {currentRetries, processingCommand.data});
             Serial.println();
-            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(maxRetires) + ": " + processingCommand.data);
+            Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(maxRetries) + ": " + processingCommand.data);
 
             state = ProcessingState::BREAK_SET;
         }
