@@ -595,12 +595,9 @@ private:
             case ConnectionState::DISCONNECTED:
                 neopixelWrite(RGB_PIN, 0, 0, 0);
 
-                if (!WiFi.softAPgetStationNum())
-                {
-                    deviceInfoManager.clear();
-                    sensorManager.clear();
-                    errorsManager.clear();
-                }
+                deviceInfoManager.clear();
+                sensorManager.clear();
+                errorsManager.clear();
 
                 break;
             }
