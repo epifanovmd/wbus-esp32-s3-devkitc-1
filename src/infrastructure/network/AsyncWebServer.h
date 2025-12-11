@@ -7,7 +7,7 @@
 #include "./common/Constants.h"
 #include "./OtaHandlers.h"
 #include "./WebastoApiHandlers.h"
-#include "./SystemHendlers.h"
+#include "./SystemHandlers.h"
 #include "./EventHandlers.h"
 #include "./ConfigApiHandlers.h"
 #include "./WebSocketManager.h"
@@ -52,10 +52,10 @@ public:
           errorsManager(errorsMngr),
           heaterController(heaterCtrl),
           webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
-          otaHandlers(server, webSocketManager, configMngr, fsManager),
           systemHandlers(server, configMngr),
           webSocketManager(heaterCtrl),
           eventHandlers(webSocketManager),
+          otaHandlers(server, webSocketManager, configMngr, fsManager),
           configApiHandlers(server, configMngr, fsManager)
     {
     }
@@ -66,10 +66,6 @@ public:
         {
             Serial.println("❌ LittleFS initialization failed");
             return false;
-        }
-        else
-        {
-            Serial.println("✅ LittleFS initialized");
         }
 
         if (!fsManager.exists("/index.html"))
@@ -97,8 +93,10 @@ public:
         server.begin();
 
         uint16_t port = configManager.getConfig().network.port;
-        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString() + ":" + String((port > 0) ? port : 80));
-        Serial.println("✅ WebSocket available at ws://" + WiFi.softAPIP().toString() + "/ws");
+        String portString = port > 0 && port != 80 ? (":" + String(port)) : "";
+
+        Serial.println("📱 Connect to: http://" + WiFi.softAPIP().toString() + portString);
+        Serial.println("✅ WebSocket available at ws://" + WiFi.softAPIP().toString() + portString + "/ws");
 
         ApiHelpers::printAvailableEndpoints();
 

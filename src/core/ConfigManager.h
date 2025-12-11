@@ -32,6 +32,15 @@ public:
     bool isConfigLoaded() const { return configLoaded; }
     bool isRestartRequired() const { return restartRequired; }
 
+    void initialize()
+    {
+        if (!loadConfig())
+        {
+            Serial.println("⚠️  Using default configuration");
+        }
+        // printConfig();
+    }
+
     bool loadConfig()
     {
         // Инициализируем файловую систему, если нужно

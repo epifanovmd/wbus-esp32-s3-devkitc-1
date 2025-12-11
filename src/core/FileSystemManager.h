@@ -28,7 +28,7 @@ public:
         if (initialized)
         {
             Serial.println("✅ LittleFS initialized successfully");
-            printFileSystemInfo();
+            // printFileSystemInfo();
         }
         else
         {

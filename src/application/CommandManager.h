@@ -78,6 +78,13 @@ public:
                            });
     }
 
+    void initialize()
+    {
+        setInterval(configManager.getConfig().bus.queueInterval);
+        setTimeout(configManager.getConfig().bus.commandTimeout);
+        setBreakTimeout(configManager.getConfig().bus.breakSignalDuration);
+    }
+
     bool addCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
     {
         if (getTotalQueueSize() >= configManager.getConfig().bus.maxQueueSize || containsCommand(command))

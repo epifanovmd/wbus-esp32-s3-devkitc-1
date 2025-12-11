@@ -51,11 +51,20 @@ private:
     bool lastButtonState = true;
 
 public:
-    WebastoApplication()
-        : eventBus(EventBus::getInstance()), fileSystemManager(), configManager(eventBus, fileSystemManager), KLineSerial(1), busDriver(configManager, KLineSerial, eventBus), commandReceiver(KLineSerial, eventBus), commandManager(configManager, eventBus, busDriver, commandReceiver), deviceInfoManager(eventBus, commandManager), sensorManager(eventBus, commandManager), errorsManager(eventBus, commandManager), heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager), snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController), asyncWebServer(fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController), keepAliveTimer(15000)
+    WebastoApplication() : eventBus(EventBus::getInstance()),
+                           fileSystemManager(),
+                           configManager(eventBus, fileSystemManager), KLineSerial(1),
+                           busDriver(configManager, KLineSerial, eventBus),
+                           commandReceiver(KLineSerial, eventBus),
+                           commandManager(configManager, eventBus, busDriver, commandReceiver),
+                           deviceInfoManager(eventBus, commandManager),
+                           sensorManager(eventBus, commandManager),
+                           errorsManager(eventBus, commandManager),
+                           heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager),
+                           snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController),
+                           asyncWebServer(fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController),
+                           keepAliveTimer(15000)
     {
-        commandManager.setTimeout(configManager.getConfig().bus.commandTimeout);
-        commandManager.setInterval(configManager.getConfig().bus.queueInterval);
     }
 
     void initialize()
@@ -66,27 +75,19 @@ public:
         Serial.println("Device ID: " + configManager.getConfig().deviceId);
         Serial.println("===============================================");
 
-        // Теперь загружаем конфигурацию
-        if (!configManager.loadConfig())
-        {
-            Serial.println("⚠️  Using default configuration");
-        }
-        configManager.printConfig();
-
         // Инициализация WiFi
         setupWiFi();
 
-        // Инициализация аппаратного обеспечения
+        configManager.initialize();
         busDriver.initialize();
+
+        commandManager.initialize();
         heaterController.initialize();
 
-        // Инициализация Web сервера
-        asyncWebServer.initialize();
-
-        // Настройка обработчиков событий
         setupEventHandlers();
 
         busDriver.connect();
+        asyncWebServer.initialize();
 
         initialized = true;
 
@@ -100,19 +101,15 @@ public:
 
         commandReceiver.process();
         commandManager.process();
-        // Keep-alive логика
+
         if (keepAliveTimer.isReady())
         {
             processKeepAlive();
         }
 
-        // Обработка serial команд
         handleSerialCommands();
-
-        // Обработка кнопки
         handleButton();
 
-        // Сетевые сервисы
         asyncWebServer.process();
 
         delay(1);
@@ -125,27 +122,82 @@ private:
 
         Serial.println();
         Serial.println("📡 Starting Access Point...");
-        Serial.println("  SSID: " + netConfig.ssid);
-        Serial.println("  Password: " + netConfig.password);
-        Serial.println("  Port: " + String(netConfig.port));
 
+        // Простая и надежная версия
         WiFi.mode(WIFI_AP);
-        bool apStarted = WiFi.softAP(netConfig.ssid, netConfig.password);
 
-        if (apStarted)
+        WiFi.onEvent([](WiFiEvent_t event, arduino_event_info_t info)
+                     {
+        switch(event) {
+            case ARDUINO_EVENT_WIFI_AP_START:
+                Serial.println("✅ AP started");
+                break;
+            case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+                Serial.printf("📱 Client connected: MAC=%02x:%02x:%02x:%02x:%02x:%02x, AID=%d\n",
+                    info.wifi_ap_staconnected.mac[0], info.wifi_ap_staconnected.mac[1],
+                    info.wifi_ap_staconnected.mac[2], info.wifi_ap_staconnected.mac[3],
+                    info.wifi_ap_staconnected.mac[4], info.wifi_ap_staconnected.mac[5],
+                    info.wifi_ap_staconnected.aid);
+                break;
+            case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+                Serial.printf("📱 Client disconnected: MAC=%02x:%02x:%02x:%02x:%02x:%02x, AID=%d\n",
+                    info.wifi_ap_staconnected.mac[0], info.wifi_ap_staconnected.mac[1],
+                    info.wifi_ap_staconnected.mac[2], info.wifi_ap_staconnected.mac[3],
+                    info.wifi_ap_staconnected.mac[4], info.wifi_ap_staconnected.mac[5],
+                    info.wifi_ap_staconnected.aid);
+                break;
+            case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+                Serial.println("📱 Client IP assigned");
+                break;
+        } });
+
+        // Базовые настройки
+        WiFi.softAPConfig(
+            IPAddress(192, 168, 4, 1),
+            IPAddress(192, 168, 4, 1),
+            IPAddress(255, 255, 255, 0));
+
+        // Запуск AP
+        if (WiFi.softAP(netConfig.ssid.c_str(), netConfig.password.c_str()))
         {
-            Serial.println("✅ Access Point started");
-            Serial.println("  IP: " + WiFi.softAPIP().toString());
-            Serial.println("  MAC: " + WiFi.softAPmacAddress());
+            Serial.println("\n✅ Access Point started successfully");
+            Serial.println("  SSID: " + netConfig.ssid);
+            Serial.println("  IP Address: " + WiFi.softAPIP().toString());
+            Serial.println("  MAC Address: " + WiFi.softAPmacAddress());
+            Serial.println("  Channel: " + String(WiFi.channel()));
+
+            // Дополнительные оптимизации
+            optimizeWiFi();
         }
         else
         {
             Serial.println("❌ Failed to start Access Point");
-            while (true)
-            {
-                delay(1000);
-            }
+            delay(1000);
+            ESP.restart();
         }
+    }
+
+    void optimizeWiFi()
+    {
+        // Базовые оптимизации совместимые со всеми версиями
+
+        // 1. Отключаем режим сна WiFi
+        WiFi.setSleep(false);
+
+// 2. Устанавливаем максимальную мощность передачи
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 2
+        WiFi.setTxPower(WIFI_POWER_19_5dBm);
+#elif defined(ARDUINO_ESP32_RELEASE_1_0_x)
+        WiFi.setTxPower(78); // 19.5dBm
+#endif
+
+        // 3. Устанавливаем статический канал (по умолчанию 6)
+        // ESP автоматически выбирает канал, но можно принудительно:
+        // WiFi.softAP("SSID", "PASS", 6); // в setupWiFi()
+
+        // 4. Отключаем автоматическое переподключение (для AP не нужно)
+
+        Serial.println("🔧 WiFi optimized for stability");
     }
 
     void setupEventHandlers()

@@ -15,7 +15,6 @@ private:
     const BusConfig &config;
 
     ConnectionState connectionState = ConnectionState::DISCONNECTED;
-    bool isAwakeFlag = false;
 
 public:
     TJA1020Driver(ConfigManager &configMmngr, HardwareSerial &serialRef, EventBus &bus)
@@ -35,41 +34,34 @@ public:
         digitalWrite(config.nslpPin, LOW);
         digitalWrite(config.nwakePin, HIGH);
 
-        Serial.println("✅ TJA1020 Driver initialized");
-        Serial.println("  NSLP Pin: " + String(config.nslpPin));
-        Serial.println("  NWAKE Pin: " + String(config.nwakePin));
-        Serial.println("  RXD Pullup Pin: " + String(config.rxdPullupPin));
-        Serial.println("  TX Pin: " + String(config.txTjaPin));
-        Serial.println("  RX Pin: " + String(config.rxTjaPin));
+        // Serial.println("✅ TJA1020 Driver initialized");
+        // Serial.println("  NSLP Pin: " + String(config.nslpPin));
+        // Serial.println("  NWAKE Pin: " + String(config.nwakePin));
+        // Serial.println("  RXD Pullup Pin: " + String(config.rxdPullupPin));
+        // Serial.println("  TX Pin: " + String(config.txTjaPin));
+        // Serial.println("  RX Pin: " + String(config.rxTjaPin));
         return true;
     }
 
-    bool connect() override
+    void connect() override
     {
         if (connectionState == ConnectionState::CONNECTING)
         {
             Serial.println("⚠️ Already connecting...");
-            return false;
+            return;
         }
 
-        setConnectionState(ConnectionState::CONNECTING);
         wakeUp();
-
-        setConnectionState(ConnectionState::CONNECTED);
-        Serial.println("✅ TJA1020 connected");
-        return true;
     }
 
     void disconnect() override
     {
         sleep();
-        setConnectionState(ConnectionState::DISCONNECTED);
-        Serial.println("🔌 TJA1020 disconnected");
     }
 
     bool isConnected() const override
     {
-        return connectionState == ConnectionState::CONNECTED && isAwakeFlag;
+        return connectionState == ConnectionState::CONNECTED;
     }
 
     ConnectionState getConnectionState() const override
@@ -79,6 +71,7 @@ public:
 
     void wakeUp() override
     {
+        setConnectionState(ConnectionState::CONNECTING);
         digitalWrite(config.nslpPin, HIGH);
         delay(10);
 
@@ -87,14 +80,14 @@ public:
         digitalWrite(config.nwakePin, HIGH);
 
         delay(config.breakSignalDuration);
-        isAwakeFlag = true;
+
+        setConnectionState(ConnectionState::CONNECTED);
 
         // Инициализация UART с параметрами из конфига
         serial.begin(config.baudRate, config.getSerialConfig(), config.rxTjaPin, config.txTjaPin);
 
-        Serial.println("🔔 TJA1020 awakened");
-        Serial.println("  Baud Rate: " + String(config.baudRate));
-        Serial.println("  Serial Config: " + config.serialConfig);
+        setConnectionState(ConnectionState::CONNECTED);
+        Serial.println("✅ TJA1020 connected");
     }
 
     void sendBreak() override
@@ -116,19 +109,15 @@ public:
         digitalWrite(config.nwakePin, HIGH);
 
         delay(10);
-        isAwakeFlag = false;
+
+        setConnectionState(ConnectionState::DISCONNECTED);
 
         Serial.println("💤 TJA1020 sleeping");
     }
 
-    bool isAwake() const override
-    {
-        return isAwakeFlag;
-    }
-
     bool sendCommand(uint8_t *data, size_t length) override
     {
-        if (!isAwakeFlag)
+        if (!isConnected())
         {
             Serial.println("❌ TJA1020 is sleeping");
             return false;

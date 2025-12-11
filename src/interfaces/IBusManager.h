@@ -7,7 +7,7 @@ public:
     virtual ~IBusManager() = default;
 
     virtual bool initialize() = 0;
-    virtual bool connect() = 0;
+    virtual void connect() = 0;
     virtual void disconnect() = 0;
     virtual bool isConnected() const = 0;
     virtual ConnectionState getConnectionState() const = 0;
@@ -17,7 +17,6 @@ public:
     virtual void sendBreak() = 0;
     virtual void wakeUp() = 0;
     virtual void sleep() = 0;
-    virtual bool isAwake() const = 0;
 
     virtual void sendBreakSignal(bool set) = 0;
     virtual int available() = 0;
