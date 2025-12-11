@@ -139,7 +139,7 @@ public:
         case WBusCommandBuilder::CMD_FUEL_CIRCULATION:
         {
             uint8_t seconds = Utils::extractByteFromString(tx, 5);
-            heaterController.handleFuelCirculation(tx, rx, seconds);
+            heaterController.handleFuelCirculation(tx, rx, seconds * 2 + 1);
             return true;
         }
 

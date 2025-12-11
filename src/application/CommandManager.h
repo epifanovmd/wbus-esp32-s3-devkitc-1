@@ -244,8 +244,8 @@ private:
         {
             if (busManager.sendCommand(packetParser.getData(), packetParser.getByteCounts()))
             {
-                state = ProcessingState::SENDING;
                 timeoutTimer.reset();
+                state = ProcessingState::SENDING;
             }
             else
             {
