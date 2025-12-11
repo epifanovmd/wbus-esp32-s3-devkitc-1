@@ -63,7 +63,6 @@ public:
     {
         if (currentStatus.connection == ConnectionState::CONNECTING)
         {
-            Serial.println();
             Serial.println("⚠️  Подключение уже выполняется...");
             return;
         }
@@ -291,12 +290,10 @@ public:
                 setState(WebastoState::PARKING_HEAT);
             }
 
-            Serial.println();
             Serial.println("🔥 Паркинг-нагрев запущен на " + String(minutes) + " минут");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка запуска паркинг-нагрева");
         }
     }
@@ -310,12 +307,10 @@ public:
                 setState(WebastoState::VENTILATION);
             }
 
-            Serial.println();
             Serial.println("💨 Вентиляция запущена на " + String(minutes) + " минут");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка запуска вентиляции");
         }
     }
@@ -329,12 +324,10 @@ public:
                 setState(WebastoState::SUPP_HEAT);
             }
 
-            Serial.println();
             Serial.println("🔥 Дополнительный нагрев запущен на " + String(minutes) + " минут");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка запуска дополнительного нагрева");
         }
     }
@@ -348,12 +341,10 @@ public:
                 setState(WebastoState::BOOST);
             }
 
-            Serial.println();
             Serial.println("⚡ Boost режим запущен на " + String(minutes) + " минут");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка запуска Boost режима");
         }
     }
@@ -367,12 +358,10 @@ public:
                 setState(WebastoState::CIRC_PUMP);
             }
 
-            Serial.println();
             Serial.println(enable ? "🔛 Циркуляционный насос включен" : "🔴 Циркуляционный насос выключен");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка управления циркуляционным насосом");
         }
     }
@@ -381,12 +370,10 @@ public:
     {
         if (!rx.isEmpty())
         {
-            Serial.println();
             Serial.println("🛑 Нагреватель выключен");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка выключения нагревателя");
         }
     }
@@ -395,12 +382,11 @@ public:
     {
         if (!rx.isEmpty())
         {
-            Serial.println();
+            eventBus.publish(EventType::FUEL_CIRCULATION);
             Serial.println("🛑 Прокачка топлива включена: " + String(seconds) + "сек, ");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка включения прокачки топлива");
         }
     }
@@ -410,12 +396,11 @@ public:
         if (!rx.isEmpty())
         {
             eventBus.publish(EventType::TEST_COMBUSTION_FAN_STARTED);
-            Serial.println();
             Serial.println("🌀 Тест вентилятора горения: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         }
         else
         {
-            Serial.println();
+
             Serial.println("❌ Ошибка теста вентилятора горения");
             eventBus.publish(EventType::TEST_COMBUSTION_FAN_FAILED);
         }
@@ -426,12 +411,10 @@ public:
         if (!rx.isEmpty())
         {
             eventBus.publish(EventType::TEST_FUEL_PUMP_STARTED);
-            Serial.println();
             Serial.println("⛽ Тест топливного насоса: " + String(seconds) + "сек, " + String(frequencyHz) + "Гц");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка теста топливного насоса");
             eventBus.publish(EventType::TEST_FUEL_PUMP_FAILED);
         }
@@ -442,12 +425,10 @@ public:
         if (!rx.isEmpty())
         {
             eventBus.publish(EventType::TEST_GLOW_PLUG_STARTED);
-            Serial.println();
             Serial.println("🔌 Тест свечи накаливания: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка теста свечи накаливания");
             eventBus.publish(EventType::TEST_GLOW_PLUG_FAILED);
         }
@@ -458,12 +439,10 @@ public:
         if (!rx.isEmpty())
         {
             eventBus.publish(EventType::TEST_CIRCULATION_PUMP_STARTED);
-            Serial.println();
             Serial.println("💧 Тест циркуляционного насоса: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка теста циркуляционного насоса");
             eventBus.publish(EventType::TEST_CIRCULATION_PUMP_FAILED);
         }
@@ -474,12 +453,10 @@ public:
         if (!rx.isEmpty())
         {
             eventBus.publish(EventType::TEST_VEHICLE_FAN_STARTED);
-            Serial.println();
             Serial.println("🌀 Тест реле вентилятора автомобиля: " + String(seconds) + "сек");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка теста реле вентилятора автомобиля");
             eventBus.publish(EventType::TEST_VEHICLE_FAN_FAILED);
         }
@@ -490,12 +467,10 @@ public:
         if (!rx.isEmpty())
         {
             eventBus.publish(EventType::TEST_SOLENOID_STARTED);
-            Serial.println();
             Serial.println("🔘 Тест соленоидного клапана: " + String(seconds) + "сек");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка теста соленоидного клапана");
             eventBus.publish(EventType::TEST_SOLENOID_FAILED);
         }
@@ -505,13 +480,11 @@ public:
     {
         if (!rx.isEmpty())
         {
-            Serial.println();
             eventBus.publish(EventType::TEST_FUEL_PREHEATING_STARTED);
             Serial.println("🔥 Тест подогрева топлива: " + String(seconds) + "сек, " + String(powerPercent) + "%");
         }
         else
         {
-            Serial.println();
             Serial.println("❌ Ошибка теста подогрева топлива");
             eventBus.publish(EventType::TEST_FUEL_PREHEATING_FAILED);
         }

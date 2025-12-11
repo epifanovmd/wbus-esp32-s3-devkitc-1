@@ -11,6 +11,9 @@ enum class EventType
     HEATER_STATE_CHANGED,
     KEEP_ALLIVE_SENT,
 
+
+    FUEL_CIRCULATION,
+
     // События запуска теста компонентов
     TEST_COMBUSTION_FAN_STARTED,
     TEST_COMBUSTION_FAN_FAILED,

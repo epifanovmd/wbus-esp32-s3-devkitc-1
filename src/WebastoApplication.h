@@ -120,7 +120,6 @@ private:
     {
         auto &netConfig = configManager.getConfig().network;
 
-        Serial.println();
         Serial.println("📡 Starting Access Point...");
 
         // Простая и надежная версия
@@ -207,31 +206,27 @@ private:
         eventBus.subscribe(EventType::TX_RECEIVED,
                            [](const Event &event)
                            {
-                               // Serial.println();
-                               // Serial.print("📤 TX: " + event.source);
+                               // Serial.println("📤 TX: " + event.source);
                            });
 
         eventBus.subscribe(EventType::RX_RECEIVED,
                            [](const Event &event)
                            {
-                               // Serial.println();
-                               // Serial.print("📨 RX: " + event.source);
+                               // Serial.println("📨 RX: " + event.source);
                            });
 
         eventBus.subscribe(EventType::CONNECTION_STATE_CHANGED,
                            [this, status](const Event &event)
                            {
                                const auto &connectionEvent = static_cast<const TypedEvent<ConnectionStateChangedEvent> &>(event);
-                               Serial.println();
-                               Serial.print(status.getConnectionName(connectionEvent.data.oldState) + " ––> " + status.getConnectionName(connectionEvent.data.newState));
+                               Serial.println(status.getConnectionName(connectionEvent.data.oldState) + " ––> " + status.getConnectionName(connectionEvent.data.newState));
                            });
 
         eventBus.subscribe(EventType::HEATER_STATE_CHANGED,
                            [this, status](const Event &event)
                            {
                                const auto &connectionEvent = static_cast<const TypedEvent<HeaterStateChangedEvent> &>(event);
-                               Serial.println();
-                               Serial.print("🔄 Состояние изменено: " + status.getStateName(connectionEvent.data.oldState) + " → " + status.getStateName(connectionEvent.data.newState));
+                               Serial.println("🔄 Состояние изменено: " + status.getStateName(connectionEvent.data.oldState) + " → " + status.getStateName(connectionEvent.data.newState));
                            });
 
         eventBus.subscribe(EventType::APP_CONFIG_UPDATE,

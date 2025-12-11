@@ -193,7 +193,6 @@ public:
         currentRetries = 0;
         processingCommand = Command();
 
-        Serial.println();
         Serial.println("🧹 Очередь очищена");
     }
 
@@ -296,7 +295,6 @@ private:
         else
         {
             eventBus.publish<ConnectionTimeoutEvent>(EventType::COMMAND_SENT_TIMEOUT, {currentRetries, processingCommand.data});
-            Serial.println();
             Serial.println("🔄 Повторная отправка " + String(currentRetries) + "/" + String(maxRetries) + ": " + processingCommand.data);
 
             state = ProcessingState::BREAK_SET;

@@ -555,8 +555,6 @@ public:
             Serial.print(expected);
             Serial.print(")");
         }
-
-        Serial.println();
     }
 
     // =========================================================================
