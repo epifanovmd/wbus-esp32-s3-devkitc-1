@@ -102,9 +102,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createParkHeat(minutes), false, [this, minutes](String tx, String rx)
-                                          { 
-                                            sensorManager.requestStatusFlags();
-                                            handleStartParkingHeatResponse(tx, rx, minutes); });
+                                          { sensorManager.requestStatusFlags(); });
     }
 
     void startVentilation(int minutes = 59) override
@@ -112,9 +110,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createVentilation(minutes), false, [this, minutes](String tx, String rx)
-                                          { 
-                                            sensorManager.requestStatusFlags();
-                                            handleStartVentilationResponse(tx, rx, minutes); });
+                                          { sensorManager.requestStatusFlags(); });
     }
 
     void startSupplementalHeat(int minutes = 59) override
@@ -122,9 +118,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createSupplementalHeat(minutes), false, [this, minutes](String tx, String rx)
-                                          { 
-                                            sensorManager.requestStatusFlags();
-                                            handleStartSupplementalHeatResponse(tx, rx, minutes); });
+                                          { sensorManager.requestStatusFlags(); });
     }
 
     void startBoostMode(int minutes = 59) override
@@ -132,9 +126,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createBoostMode(minutes), false, [this, minutes](String tx, String rx)
-                                          { 
-                                            sensorManager.requestStatusFlags();
-                                            handleStartBoostModeResponse(tx, rx, minutes); });
+                                          { sensorManager.requestStatusFlags(); });
     }
 
     void controlCirculationPump(bool enable) override
@@ -142,9 +134,7 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createCirculationPumpControl(enable), false, [this, enable](String tx, String rx)
-                                          { 
-                                            sensorManager.requestStatusFlags();
-                                            handleControlCirculationPumpResponse(tx, rx, enable); });
+                                          { sensorManager.requestStatusFlags(); });
     }
 
     void fuelCirculation(int seconds) override
@@ -152,15 +142,14 @@ public:
         breakIfNeeded();
 
         commandManager.addPriorityCommand(WBusCommandBuilder::createFuelCirculation(seconds), false, [this, seconds](String tx, String rx)
-                                          { handleFuelCirculation(tx, rx, seconds); });
+                                          { sensorManager.requestStatusFlags(); });
     }
 
     void shutdown() override
     {
         breakIfNeeded();
 
-        commandManager.addPriorityCommand(WBusCommandBuilder::createShutdown(), false, [this](String tx, String rx)
-                                          { handleShutdownResponse(tx, rx); });
+        commandManager.addPriorityCommand(WBusCommandBuilder::createShutdown(), false);
     }
 
     // =========================================================================
@@ -175,7 +164,6 @@ public:
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
-                                              handleTestCombustionFanResponse(tx, rx, seconds, powerPercent);
                                           });
     }
 
@@ -187,7 +175,6 @@ public:
                                           [this, seconds, frequencyHz](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
-                                              handleTestFuelPumpResponse(tx, rx, seconds, frequencyHz);
                                           });
     }
 
@@ -200,7 +187,6 @@ public:
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
-                                              handleTestGlowPlugResponse(tx, rx, seconds, powerPercent);
                                           });
     }
 
@@ -213,7 +199,6 @@ public:
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
-                                              handleTestCirculationPumpResponse(tx, rx, seconds, powerPercent);
                                           });
     }
 
@@ -226,7 +211,6 @@ public:
                                           [this, seconds](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
-                                              handleTestVehicleFanResponse(tx, rx, seconds);
                                           });
     }
 
@@ -239,7 +223,6 @@ public:
                                           [this, seconds](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
-                                              handleTestSolenoidValveResponse(tx, rx, seconds);
                                           });
     }
 
@@ -252,7 +235,6 @@ public:
                                           [this, seconds, powerPercent](String tx, String rx)
                                           {
                                               sensorManager.requestStatusFlags();
-                                              handleTestFuelPreheatingResponse(tx, rx, seconds, powerPercent);
                                           });
     }
 

@@ -136,6 +136,13 @@ public:
             return true;
         }
 
+        case WBusCommandBuilder::CMD_FUEL_CIRCULATION:
+        {
+            uint8_t seconds = Utils::extractByteFromString(tx, 4);
+            heaterController.handleFuelCirculation(tx, rx, seconds);
+            return true;
+        }
+
         // =========================================================================
         // ОБРАБОТКА КОМАНД ТЕСТИРОВАНИЯ (0x45)
         // =========================================================================
