@@ -509,8 +509,8 @@ public:
                     createTestGlowPlug(5, 75),
                     "f4 06 45 03 05 00 96 27");
 
-        testCommand("TEST_CIRC_PUMP (15s, 100%)",
-                    createTestCirculationPump(15, 100),
+        testCommand("TEST_CIRC_PUMP (15s)",
+                    createTestCirculationPump(15),
                     "f4 06 45 04 0f 00 c8 74");
 
         testCommand("TEST_VEHICLE_FAN (8s)",
@@ -778,7 +778,7 @@ public:
 
     static String createTestFuelPump(uint8_t seconds, uint8_t frequencyHz)
     {
-        frequencyHz = constrain(frequencyHz, 0, 50);
+        frequencyHz = constrain(frequencyHz, 0, 255);
         uint16_t magnitude = TestComponentConverter::fuelPumpHzToMagnitude(frequencyHz);
         return createTestCommand(TEST_FUEL_PUMP, seconds, magnitude);
     }
@@ -790,11 +790,9 @@ public:
         return createTestCommand(TEST_GLOW_PLUG, seconds, magnitude);
     }
 
-    static String createTestCirculationPump(uint8_t seconds, uint8_t powerPercent)
+    static String createTestCirculationPump(uint8_t seconds)
     {
-        powerPercent = constrain(powerPercent, 0, 100);
-        uint16_t magnitude = TestComponentConverter::circulationPumpPercentToMagnitude(powerPercent);
-        return createTestCommand(TEST_CIRCULATION_PUMP, seconds, magnitude);
+        return createTestCommand(TEST_CIRCULATION_PUMP, seconds, 100);
     }
 
     static String createTestVehicleFan(uint8_t seconds)

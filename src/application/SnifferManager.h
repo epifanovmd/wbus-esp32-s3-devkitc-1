@@ -317,8 +317,7 @@ private:
 
         case WBusCommandBuilder::TEST_CIRCULATION_PUMP:
         {
-            int powerPercent = TestComponentConverter::circulationPumpMagnitudeToPercent(testInfo.magnitude);
-            heaterController.handleTestCirculationPumpResponse(tx, rx, testInfo.seconds, powerPercent);
+            heaterController.handleTestCirculationPumpResponse(tx, rx, testInfo.seconds);
             return true;
         }
 

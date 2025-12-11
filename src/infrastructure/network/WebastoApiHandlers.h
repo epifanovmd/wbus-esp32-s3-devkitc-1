@@ -319,7 +319,7 @@ public:
         int frequency = json["frequency"] | 50;
 
         seconds = constrain(seconds, 1, 30);
-        frequency = constrain(frequency, 1, 100);
+        frequency = constrain(frequency, 1, 255);
         heaterController.testFuelPump(seconds, frequency);
 
         DynamicJsonDocument doc(128);
@@ -357,24 +357,21 @@ public:
 
     void handleTestCirculationPump(AsyncWebServerRequest *request, JsonVariant &json)
     {
-        if (!json.containsKey("seconds") || !json.containsKey("power"))
+        if (!json.containsKey("seconds"))
         {
             ApiHelpers::sendJsonError(request, "Missing required fields: seconds, power", 400);
             return;
         }
 
         int seconds = json["seconds"] | 10;
-        int power = json["power"] | 50;
 
         seconds = constrain(seconds, 1, 30);
-        power = constrain(power, 1, 100);
-        heaterController.testCirculationPump(seconds, power);
+        heaterController.testCirculationPump(seconds);
 
         DynamicJsonDocument doc(128);
         doc["status"] = "testing";
         doc["component"] = "circulationPump";
         doc["seconds"] = seconds;
-        doc["power"] = power;
 
         ApiHelpers::sendJsonDocument(request, doc);
     }

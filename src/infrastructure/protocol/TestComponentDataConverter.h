@@ -63,17 +63,17 @@ public:
 
     // =========================================================================
 
-    // Топливный насос: Гц → величина (1 Гц = 20 единиц)
+    // Топливный насос: Гц → величина (1 Гц = 2 единицы)
     static uint16_t fuelPumpHzToMagnitude(uint8_t frequencyHz)
     {
-        frequencyHz = constrain(frequencyHz, 0, 50); // Максимум 50 Гц
-        return frequencyHz * 20;
+        frequencyHz = constrain(frequencyHz, 0, 255);
+        return frequencyHz;
     }
 
     // Обратное преобразование: величина → Гц
     static uint8_t fuelPumpMagnitudeToHz(uint16_t magnitude)
     {
-        return magnitude / 20;
+        return magnitude / 2;
     }
 
     // =========================================================================
