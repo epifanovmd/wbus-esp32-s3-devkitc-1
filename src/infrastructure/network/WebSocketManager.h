@@ -185,9 +185,6 @@ private:
         String json;
         serializeJson(response, json);
         client->text(json);
-
-        Serial.printf("[WebSocket] Client #%u subscribed to %s\n",
-                      client->id(), eventStr.c_str());
     }
 
     void processUnsubscribe(AsyncWebSocketClient *client, DynamicJsonDocument &doc)

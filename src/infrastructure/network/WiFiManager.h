@@ -42,9 +42,16 @@ private:
     // mDNS
     bool mdnsStarted = false;
 
+    // Флаги для обработки событий
+    bool connectionInProgress = false;
+
 public:
     WiFiManager(ConfigManager &config, EventBus &bus)
-        : configManager(config), eventBus(bus) {}
+        : configManager(config), eventBus(bus) 
+    {
+        // Настраиваем обработчики событий WiFi
+        setupWiFiEventHandlers();
+    }
 
     // =========================================================================
     // ОСНОВНЫЕ МЕТОДЫ
@@ -75,17 +82,201 @@ public:
 
     void process()
     {
-        // Мониторинг подключения в STA режиме
-        if (WiFi.getMode() & WIFI_STA)
+        // Проверка таймаута подключения
+        if (connectionInProgress && 
+            currentState == WiFiState::CONNECTING &&
+            millis() - connectionStartTime > CONNECTION_TIMEOUT)
         {
-            monitorConnection();
+            Serial.println("⏰ Connection timeout");
+            onConnectionTimeout();
+        }
+
+        // Автоматическое переподключение
+        auto &netConfig = configManager.getConfig().network;
+        if (currentState == WiFiState::DISCONNECTED && 
+            millis() - lastConnectionAttempt > netConfig.reconnectInterval &&
+            !netConfig.staSsid.isEmpty())
+        {
+            Serial.println("🔄 Attempting to reconnect...");
+            lastConnectionAttempt = millis();
+            
+            // Сбрасываем флаг и начинаем заново
+            connectionInProgress = true;
+            connectionStartTime = millis();
+            
+            WiFi.reconnect();
+            setState(WiFiState::CONNECTING, netConfig.staSsid, "", "Reconnecting...");
         }
     }
 
     // =========================================================================
-    // ПУБЛИЧНЫЕ МЕТОДЫ
+    // ОБРАБОТЧИКИ СОБЫТИЙ WiFi
     // =========================================================================
 
+private:
+    void setupWiFiEventHandlers()
+    {
+        // События WiFi
+        WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info) {
+            this->handleWiFiEvent(event, info);
+        });
+    }
+
+    void handleWiFiEvent(arduino_event_id_t event, arduino_event_info_t info)
+    {
+        switch (event)
+        {
+        // События подключения STA
+        case ARDUINO_EVENT_WIFI_STA_START:
+            Serial.println("📡 STA Started");
+            connectionInProgress = true;
+            connectionStartTime = millis();
+            break;
+
+        case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+            Serial.println("📡 STA Connected to SSID: " + String((char*)info.wifi_sta_connected.ssid));
+            currentSsid = String((char*)info.wifi_sta_connected.ssid);
+            break;
+
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+            onWiFiConnected(
+                IPAddress(info.got_ip.ip_info.ip.addr).toString(),
+                IPAddress(info.got_ip.ip_info.gw.addr).toString(),
+                IPAddress(info.got_ip.ip_info.netmask.addr).toString()
+            );
+            break;
+
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+            onWiFiDisconnected(
+                info.wifi_sta_disconnected.reason,
+                String((char*)info.wifi_sta_disconnected.ssid)
+            );
+            break;
+
+        // События точки доступа AP
+        case ARDUINO_EVENT_WIFI_AP_START:
+            Serial.println("📡 AP Started");
+            onAPStarted();
+            break;
+
+        case ARDUINO_EVENT_WIFI_AP_STOP:
+            Serial.println("📡 AP Stopped");
+            break;
+
+        // Общие события
+        case ARDUINO_EVENT_WIFI_READY:
+            Serial.println("📡 WiFi Ready");
+            break;
+
+        default:
+            // Другие события не обрабатываем
+            break;
+        }
+    }
+
+    void onWiFiConnected(const String &ip, const String &gateway, const String &netmask)
+    {
+        connectionInProgress = false;
+        currentIp = ip;
+
+        // Запускаем mDNS
+        startMDNS();
+
+        setState(WiFiState::CONNECTED, currentSsid, ip,
+                 "Successfully connected");
+
+        Serial.println("✅ WiFi Connected!");
+        Serial.println("  IP: " + ip);
+        Serial.println("  Gateway: " + gateway);
+        Serial.println("  Netmask: " + netmask);
+        Serial.println("  RSSI: " + String(WiFi.RSSI()) + " dBm");
+        Serial.println("  mDNS: " + getMDNSURL());
+    }
+
+    void onWiFiDisconnected(uint8_t reason, const String &ssid)
+    {
+        connectionInProgress = false;
+        
+        setState(WiFiState::DISCONNECTED, "", "", "Disconnected: " + getDisconnectReason(reason));
+        
+        Serial.println("🔌 WiFi Disconnected");
+        Serial.println("  SSID: " + ssid);
+        Serial.println("  Reason: " + getDisconnectReason(reason));
+
+        // Запускаем mDNS только если остались в AP режиме
+        if (WiFi.getMode() & WIFI_AP)
+        {
+            startMDNS();
+        }
+        else
+        {
+            stopMDNS();
+        }
+    }
+
+    void onAPStarted()
+    {
+        currentIp = WiFi.softAPIP().toString();
+        auto &netConfig = configManager.getConfig().network;
+        
+        startMDNS();
+        setState(WiFiState::AP_MODE, netConfig.apSsid, currentIp, "Access Point started");
+        
+        Serial.println("📡 AP Mode Active");
+        Serial.println("  IP: " + currentIp);
+        Serial.println("  SSID: " + netConfig.apSsid);
+    }
+
+    void onConnectionTimeout()
+    {
+        connectionInProgress = false;
+        setState(WiFiState::DISCONNECTED, "", "", "Connection timeout");
+        
+        Serial.println("⏰ Connection timeout exceeded");
+        WiFi.disconnect(false);
+    }
+
+    String getDisconnectReason(uint8_t reason) const
+    {
+        switch (reason)
+        {
+        case WIFI_REASON_AUTH_EXPIRE:     return "Auth expired";
+        case WIFI_REASON_AUTH_LEAVE:      return "Auth leave";
+        case WIFI_REASON_ASSOC_EXPIRE:    return "Association expired";
+        case WIFI_REASON_ASSOC_TOOMANY:   return "Too many associations";
+        case WIFI_REASON_NOT_AUTHED:      return "Not authenticated";
+        case WIFI_REASON_NOT_ASSOCED:     return "Not associated";
+        case WIFI_REASON_ASSOC_LEAVE:     return "Association leave";
+        case WIFI_REASON_ASSOC_NOT_AUTHED:return "Association not authenticated";
+        case WIFI_REASON_DISASSOC_PWRCAP_BAD: return "Disassociate: power capability";
+        case WIFI_REASON_DISASSOC_SUPCHAN_BAD:return "Disassociate: supported channels";
+        case WIFI_REASON_IE_INVALID:      return "IE invalid";
+        case WIFI_REASON_MIC_FAILURE:     return "MIC failure";
+        case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT: return "4-way handshake timeout";
+        case WIFI_REASON_GROUP_KEY_UPDATE_TIMEOUT: return "Group key update timeout";
+        case WIFI_REASON_IE_IN_4WAY_DIFFERS: return "IE in 4-way differs";
+        case WIFI_REASON_GROUP_CIPHER_INVALID: return "Group cipher invalid";
+        case WIFI_REASON_PAIRWISE_CIPHER_INVALID: return "Pairwise cipher invalid";
+        case WIFI_REASON_AKMP_INVALID:    return "AKMP invalid";
+        case WIFI_REASON_UNSUPP_RSN_IE_VERSION: return "Unsupported RSN IE version";
+        case WIFI_REASON_INVALID_RSN_IE_CAP: return "Invalid RSN IE capabilities";
+        case WIFI_REASON_802_1X_AUTH_FAILED: return "802.1x authentication failed";
+        case WIFI_REASON_CIPHER_SUITE_REJECTED: return "Cipher suite rejected";
+        case WIFI_REASON_BEACON_TIMEOUT:  return "Beacon timeout";
+        case WIFI_REASON_NO_AP_FOUND:     return "No AP found";
+        case WIFI_REASON_AUTH_FAIL:       return "Authentication failed";
+        case WIFI_REASON_ASSOC_FAIL:      return "Association failed";
+        case WIFI_REASON_HANDSHAKE_TIMEOUT: return "Handshake timeout";
+        case WIFI_REASON_CONNECTION_FAIL: return "Connection failed";
+        default: return "Unknown reason: " + String(reason);
+        }
+    }
+
+    // =========================================================================
+    // ОСТАЛЬНЫЕ МЕТОДЫ (без изменений)
+    // =========================================================================
+
+public:
     WiFiState getState() const
     {
         return currentState;
@@ -201,7 +392,7 @@ public:
     }
 
     // =========================================================================
-    // ПРИВАТНЫЕ МЕТОДЫ
+    // ПРИВАТНЫЕ МЕТОДЫ РЕЖИМОВ
     // =========================================================================
 
 private:
@@ -227,6 +418,7 @@ private:
         setState(WiFiState::CONNECTING, netConfig.staSsid, "", "Connecting...");
 
         connectionStartTime = millis();
+        connectionInProgress = true;
 
         // Начинаем подключение (асинхронно)
         WiFi.begin(netConfig.staSsid.c_str(), netConfig.staPassword.c_str());
@@ -254,11 +446,7 @@ private:
             return false;
         }
 
-        // Запускаем mDNS
-        startMDNS();
-
-        setState(WiFiState::AP_MODE, netConfig.apSsid, WiFi.softAPIP().toString(), "Access Point started");
-
+        // AP события будут обработаны через WiFi.onEvent
         return true;
     }
 
@@ -279,126 +467,18 @@ private:
         // Пытаемся подключиться к STA
         if (!netConfig.staSsid.isEmpty())
         {
+            connectionInProgress = true;
+            connectionStartTime = millis();
+            
             WiFi.begin(netConfig.staSsid.c_str(), netConfig.staPassword.c_str());
             setState(WiFiState::CONNECTING, netConfig.staSsid, "", "Connecting...");
-            connectionStartTime = millis();
         }
-
-        // Запускаем mDNS
-        startMDNS();
-
-        setState(WiFiState::AP_MODE, netConfig.apSsid, WiFi.softAPIP().toString(), "AP+STA mode started");
 
         return true;
     }
 
-    void monitorConnection()
-    {
-        static wl_status_t lastStatus = WL_IDLE_STATUS;
-        wl_status_t currentStatus = WiFi.status();
-
-        // Если статус изменился
-        if (currentStatus != lastStatus)
-        {
-            lastStatus = currentStatus;
-
-            switch (currentStatus)
-            {
-            case WL_CONNECTED:
-                onConnected();
-                break;
-
-            case WL_DISCONNECTED:
-                onDisconnected();
-                break;
-
-            case WL_CONNECT_FAILED:
-                onConnectionFailed();
-                break;
-
-            case WL_NO_SSID_AVAIL:
-                onNoSSIDAvailable();
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        // Проверка таймаута подключения
-        if (currentState == WiFiState::CONNECTING &&
-            millis() - connectionStartTime > CONNECTION_TIMEOUT)
-        {
-            Serial.println("⏰ Connection timeout");
-            onConnectionFailed();
-        }
-
-        // Автоматическое переподключение
-        auto &netConfig = configManager.getConfig().network;
-        if (currentState == WiFiState::DISCONNECTED && millis() - lastConnectionAttempt > netConfig.reconnectInterval)
-        {
-
-            Serial.println("🔄 Attempting to reconnect...");
-            lastConnectionAttempt = millis();
-
-            if (!netConfig.staSsid.isEmpty())
-            {
-                WiFi.reconnect();
-                setState(WiFiState::CONNECTING, netConfig.staSsid, "", "Reconnecting...");
-            }
-        }
-    }
-
-    void onConnected()
-    {
-        currentIp = WiFi.localIP().toString();
-        currentSsid = WiFi.SSID();
-
-        // Запускаем mDNS
-        startMDNS();
-
-        setState(WiFiState::CONNECTED, currentSsid, currentIp,
-                 "Successfully connected");
-
-        Serial.println("✅ WiFi Connected!");
-        Serial.println("  IP: " + currentIp);
-        Serial.println("  RSSI: " + String(WiFi.RSSI()) + " dBm");
-        Serial.println("  Gateway: " + WiFi.gatewayIP().toString());
-        Serial.println("  mDNS: " + getMDNSURL());
-    }
-
-    void onDisconnected()
-    {
-        setState(WiFiState::DISCONNECTED, "", "", "Disconnected from WiFi");
-        Serial.println("🔌 WiFi Disconnected");
-
-        // Если мы в STA режиме и есть учетные данные, пытаемся переподключиться
-        if (WiFi.getMode() & WIFI_STA)
-        {
-            auto &netConfig = configManager.getConfig().network;
-            if (!netConfig.staSsid.isEmpty())
-            {
-                connectionStartTime = millis();
-                setState(WiFiState::CONNECTING, netConfig.staSsid, "", "Reconnecting...");
-            }
-        }
-    }
-
-    void onConnectionFailed()
-    {
-        setState(WiFiState::DISCONNECTED, "", "", "Connection failed");
-        Serial.println("❌ WiFi Connection Failed");
-    }
-
-    void onNoSSIDAvailable()
-    {
-        setState(WiFiState::DISCONNECTED, "", "", "SSID not available");
-        Serial.println("❌ SSID not available");
-    }
-
     void setState(WiFiState state, const String &ssid, const String &ip, const String &message)
     {
-
         // Сохраняем предыдущее состояние
         WiFiState oldState = currentState;
 
