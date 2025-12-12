@@ -21,6 +21,7 @@
 class AsyncApiServer
 {
 private:
+    EventBus &eventBus;
     AsyncWebServer server;
     WebSocketManager webSocketManager;
 
@@ -38,6 +39,7 @@ private:
 
 public:
     AsyncApiServer(
+        EventBus &bus,
         FileSystemManager &fsMgr,
         ConfigManager &configMngr,
         DeviceInfoManager &deviceInfoMngr,
@@ -45,6 +47,7 @@ public:
         ErrorsManager &errorsMngr,
         HeaterController &heaterCtrl)
         : server(configMngr.getConfig().network.port),
+          eventBus(bus),
           fsManager(fsMgr),
           configManager(configMngr),
           deviceInfoManager(deviceInfoMngr),
@@ -53,7 +56,7 @@ public:
           heaterController(heaterCtrl),
           webastoApiHandlers(server, deviceInfoMngr, sensorMngr, errorsMngr, heaterCtrl),
           systemHandlers(server, configMngr),
-          webSocketManager(heaterCtrl),
+          webSocketManager(eventBus, heaterCtrl),
           eventHandlers(webSocketManager),
           otaHandlers(server, webSocketManager, configMngr, fsManager),
           configApiHandlers(server, configMngr, fsManager)

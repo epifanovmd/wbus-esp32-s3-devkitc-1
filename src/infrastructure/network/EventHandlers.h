@@ -18,7 +18,7 @@ public:
     void broadcastJson(EventType eventType,
                        const String &json)
     {
-        webSocketManager.broadcastJson(eventType, json);
+        webSocketManager.broadcastJsonToClient(eventType, json);
     }
 
     bool isWebSocketConnected()
@@ -83,14 +83,14 @@ public:
                            [this](const Event &event)
                            {
                                broadcastJson(EventType::TX_RECEIVED,
-                                             "\"" + event.source + "\"");
+                                                     "\"" + event.source + "\"");
                            });
 
         eventBus.subscribe(EventType::RX_RECEIVED,
                            [this](const Event &event)
                            {
                                broadcastJson(EventType::RX_RECEIVED,
-                                             "\"" + event.source + "\"");
+                                                     "\"" + event.source + "\"");
                            });
 
         eventBus.subscribe(EventType::COMMAND_RECEIVED,

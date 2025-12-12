@@ -4,16 +4,20 @@
 #include <ArduinoJson.h>
 #include "./domain/Events.h"
 #include "../../application/HeaterController.h"
+#include "./WebSocketSubscriptionManager.h"
 
 class WebSocketManager
 {
 private:
+    EventBus &eventBus;
     AsyncWebSocket ws;
     HeaterController &heaterController;
+    WebSocketSubscriptionManager subscriptionManager;
 
 public:
-    WebSocketManager(HeaterController &heaterCtrl) : ws("/ws"),
-                                                     heaterController(heaterCtrl)
+    WebSocketManager(EventBus &bus, HeaterController &heaterCtrl) : eventBus(bus),
+                                                                    ws("/ws"),
+                                                                    heaterController(heaterCtrl)
     {
         ws.onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client,
                           AwsEventType type, void *arg, uint8_t *data, size_t len)
@@ -30,21 +34,41 @@ public:
         ws.cleanupClients();
     }
 
-    void broadcastJson(EventType eventType,
-                       const String &json)
+    void broadcastJsonToClient(EventType eventType, const String &json)
+    {
+        auto subscribers = subscriptionManager.getEventSubscribers(eventType);
+
+        if (subscribers.empty())
+            return;
+
+        String message = createMessage(eventType, json);
+
+        for (auto clientId : subscribers)
+        {
+            sendToClient(clientId, message);
+        }
+    }
+
+    void broadcastJson(EventType eventType, const String &json)
     {
         if (ws.count() == 0)
             return;
 
-        EventBus &eventBus = EventBus::getInstance();
-        String eventTypeStr = eventBus.getEventTypeString(eventType);
-
-        String message = "{";
-        message += "\"type\":\"" + eventTypeStr + "\",";
-        message += "\"data\":" + json;
-        message += "}";
-
+        String message = createMessage(eventType, json);
         ws.textAll(message);
+    }
+
+    void sendToClient(uint32_t clientId, const String &message)
+    {
+        auto client = ws.client(clientId);
+        if (client && client->status() == WS_CONNECTED)
+        {
+            client->text(message);
+        }
+        else
+        {
+            subscriptionManager.unsubscribeAll(clientId);
+        }
     }
 
     bool isConnected()
@@ -60,14 +84,11 @@ private:
         {
         case WS_EVT_CONNECT:
         {
-            IPAddress ip = client->remoteIP();
-            Serial.printf("[WebSocket] Client #%u connected from %d.%d.%d.%d\n",
-                          client->id(), ip[0], ip[1], ip[2], ip[3]);
-            sendInitialState(client);
+            handleConnect(client);
             break;
         }
         case WS_EVT_DISCONNECT:
-            Serial.printf("[WebSocket] Client #%u disconnected\n", client->id());
+            handleDisconnect(client);
             break;
         case WS_EVT_DATA:
             handleWebSocketMessage(client, arg, data, len);
@@ -76,6 +97,23 @@ private:
         case WS_EVT_ERROR:
             break;
         }
+    }
+
+    void handleConnect(AsyncWebSocketClient *client)
+    {
+        IPAddress ip = client->remoteIP();
+        Serial.printf("[WebSocket] Client #%u connected from %s\n",
+                      client->id(), ip.toString().c_str());
+
+        // Отправляем приветственное сообщение с доступными событиями
+        sendWelcomeMessage(client);
+    }
+
+    void handleDisconnect(AsyncWebSocketClient *client)
+    {
+        Serial.printf("[WebSocket] Client #%u disconnected\n", client->id());
+        // Удаляем все подписки клиента
+        subscriptionManager.unsubscribeAll(client->id());
     }
 
     void handleWebSocketMessage(AsyncWebSocketClient *client, void *arg,
@@ -87,42 +125,178 @@ private:
             data[len] = 0;
             String message = String((char *)data);
 
-            DynamicJsonDocument doc(128);
+            DynamicJsonDocument doc(512);
             DeserializationError error = deserializeJson(doc, message);
 
             if (error)
             {
-                Serial.printf("[WebSocket] Invalid JSON: %s\n", error.c_str());
+                sendError(client, "Invalid JSON");
                 return;
             }
 
-            String type = doc["type"] | "";
+            processMessage(client, doc);
+        }
+    }
 
-            if (type == "ping")
+    void processMessage(AsyncWebSocketClient *client, DynamicJsonDocument &doc)
+    {
+        String type = doc["type"] | "";
+
+        if (type == "ping")
+        {
+            sendPong(client);
+        }
+        else if (type == "subscribe")
+        {
+            processSubscribe(client, doc);
+        }
+        else if (type == "unsubscribe")
+        {
+            processUnsubscribe(client, doc);
+        }
+    }
+
+    void processSubscribe(AsyncWebSocketClient *client, DynamicJsonDocument &doc)
+    {
+        String eventStr = doc["data"] | "";
+
+        if (eventStr.isEmpty())
+        {
+            sendError(client, "Event not specified");
+            return;
+        }
+
+        // Конвертируем строку в EventType
+        EventType eventType = stringToEventType(eventStr);
+
+        if (eventType == static_cast<EventType>(-1))
+        { // Неизвестное событие
+            sendError(client, "Unknown event: " + eventStr);
+            return;
+        }
+
+        subscriptionManager.subscribe(client->id(), eventType);
+
+        DynamicJsonDocument response(256);
+        response["type"] = "subscribe_ack";
+        response["event"] = eventStr;
+        response["success"] = true;
+
+        String json;
+        serializeJson(response, json);
+        client->text(json);
+
+        Serial.printf("[WebSocket] Client #%u subscribed to %s\n",
+                      client->id(), eventStr.c_str());
+    }
+
+    void processUnsubscribe(AsyncWebSocketClient *client, DynamicJsonDocument &doc)
+    {
+        String eventStr = doc["data"] | "";
+
+        if (eventStr == "all")
+        {
+            subscriptionManager.unsubscribeAll(client->id());
+
+            DynamicJsonDocument response(256);
+            response["type"] = "unsubscribe_ack";
+            response["event"] = "all";
+            response["success"] = true;
+
+            String json;
+            serializeJson(response, json);
+            client->text(json);
+        }
+        else if (!eventStr.isEmpty())
+        {
+            EventType eventType = stringToEventType(eventStr);
+
+            if (eventType != static_cast<EventType>(-1))
             {
-                DynamicJsonDocument pongDoc(128);
-                pongDoc["type"] = "pong";
-                String pongJson;
-                serializeJson(pongDoc, pongJson);
-                ws.text(client->id(), pongJson);
+                subscriptionManager.unsubscribe(client->id(), eventType);
+
+                DynamicJsonDocument response(256);
+                response["type"] = "unsubscribe_ack";
+                response["event"] = eventStr;
+                response["success"] = true;
+
+                String json;
+                serializeJson(response, json);
+                client->text(json);
             }
         }
     }
 
-    void sendInitialState(AsyncWebSocketClient *client)
+    void sendWelcomeMessage(AsyncWebSocketClient *client)
     {
-        DynamicJsonDocument doc(512);
+        DynamicJsonDocument doc(1024);
         doc["type"] = "welcome";
-        doc["message"] = "Connected to Webasto Controller";
-        doc["server"] = "ESP32 AsyncWebServer";
-        doc["version"] = "1.0.0";
+        doc["clientId"] = client->id();
+        doc["server"] = "Webasto Controller";
 
+        // Информация о нагревателе
         HeaterStatus status = heaterController.getStatus();
         doc["heaterState"] = status.getStateName();
         doc["connectionState"] = status.getConnectionName();
 
+        // Доступные события
+        JsonArray events = doc.createNestedArray("availableEvents");
+
+        auto availableEvents = eventBus.getAllEventStrings();
+
+        for (const auto &event : availableEvents)
+        {
+            events.add(event);
+        }
+
         String json;
         serializeJson(doc, json);
         client->text(json);
+    }
+
+    void sendError(AsyncWebSocketClient *client, const String &message)
+    {
+        DynamicJsonDocument doc(256);
+        doc["type"] = "error";
+        doc["message"] = message;
+
+        String json;
+        serializeJson(doc, json);
+        client->text(json);
+    }
+
+    void sendPong(AsyncWebSocketClient *client)
+    {
+        DynamicJsonDocument doc(128);
+        doc["type"] = "pong";
+
+        String json;
+        serializeJson(doc, json);
+        client->text(json);
+    }
+
+    String createMessage(EventType eventType, const String &jsonData)
+    {
+        DynamicJsonDocument doc(512 + jsonData.length());
+        doc["type"] = eventTypeToString(eventType);
+
+        // Парсим jsonData и добавляем как объект data
+        DynamicJsonDocument dataDoc(1024);
+        deserializeJson(dataDoc, jsonData);
+        doc["data"] = dataDoc.as<JsonVariant>();
+
+        String message;
+        serializeJson(doc, message);
+        return message;
+    }
+
+    EventType stringToEventType(const String &str)
+    {
+        return eventBus.fromString(str);
+    }
+
+    String eventTypeToString(EventType type)
+    {
+        return eventBus.toString(type);
     }
 };

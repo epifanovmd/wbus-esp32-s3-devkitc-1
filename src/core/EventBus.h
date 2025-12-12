@@ -11,7 +11,6 @@ enum class EventType
     HEATER_STATE_CHANGED,
     KEEP_ALLIVE_SENT,
 
-
     FUEL_CIRCULATION,
 
     // События запуска теста компонентов
@@ -99,14 +98,17 @@ private:
     EventBus() = default;
     ~EventBus() = default;
 
-    EventBus(const EventBus&) = delete;
-    EventBus& operator=(const EventBus&) = delete;
+    EventBus(const EventBus &) = delete;
+    EventBus &operator=(const EventBus &) = delete;
 
-    static EventBus *instance;
+    std::map<EventType, String> typeToStringMap;
+    std::map<String, EventType> stringToTypeMap;
+
     std::map<EventType, std::vector<std::function<void(const Event &)>>> subscribers;
 
 public:
-    static EventBus& getInstance() {
+    static EventBus &getInstance()
+    {
         static EventBus instance;
         return instance;
     }
@@ -132,109 +134,32 @@ public:
         publishInternal(event);
     }
 
-    String getEventTypeString(EventType type)
+    String toString(EventType type)
     {
-        switch (type)
+        initializeEventMap();
+        auto it = typeToStringMap.find(type);
+        return it != typeToStringMap.end() ? it->second : "UNKNOWN_EVENT";
+    }
+
+    EventType fromString(const String &str)
+    {
+        initializeEventMap();
+        auto it = stringToTypeMap.find(str);
+        return it != stringToTypeMap.end() ? it->second : static_cast<EventType>(0);
+    }
+
+    std::vector<String> getAllEventStrings()
+    {
+        initializeEventMap();
+        std::vector<String> result;
+        result.reserve(stringToTypeMap.size());
+
+        for (const auto &pair : stringToTypeMap)
         {
-        case EventType::CONNECTION_STATE_CHANGED:
-            return "CONNECTION_STATE_CHANGED";
-        case EventType::HEATER_STATE_CHANGED:
-            return "HEATER_STATE_CHANGED";
-        case EventType::KEEP_ALLIVE_SENT:
-            return "KEEP_ALLIVE_SENT";
-
-        case EventType::TEST_COMBUSTION_FAN_STARTED:
-            return "TEST_COMBUSTION_FAN_STARTED";
-        case EventType::TEST_COMBUSTION_FAN_FAILED:
-            return "TEST_COMBUSTION_FAN_FAILED";
-        case EventType::TEST_FUEL_PUMP_STARTED:
-            return "TEST_FUEL_PUMP_STARTED";
-        case EventType::TEST_FUEL_PUMP_FAILED:
-            return "TEST_FUEL_PUMP_FAILED";
-        case EventType::TEST_GLOW_PLUG_STARTED:
-            return "TEST_GLOW_PLUG_STARTED";
-        case EventType::TEST_GLOW_PLUG_FAILED:
-            return "TEST_GLOW_PLUG_FAILED";
-        case EventType::TEST_CIRCULATION_PUMP_STARTED:
-            return "TEST_CIRCULATION_PUMP_STARTED";
-        case EventType::TEST_CIRCULATION_PUMP_FAILED:
-            return "TEST_CIRCULATION_PUMP_FAILED";
-        case EventType::TEST_VEHICLE_FAN_STARTED:
-            return "TEST_VEHICLE_FAN_STARTED";
-        case EventType::TEST_VEHICLE_FAN_FAILED:
-            return "TEST_VEHICLE_FAN_FAILED";
-        case EventType::TEST_SOLENOID_STARTED:
-            return "TEST_SOLENOID_STARTED";
-        case EventType::TEST_SOLENOID_FAILED:
-            return "TEST_SOLENOID_FAILED";
-        case EventType::TEST_FUEL_PREHEATING_STARTED:
-            return "TEST_FUEL_PREHEATING_STARTED";
-        case EventType::TEST_FUEL_PREHEATING_FAILED:
-            return "TEST_FUEL_PREHEATING_FAILED";
-
-        case EventType::COMMAND_SENT_TIMEOUT:
-            return "COMMAND_SENT_TIMEOUT";
-        case EventType::COMMAND_SENT_ERRROR:
-            return "COMMAND_SENT_ERRROR";
-        case EventType::COMMAND_RECEIVED:
-            return "COMMAND_RECEIVED";
-
-        case EventType::TX_RECEIVED:
-            return "TX_RECEIVED";
-        case EventType::RX_RECEIVED:
-            return "RX_RECEIVED";
-
-        case EventType::WBUS_VERSION:
-            return "WBUS_VERSION";
-        case EventType::DEVICE_NAME:
-            return "DEVICE_NAME";
-        case EventType::WBUS_CODE:
-            return "WBUS_CODE";
-        case EventType::DEVICE_ID:
-            return "DEVICE_ID";
-        case EventType::CONTRALLER_MANUFACTURE_DATE:
-            return "CONTRALLER_MANUFACTURE_DATE";
-        case EventType::HEATER_MANUFACTURE_DATE:
-            return "HEATER_MANUFACTURE_DATE";
-        case EventType::CUSTOMER_ID:
-            return "CUSTOMER_ID";
-        case EventType::SERIAL_NUMBER:
-            return "SERIAL_NUMBER";
-
-        case EventType::WBUS_ERRORS:
-            return "WBUS_ERRORS";
-        case EventType::WBUS_DETAILS_ERROR:
-            return "WBUS_DETAILS_ERROR";
-
-        case EventType::SENSOR_OPERATIONAL_INFO:
-            return "SENSOR_OPERATIONAL_INFO";
-        case EventType::SENSOR_ON_OFF_FLAGS:
-            return "SENSOR_ON_OFF_FLAGS";
-        case EventType::SENSOR_STATUS_FLAGS:
-            return "SENSOR_STATUS_FLAGS";
-        case EventType::SENSOR_OPERATING_STATE:
-            return "SENSOR_OPERATING_STATE";
-        case EventType::SENSOR_SUBSYSTEM_STATE:
-            return "SENSOR_SUBSYSTEM_STATE";
-        case EventType::FUEL_SETTINGS:
-            return "FUEL_SETTINGS";
-        case EventType::SENSOR_OPERATING_TIMES:
-            return "SENSOR_OPERATING_TIMES";
-        case EventType::FUEL_PREWARMING:
-            return "FUEL_PREWARMING";
-        case EventType::BURNING_DURATION_STATS:
-            return "BURNING_DURATION_STATS";
-        case EventType::START_COUNTERS:
-            return "START_COUNTERS";
-        case EventType::COMMAND_NAK_RESPONSE:
-            return "COMMAND_NAK_RESPONSE";
-
-        case EventType::OTA_PROGRESS:
-            return "OTA_PROGRESS";
-
-        default:
-            return "UNKNOWN_EVENT";
+            result.push_back(pair.first);
         }
+
+        return result;
     }
 
 private:
@@ -248,5 +173,67 @@ private:
                 handler(event);
             }
         }
+    }
+
+    void initializeEventMap()
+    {
+        if (!typeToStringMap.empty() && !stringToTypeMap.empty())
+        {
+            return;
+        }
+
+        registerEvent(EventType::CONNECTION_STATE_CHANGED, "CONNECTION_STATE_CHANGED");
+        registerEvent(EventType::HEATER_STATE_CHANGED, "HEATER_STATE_CHANGED");
+        registerEvent(EventType::KEEP_ALLIVE_SENT, "KEEP_ALLIVE_SENT");
+        registerEvent(EventType::FUEL_CIRCULATION, "FUEL_CIRCULATION");
+        registerEvent(EventType::TEST_COMBUSTION_FAN_STARTED, "TEST_COMBUSTION_FAN_STARTED");
+        registerEvent(EventType::TEST_COMBUSTION_FAN_FAILED, "TEST_COMBUSTION_FAN_FAILED");
+        registerEvent(EventType::TEST_FUEL_PUMP_STARTED, "TEST_FUEL_PUMP_STARTED");
+        registerEvent(EventType::TEST_FUEL_PUMP_FAILED, "TEST_FUEL_PUMP_FAILED");
+        registerEvent(EventType::TEST_GLOW_PLUG_STARTED, "TEST_GLOW_PLUG_STARTED");
+        registerEvent(EventType::TEST_GLOW_PLUG_FAILED, "TEST_GLOW_PLUG_FAILED");
+        registerEvent(EventType::TEST_CIRCULATION_PUMP_STARTED, "TEST_CIRCULATION_PUMP_STARTED");
+        registerEvent(EventType::TEST_CIRCULATION_PUMP_FAILED, "TEST_CIRCULATION_PUMP_FAILED");
+        registerEvent(EventType::TEST_VEHICLE_FAN_STARTED, "TEST_VEHICLE_FAN_STARTED");
+        registerEvent(EventType::TEST_VEHICLE_FAN_FAILED, "TEST_VEHICLE_FAN_FAILED");
+        registerEvent(EventType::TEST_SOLENOID_STARTED, "TEST_SOLENOID_STARTED");
+        registerEvent(EventType::TEST_SOLENOID_FAILED, "TEST_SOLENOID_FAILED");
+        registerEvent(EventType::TEST_FUEL_PREHEATING_STARTED, "TEST_FUEL_PREHEATING_STARTED");
+        registerEvent(EventType::TEST_FUEL_PREHEATING_FAILED, "TEST_FUEL_PREHEATING_FAILED");
+        registerEvent(EventType::COMMAND_SENT, "COMMAND_SENT");
+        registerEvent(EventType::COMMAND_SENT_TIMEOUT, "COMMAND_SENT_TIMEOUT");
+        registerEvent(EventType::COMMAND_SENT_ERRROR, "COMMAND_SENT_ERRROR");
+        registerEvent(EventType::COMMAND_RECEIVED, "COMMAND_RECEIVED");
+        registerEvent(EventType::TX_RECEIVED, "TX_RECEIVED");
+        registerEvent(EventType::RX_RECEIVED, "RX_RECEIVED");
+        registerEvent(EventType::WBUS_VERSION, "WBUS_VERSION");
+        registerEvent(EventType::DEVICE_NAME, "DEVICE_NAME");
+        registerEvent(EventType::WBUS_CODE, "WBUS_CODE");
+        registerEvent(EventType::DEVICE_ID, "DEVICE_ID");
+        registerEvent(EventType::CONTRALLER_MANUFACTURE_DATE, "CONTRALLER_MANUFACTURE_DATE");
+        registerEvent(EventType::HEATER_MANUFACTURE_DATE, "HEATER_MANUFACTURE_DATE");
+        registerEvent(EventType::CUSTOMER_ID, "CUSTOMER_ID");
+        registerEvent(EventType::SERIAL_NUMBER, "SERIAL_NUMBER");
+        registerEvent(EventType::WBUS_ERRORS, "WBUS_ERRORS");
+        registerEvent(EventType::WBUS_DETAILS_ERROR, "WBUS_DETAILS_ERROR");
+        registerEvent(EventType::COMMAND_NAK_RESPONSE, "COMMAND_NAK_RESPONSE");
+        registerEvent(EventType::SENSOR_OPERATIONAL_INFO, "SENSOR_OPERATIONAL_INFO");
+        registerEvent(EventType::SENSOR_ON_OFF_FLAGS, "SENSOR_ON_OFF_FLAGS");
+        registerEvent(EventType::SENSOR_STATUS_FLAGS, "SENSOR_STATUS_FLAGS");
+        registerEvent(EventType::SENSOR_OPERATING_STATE, "SENSOR_OPERATING_STATE");
+        registerEvent(EventType::SENSOR_SUBSYSTEM_STATE, "SENSOR_SUBSYSTEM_STATE");
+        registerEvent(EventType::FUEL_SETTINGS, "FUEL_SETTINGS");
+        registerEvent(EventType::SENSOR_OPERATING_TIMES, "SENSOR_OPERATING_TIMES");
+        registerEvent(EventType::FUEL_PREWARMING, "FUEL_PREWARMING");
+        registerEvent(EventType::BURNING_DURATION_STATS, "BURNING_DURATION_STATS");
+        registerEvent(EventType::START_COUNTERS, "START_COUNTERS");
+        registerEvent(EventType::OTA_PROGRESS, "OTA_PROGRESS");
+        registerEvent(EventType::APP_CONFIG_UPDATE, "APP_CONFIG_UPDATE");
+    }
+
+    void registerEvent(EventType type, const String &str)
+    {
+        typeToStringMap[type] = str;
+        stringToTypeMap[str] = type;
     }
 };

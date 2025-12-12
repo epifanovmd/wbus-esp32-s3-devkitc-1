@@ -62,7 +62,7 @@ public:
                            errorsManager(eventBus, commandManager),
                            heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager),
                            snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController),
-                           asyncWebServer(fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController),
+                           asyncWebServer(eventBus, fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController),
                            keepAliveTimer(15000)
     {
     }
