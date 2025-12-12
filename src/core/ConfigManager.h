@@ -25,6 +25,26 @@ private:
     // Флаг для отслеживания необходимости перезагрузки
     bool restartRequired = false;
 
+    // Конвертация строки в WifiMode
+    NetworkConfig::WifiMode stringToWifiMode(const String &modeStr)
+    {
+        if (modeStr == "AP_STA")
+            return NetworkConfig::WifiMode::AP_STA;
+        return NetworkConfig::WifiMode::AP; // По умолчанию
+    }
+
+    // Конвертация WifiMode в строку
+    String wifiModeToString(NetworkConfig::WifiMode &mode)
+    {
+        switch (mode)
+        {
+        case NetworkConfig::WifiMode::AP_STA:
+            return "AP_STA";
+        default:
+            return "AP";
+        }
+    }
+
 public:
     ConfigManager(EventBus &bus, FileSystemManager &fsMgr) : eventBus(bus), fsManager(fsMgr) {}
 
@@ -96,9 +116,25 @@ public:
 
         // Загружаем сетевую конфигурацию
         JsonObject network = doc["network"];
-        config.network.ssid = network["ssid"] | "Webasto_WiFi";
-        config.network.password = network["password"] | "Epifan123";
+
+        // Режим WiFi (конвертируем из строки)
+        String modeStr = network["mode"] | "AP_STA";
+        config.network.mode = stringToWifiMode(modeStr);
+
+        // STA настройки
+        config.network.staSsid = network["staSsid"] | "";
+        config.network.staPassword = network["staPassword"] | "";
+
+        // AP настройки
+        config.network.apSsid = network["apSsid"] | "Webasto-WiFi";
+        config.network.apPassword = network["apPassword"] | "Epifan123";
+
+        // Общие настройки
+        config.network.hostname = network["hostname"] | "webasto-controller";
         config.network.port = network["port"] | 80;
+
+        // Автопереподключение
+        config.network.reconnectInterval = network["reconnectInterval"] | 10000;
 
         configLoaded = true;
         Serial.println("✅ Config loaded successfully");
@@ -134,9 +170,24 @@ public:
         bus["serialConfig"] = config.bus.serialConfig;
 
         JsonObject network = doc.createNestedObject("network");
-        network["ssid"] = config.network.ssid;
-        network["password"] = config.network.password;
+
+        // Сохраняем режим WiFi как строку
+        network["mode"] = wifiModeToString(config.network.mode);
+
+        // STA настройки
+        network["staSsid"] = config.network.staSsid;
+        network["staPassword"] = config.network.staPassword;
+
+        // AP настройки
+        network["apSsid"] = config.network.apSsid;
+        network["apPassword"] = config.network.apPassword;
+
+        // Общие настройки
+        network["hostname"] = config.network.hostname;
         network["port"] = config.network.port;
+
+        // Автопереподключение
+        network["reconnectInterval"] = config.network.reconnectInterval;
 
         File file = fsManager.open(configPath, "w");
         if (!file)
@@ -165,8 +216,6 @@ public:
         uint8_t oldRxdPullupPin = config.bus.rxdPullupPin;
         uint8_t oldRxTjaPin = config.bus.rxTjaPin;
         uint8_t oldTxTjaPin = config.bus.txTjaPin;
-
-        uint16_t oldPort = config.network.port;
 
         // Обновляем deviceId если есть
         if (newConfig.containsKey("deviceId"))
@@ -243,17 +292,50 @@ public:
             JsonObject network = newConfig["network"];
 
             // Смена порта требует перезагрузки сервера
-            if (network.containsKey("port") && network["port"] != oldPort)
+            if (network.containsKey("port") && network["port"] != config.network.port)
             {
                 needsRestart = true;
                 config.network.port = network["port"];
             }
 
-            // Остальные сетевые параметры не требуют перезагрузки
-            if (network.containsKey("ssid"))
-                config.network.ssid = network["ssid"].as<String>();
-            if (network.containsKey("password"))
-                config.network.password = network["password"].as<String>();
+            // Смена hostname требует перезагрузки
+            if (network.containsKey("hostname"))
+            {
+                String newHostname = network["hostname"].as<String>();
+                if (newHostname != config.network.hostname)
+                {
+                    needsRestart = true;
+                    config.network.hostname = newHostname;
+                }
+            }
+
+            // Смена режима WiFi требует перезагрузки
+            if (network.containsKey("mode"))
+            {
+                String modeStr = network["mode"].as<String>();
+                NetworkConfig::WifiMode newMode = stringToWifiMode(modeStr);
+                if (newMode != config.network.mode)
+                {
+                    needsRestart = true;
+                    config.network.mode = newMode;
+                }
+            }
+
+            // STA настройки (не требуют немедленной перезагрузки если не меняется режим)
+            if (network.containsKey("staSsid"))
+                config.network.staSsid = network["staSsid"].as<String>();
+            if (network.containsKey("staPassword") && network["staPassword"].as<String>() != "********")
+                config.network.staPassword = network["staPassword"].as<String>();
+
+            // AP настройки
+            if (network.containsKey("apSsid"))
+                config.network.apSsid = network["apSsid"].as<String>();
+            if (network.containsKey("apPassword") && network["apPassword"].as<String>() != "********")
+                config.network.apPassword = network["apPassword"].as<String>();
+
+            // Автопереподключение (не требует перезагрузки)
+            if (network.containsKey("reconnectInterval"))
+                config.network.reconnectInterval = network["reconnectInterval"];
         }
 
         // Сохраняем обновленную конфигурацию
@@ -288,7 +370,9 @@ public:
             config.bus.rxdPullupPin != defaultConfig.bus.rxdPullupPin ||
             config.bus.rxTjaPin != defaultConfig.bus.rxTjaPin ||
             config.bus.txTjaPin != defaultConfig.bus.txTjaPin ||
-            config.network.port != defaultConfig.network.port)
+            config.network.port != defaultConfig.network.port ||
+            config.network.hostname != defaultConfig.network.hostname ||
+            config.network.mode != defaultConfig.network.mode)
         {
             needsRestart = true;
         }
@@ -313,7 +397,7 @@ public:
         return ConfigUpdateResult::ERROR_SAVE_FAILED;
     }
 
-    String getConfigJson() const
+    String getConfigJson()
     {
         DynamicJsonDocument doc(2048);
 
@@ -336,9 +420,24 @@ public:
         bus["serialConfig"] = config.bus.serialConfig;
 
         JsonObject network = doc.createNestedObject("network");
-        network["ssid"] = config.network.ssid;
-        network["password"] = config.network.password;
+
+        // Режим WiFi как строка
+        network["mode"] = config.network.getModeString();
+
+        // STA настройки (пароль скрываем)
+        network["staSsid"] = config.network.staSsid;
+        network["staPassword"] = config.network.staPassword.isEmpty() ? "" : "********";
+
+        // AP настройки (пароль скрываем)
+        network["apSsid"] = config.network.apSsid;
+        network["apPassword"] = config.network.apPassword.isEmpty() ? "" : "********";
+
+        // Общие настройки
+        network["hostname"] = config.network.hostname;
         network["port"] = config.network.port;
+
+        // Автопереподключение
+        network["reconnectInterval"] = config.network.reconnectInterval;
 
         doc["restartRequired"] = restartRequired;
 
@@ -366,10 +465,26 @@ public:
         Serial.println("    RX TJA Pin: " + String(config.bus.rxTjaPin));
         Serial.println("    TX TJA Pin: " + String(config.bus.txTjaPin));
         Serial.println("    Serial Config: " + config.bus.serialConfig);
+
         Serial.println("  Network:");
-        Serial.println("    SSID: " + config.network.ssid);
-        Serial.println("    Password: " + config.network.password);
+        Serial.println("    Mode: " + wifiModeToString(config.network.mode));
+
+        if (config.network.mode == NetworkConfig::WifiMode::AP_STA)
+        {
+            Serial.println("    STA SSID: " + config.network.staSsid);
+            Serial.println("    STA Password: " +
+                           String(config.network.staPassword.isEmpty() ? "(not set)" : "********"));
+        }
+
+        if (config.network.mode == NetworkConfig::WifiMode::AP || config.network.mode == NetworkConfig::WifiMode::AP_STA)
+        {
+            Serial.println("    AP SSID: " + config.network.apSsid);
+            Serial.println("    AP Password: " + config.network.apPassword);
+        }
+
+        Serial.println("    Hostname: " + config.network.hostname);
         Serial.println("    Port: " + String(config.network.port));
+        Serial.println("    Reconnect Interval: " + String(config.network.reconnectInterval) + "ms");
     }
 
 private:

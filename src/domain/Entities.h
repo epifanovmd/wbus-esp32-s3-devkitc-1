@@ -44,9 +44,56 @@ struct BusConfig
 
 struct NetworkConfig
 {
-    String ssid = "Webasto_WiFi";
-    String password = "Epifan123";
+    // Режимы работы WiFi
+    enum class WifiMode
+    {
+        AP,  // Только точка доступа
+        AP_STA    // Одновременно AP и клиент
+    };
+
+    WifiMode mode = WifiMode::AP;
+
+    // STA режим (подключение к роутеру)
+    String staSsid = "";
+    String staPassword = "";
+
+    // AP режим (точка доступа)
+    String apSsid = "Webasto-WiFi";
+    String apPassword = "Epifan123";
+
+    // Общие настройки
+    String hostname = "webasto-controller";
     uint16_t port = 80;
+
+    uint16_t reconnectInterval = 10000; // 10 секунд
+
+    String toJson() const
+    {
+        String json = "{";
+        json += "\"mode\":\"" + getModeString() + "\",";
+        json += "\"staSsid\":\"" + staSsid + "\",";
+        json += "\"staPassword\":\"" + staPassword + "\",";
+        json += "\"apSsid\":\"" + apSsid + "\",";
+        json += "\"apPassword\":\"" + apPassword + "\",";
+        json += "\"hostname\":\"" + hostname + "\",";
+        json += "\"port\":" + String(port) + ",";
+        json += "\"reconnectInterval\":" + String(reconnectInterval);
+        json += "}";
+        return json;
+    }
+
+    String getModeString() const
+    {
+        switch (mode)
+        {
+        case WifiMode::AP:
+            return "AP";
+        case WifiMode::AP_STA:
+            return "AP_STA";
+        default:
+            return "AP";
+        }
+    }
 };
 
 struct AppConfig
@@ -135,7 +182,7 @@ struct WBusCodeFlags
     // uint8_t ZH4;             // 0x0F: Unknown (ZH)
     bool powerInWatts; // 0x10: Heating energy is in watts (if not set, in percent divided by 2)
     // bool ZH5;                // 0x20: Unknown (ZH)
-    bool flameIndicator;     // 0x40: Flame indicator (FI)
+    bool flameIndicator; // 0x40: Flame indicator (FI)
     bool fuelPreheating; // 0x80: Fuel Preheating
 
     // Byte 5 flags
@@ -422,15 +469,16 @@ struct StatusFlags
 
 struct OperatingState
 {
-    String stateCode =  "N/A";          // Код состояния
-    uint8_t stateNumber = 0;            // Номер состояния
-    String deviceStateFlags =  "N/A";   // Флаги устройства
-    String stateName = "N/A";           // Имя состояния
-    String stateDescription = "N/A";    // Описание состояния
-    String flags = "N/A";               // Только флаги (STFL, UEHFL, etc.)
-    String deviceStateInfo = "N/A";     // Полное описание флагов с пояснениями
+    String stateCode = "N/A";        // Код состояния
+    uint8_t stateNumber = 0;         // Номер состояния
+    String deviceStateFlags = "N/A"; // Флаги устройства
+    String stateName = "N/A";        // Имя состояния
+    String stateDescription = "N/A"; // Описание состояния
+    String flags = "N/A";            // Только флаги (STFL, UEHFL, etc.)
+    String deviceStateInfo = "N/A";  // Полное описание флагов с пояснениями
 
-    String toJson() const {
+    String toJson() const
+    {
         String json = "{";
         json += "\"stateCode\":\"" + stateCode + "\",";
         json += "\"stateNumber\":" + String(stateNumber) + ",";
