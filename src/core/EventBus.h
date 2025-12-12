@@ -96,11 +96,20 @@ struct TypedEvent : public Event
 class EventBus
 {
 private:
+    EventBus() = default;
+    ~EventBus() = default;
+
+    EventBus(const EventBus&) = delete;
+    EventBus& operator=(const EventBus&) = delete;
+
     static EventBus *instance;
     std::map<EventType, std::vector<std::function<void(const Event &)>>> subscribers;
 
 public:
-    static EventBus &getInstance();
+    static EventBus& getInstance() {
+        static EventBus instance;
+        return instance;
+    }
 
     void subscribe(EventType type, std::function<void(const Event &)> handler)
     {

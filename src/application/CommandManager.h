@@ -1,9 +1,8 @@
 #pragma once
 #include <Arduino.h>
 #include <functional>
-#include <queue>
-#include <vector>
 #include <deque>
+#include <vector>
 #include "./CommandReceiver.h"
 #include "../common/Timer.h"
 #include "../core/EventBus.h"
@@ -36,8 +35,8 @@ struct Command
 class CommandManager
 {
 private:
-    std::queue<Command> priorityQueue; // Приоритетная очередь
-    std::queue<Command> normalQueue;   // Обычная очередь
+    std::deque<Command> priorityDeque; // Было priorityQueue
+    std::deque<Command> normalDeque;   // Было normalQueue
 
     ConfigManager &configManager;
 
@@ -90,7 +89,7 @@ public:
         if (getTotalQueueSize() >= configManager.getConfig().bus.maxQueueSize || containsCommand(command))
             return false;
 
-        normalQueue.push(Command(command, callback, loop));
+        normalDeque.push_back(Command(command, callback, loop));
         return true;
     }
 
@@ -99,7 +98,7 @@ public:
         if (getTotalQueueSize() >= configManager.getConfig().bus.maxPriorityQueueSize || containsPriorityCommand(command))
             return false;
 
-        priorityQueue.push(Command(command, callback, loop));
+        priorityDeque.push_back(Command(command, callback, loop));
         return true;
     }
 
@@ -156,38 +155,28 @@ public:
 
     bool containsCommand(const String &command)
     {
-        std::queue<Command> tempQueue = normalQueue;
-        while (!tempQueue.empty())
+        for (const auto &cmd : normalDeque)
         {
-            if (tempQueue.front().data == command)
+            if (cmd.data == command)
                 return true;
-            tempQueue.pop();
         }
         return false;
     }
 
     bool containsPriorityCommand(const String &command)
     {
-        std::queue<Command> tempQueue = priorityQueue;
-        while (!tempQueue.empty())
+        for (const auto &cmd : priorityDeque)
         {
-            if (tempQueue.front().data == command)
+            if (cmd.data == command)
                 return true;
-            tempQueue.pop();
         }
         return false;
     }
 
     void clear()
     {
-        while (!normalQueue.empty())
-        {
-            normalQueue.pop();
-        }
-        while (!priorityQueue.empty())
-        {
-            priorityQueue.pop();
-        }
+        priorityDeque.clear();
+        normalDeque.clear();
 
         state = ProcessingState::IDLE;
         currentRetries = 0;
@@ -215,32 +204,29 @@ public:
         return isQueueEmpty() && state == ProcessingState::IDLE;
     }
 
-    size_t getTotalQueueSize() const
-    {
-        return priorityQueue.size() + normalQueue.size();
+    size_t getTotalQueueSize() const {
+        return priorityDeque.size() + normalDeque.size();
     }
 
 private:
-    bool isQueueEmpty() const
-    {
-        return priorityQueue.empty() && normalQueue.empty();
+    bool isQueueEmpty() const {
+        return priorityDeque.empty() && normalDeque.empty();
     }
 
     Command getNextCommand()
     {
-        if (!priorityQueue.empty())
+        if (!priorityDeque.empty())
         {
-            Command cmd = priorityQueue.front();
-            priorityQueue.pop();
+            Command cmd = priorityDeque.front();
+            priorityDeque.pop_front();
             return cmd;
         }
-        else if (!normalQueue.empty())
+        else if (!normalDeque.empty())
         {
-            Command cmd = normalQueue.front();
-            normalQueue.pop();
+            Command cmd = normalDeque.front();
+            normalDeque.pop_front();
             return cmd;
         }
-
         return Command();
     }
 
@@ -272,7 +258,7 @@ private:
         {
             if (processingCommand.loop)
             {
-                normalQueue.push(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
+                normalDeque.push_back(Command(processingCommand.data, processingCommand.callback, processingCommand.loop));
             }
         }
 
