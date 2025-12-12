@@ -324,13 +324,13 @@ public:
             // STA настройки (не требуют немедленной перезагрузки если не меняется режим)
             if (network.containsKey("staSsid"))
                 config.network.staSsid = network["staSsid"].as<String>();
-            if (network.containsKey("staPassword") && network["staPassword"].as<String>() != "********")
+            if (network.containsKey("staPassword"))
                 config.network.staPassword = network["staPassword"].as<String>();
 
             // AP настройки
             if (network.containsKey("apSsid"))
                 config.network.apSsid = network["apSsid"].as<String>();
-            if (network.containsKey("apPassword") && network["apPassword"].as<String>() != "********")
+            if (network.containsKey("apPassword"))
                 config.network.apPassword = network["apPassword"].as<String>();
 
             // Автопереподключение (не требует перезагрузки)
@@ -426,11 +426,11 @@ public:
 
         // STA настройки (пароль скрываем)
         network["staSsid"] = config.network.staSsid;
-        network["staPassword"] = config.network.staPassword.isEmpty() ? "" : "********";
+        network["staPassword"] = config.network.staPassword;
 
         // AP настройки (пароль скрываем)
         network["apSsid"] = config.network.apSsid;
-        network["apPassword"] = config.network.apPassword.isEmpty() ? "" : "********";
+        network["apPassword"] = config.network.apPassword;
 
         // Общие настройки
         network["hostname"] = config.network.hostname;
@@ -472,8 +472,7 @@ public:
         if (config.network.mode == NetworkConfig::WifiMode::AP_STA)
         {
             Serial.println("    STA SSID: " + config.network.staSsid);
-            Serial.println("    STA Password: " +
-                           String(config.network.staPassword.isEmpty() ? "(not set)" : "********"));
+            Serial.println("    STA Password: " + config.network.staPassword);
         }
 
         if (config.network.mode == NetworkConfig::WifiMode::AP || config.network.mode == NetworkConfig::WifiMode::AP_STA)
