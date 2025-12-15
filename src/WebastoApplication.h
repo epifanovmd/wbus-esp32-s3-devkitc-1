@@ -48,10 +48,14 @@ private:
 
     // Состояние приложения
     bool initialized = false;
+    bool isSnifferMode = false;
 
     // Кнопка управления (пин 0)
     static const int BUTTON_PIN = 0;
     bool lastButtonState = true;
+    unsigned long lastButtonPressTime = 0;
+    bool buttonLongPressActivated = false; // Флаг, что длинное нажатие уже обработано
+    Timer blinkTimeout;
 
 public:
     WebastoApplication() : eventBus(EventBus::getInstance()),
@@ -67,8 +71,10 @@ public:
                            heaterController(eventBus, commandManager, busDriver, deviceInfoManager, sensorManager, errorsManager),
                            snifferManager(eventBus, deviceInfoManager, sensorManager, errorsManager, heaterController),
                            asyncWebServer(eventBus, fileSystemManager, configManager, deviceInfoManager, sensorManager, errorsManager, heaterController),
-                           keepAliveTimer(15000)
+                           keepAliveTimer(15000),
+                           blinkTimeout(500)
     {
+        pinMode(BUTTON_PIN, INPUT_PULLUP);
     }
 
     void initialize()
@@ -114,7 +120,7 @@ public:
         commandReceiver.process();
         commandManager.process();
 
-        if (keepAliveTimer.isReady())
+        if (!isSnifferMode && keepAliveTimer.isReady())
         {
             processKeepAlive();
         }
@@ -124,6 +130,7 @@ public:
 
         asyncWebServer.process();
 
+        blinkLed();
         delay(1);
     }
 
@@ -203,21 +210,80 @@ private:
     {
         bool currentButtonState = digitalRead(BUTTON_PIN);
 
-        if (currentButtonState == false && lastButtonState == true)
+        // Фиксируем начало нажатия
+        if (currentButtonState == LOW && lastButtonState == HIGH)
         {
-            if (heaterController.isConnected())
-            {
-                heaterController.disconnect();
-            }
-            else
-            {
-                heaterController.connect();
-            }
+            lastButtonPressTime = millis();
+            buttonLongPressActivated = false; // Сбрасываем флаг при новом нажатии
+        }
 
-            delay(50); // Debounce
+        // Проверяем длинное нажатие (после 3000 мс даже без отпускания)
+        if (currentButtonState == LOW && !buttonLongPressActivated)
+        {
+            unsigned long pressDuration = millis() - lastButtonPressTime;
+
+            if (pressDuration > 3000) // Долгое нажатие (>3 сек)
+            {
+                // Включаем/выключаем режим сниффера
+                isSnifferMode = !isSnifferMode;
+                buttonLongPressActivated = true; // Помечаем, что обработали
+
+                heaterController.setSnifferMode(isSnifferMode);
+
+                if (isSnifferMode)
+                {
+                    Serial.println("🔍 Режим сниффера АКТИВИРОВАН");
+                    if (heaterController.isConnected())
+                    {
+                        heaterController.disconnect();
+                    }
+                }
+                else
+                {
+                    Serial.println("🔍 Режим сниффера ВЫКЛЮЧЕН");
+                }
+            }
+        }
+
+        // Обрабатываем отпускание кнопки (только если не было длинного нажатия)
+        if (currentButtonState == HIGH && lastButtonState == LOW && !buttonLongPressActivated && !isSnifferMode)
+        {
+            unsigned long pressDuration = millis() - lastButtonPressTime;
+
+            // Короткое нажатие (< сек)
+            if (pressDuration < 2000)
+            {
+                // Переключаем подключение к Webasto
+                if (heaterController.isConnected())
+                {
+                    heaterController.disconnect();
+                }
+                else
+                {
+                    heaterController.connect();
+                }
+            }
         }
 
         lastButtonState = currentButtonState;
+    }
+
+    void blinkLed()
+    {
+        if (isSnifferMode && blinkTimeout.isReady())
+        {
+            static bool ledState = false;
+
+            if (ledState)
+            {
+                neopixelWrite(RGB_BUILTIN, 0, 0, RGB_BRIGHTNESS); // Синий
+            }
+            else
+            {
+                neopixelWrite(RGB_BUILTIN, 0, 0, 0);
+            }
+            ledState = !ledState;
+        }
     }
 
     void handleSerialCommands()
@@ -256,6 +322,11 @@ private:
             {
                 busDriver.sleep();
             }
+            else if (command == "sniffer" || command == "sniff")
+            {
+                isSnifferMode = !isSnifferMode;
+                Serial.println(isSnifferMode ? "🔍 Режим сниффера АКТИВИРОВАН" : "🔍 Режим сниффера ВЫКЛЮЧЕН");
+            }
             else if (command == "help" || command == "h")
             {
                 printHelp();
@@ -276,6 +347,7 @@ private:
         Serial.println("disconnect/dc - отключение от Webasto");
         Serial.println("start         - запустить паркинг-нагрев");
         Serial.println("stop          - остановить");
+        Serial.println("sniffer       - переключить режим сниффера");
         Serial.println("help/h        - эта справка");
         Serial.println();
         Serial.println("🌐 Web Interface: http://" + WiFi.softAPIP().toString());

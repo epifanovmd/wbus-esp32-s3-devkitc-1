@@ -37,21 +37,21 @@ public:
 
                                if (txCommand == rxCommand)
                                {
-                                //    Serial.println();
-                                //    Serial.print("📤 SNIFF TX: " + tx);
-                                //    Serial.print("  ––––  ");
-                                //    Serial.print("📨 SNIFF RX: " + rx);
-                                //    Serial.print(" [ACK: 0x" + String(rxCommand, HEX) + "]");
-                                //    Serial.print(" [" + WBusCommandBuilder::getCommandName(rxCommand) + "]");
-                                //    Serial.print(" [" + WBusCommandBuilder::getIndexDisplayName(rxCommand, rxIndex) + "]");
+                                   //    Serial.println();
+                                   //    Serial.print("📤 SNIFF TX: " + tx);
+                                   //    Serial.print("  ––––  ");
+                                   //    Serial.print("📨 SNIFF RX: " + rx);
+                                   //    Serial.print(" [ACK: 0x" + String(rxCommand, HEX) + "]");
+                                   //    Serial.print(" [" + WBusCommandBuilder::getCommandName(rxCommand) + "]");
+                                   //    Serial.print(" [" + WBusCommandBuilder::getIndexDisplayName(rxCommand, rxIndex) + "]");
 
                                    // Автоматически определяем и вызываем соответствующий обработчик
                                    bool processed = autoProcessResponse(rxCommand, tx, rx);
 
-                                //    if (!processed)
-                                //    {
-                                //        Serial.print(" [UNKNOWN]");
-                                //    }
+                                   //    if (!processed)
+                                   //    {
+                                   //        Serial.print(" [UNKNOWN]");
+                                   //    }
                                }
                            });
     }
