@@ -39,19 +39,22 @@ public:
 
   // =========================================================================
 
-  void handleCheckErrorsResponse(String tx, String rx)
+  void handleCheckErrorsResponse(String tx, String rx, bool needReadDetails = false)
   {
     currentErrors = errorsDecoder.decodeErrorPacket(rx);
     eventBus.publish<ErrorCollection>(EventType::WBUS_ERRORS, currentErrors);
 
-    for (size_t i = 0; i < currentErrors.errorCount; i++)
+    if (needReadDetails)
     {
-
-      WebastoError error = currentErrors.errors[i];
-
-      if (error.code)
+      for (size_t i = 0; i < currentErrors.errorCount; i++)
       {
-        readErrorDetails(error.code);
+
+        WebastoError error = currentErrors.errors[i];
+
+        if (error.code)
+        {
+          readErrorDetails(error.code);
+        }
       }
     }
   }

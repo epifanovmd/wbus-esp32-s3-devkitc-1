@@ -80,6 +80,7 @@ public:
         Serial.println("===============================================");
 
         configManager.initialize();
+        keepAliveTimer.setInterval(configManager.getConfig().bus.keepAliveInterval);
 
         if (!wifiManager.initialize())
         {

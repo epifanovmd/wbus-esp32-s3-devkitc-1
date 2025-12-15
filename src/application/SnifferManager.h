@@ -261,7 +261,7 @@ private:
         switch (errorIndex)
         {
         case WBusCommandBuilder::ERROR_READ_LIST:
-            errorsManager.handleCheckErrorsResponse(tx, rx);
+            errorsManager.handleCheckErrorsResponse(tx, rx, heaterController.isConnected());
             return true;
 
         case WBusCommandBuilder::ERROR_READ_DETAILS:
