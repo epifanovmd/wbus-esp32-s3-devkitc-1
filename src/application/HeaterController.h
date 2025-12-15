@@ -22,8 +22,6 @@ private:
 
     HeaterStatus currentStatus;
 
-    bool isSnifferMode = false;
-
 public:
     HeaterController(
         EventBus &bus, CommandManager &cmdManager, IBusManager &busMgr, DeviceInfoManager &deviceInfoMngr, SensorManager &sensorMngr, ErrorsManager &errorsMngr)
@@ -36,11 +34,6 @@ public:
     {
         currentStatus.state = WebastoState::OFF;
         currentStatus.connection = ConnectionState::DISCONNECTED;
-    }
-
-    void setSnifferMode(bool mode)
-    {
-        isSnifferMode = mode;
     }
 
     void initialize() override
@@ -68,12 +61,6 @@ public:
 
     void connect() override
     {
-        if (isSnifferMode)
-        {
-            Serial.println("⚠️  Подключение в режиме сниффера невозможно");
-            return;
-        }
-
         if (currentStatus.connection == ConnectionState::CONNECTING)
         {
             Serial.println("⚠️  Подключение уже выполняется...");
@@ -90,8 +77,11 @@ public:
         deviceInfoManager.requestWBusCode();
 
         // Запускаем диагностику
-        commandManager.addCommand(WBusCommandBuilder::createDiagnostic(), false, [this](String tx, String rx)
-                                  { handleDiagnosticResponse(tx, rx); });
+        if (!commandManager.addCommand(WBusCommandBuilder::createDiagnostic(), false, [this](String tx, String rx)
+                                       { handleDiagnosticResponse(tx, rx); }))
+        {
+            setConnectionState(ConnectionState::DISCONNECTED);
+        }
     }
 
     bool isConnected()

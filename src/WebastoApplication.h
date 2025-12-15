@@ -228,7 +228,7 @@ private:
                 isSnifferMode = !isSnifferMode;
                 buttonLongPressActivated = true; // Помечаем, что обработали
 
-                heaterController.setSnifferMode(isSnifferMode);
+                commandManager.setSnifferMode(isSnifferMode);
 
                 if (isSnifferMode)
                 {
@@ -240,6 +240,7 @@ private:
                 }
                 else
                 {
+                    neopixelWrite(RGB_PIN, 0, 0, 0);
                     Serial.println("🔍 Режим сниффера ВЫКЛЮЧЕН");
                 }
             }
@@ -272,7 +273,7 @@ private:
     {
         if (isSnifferMode && blinkTimeout.isReady())
         {
-            static bool ledState = false;
+            static bool ledState = true;
 
             if (ledState)
             {

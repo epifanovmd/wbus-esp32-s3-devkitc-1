@@ -55,6 +55,8 @@ private:
     Timer timeoutTimer;
     Timer breakTimer;
 
+    bool isSnifferMode = false;
+
 public:
     CommandManager(ConfigManager &configMngr, EventBus &bus, IBusManager &busMngr, CommandReceiver &receiver)
         : configManager(configMngr),
@@ -77,6 +79,11 @@ public:
                            });
     }
 
+    void setSnifferMode(bool mode)
+    {
+        isSnifferMode = mode;
+    }
+
     void initialize()
     {
         setInterval(configManager.getConfig().bus.queueInterval);
@@ -86,6 +93,18 @@ public:
 
     bool addCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
     {
+        if (isSnifferMode)
+        {
+            Serial.println("⚠️  В режиме сниффера отправлять команды невозможно");
+            return false;
+        }
+
+        if (!busManager.isConnected())
+        {
+            Serial.println("⚠️  TJA1020 недоступен или находится в режиме сна");
+            return false;
+        }
+
         if (getTotalQueueSize() >= configManager.getConfig().bus.maxQueueSize || containsCommand(command))
             return false;
 
@@ -95,6 +114,18 @@ public:
 
     bool addPriorityCommand(const String &command, bool loop = false, std::function<void(String, String)> callback = nullptr)
     {
+        if (isSnifferMode)
+        {
+            Serial.println("⚠️  В режиме сниффера отправлять команды невозможно");
+            return false;
+        }
+
+        if (!busManager.isConnected())
+        {
+            Serial.println("⚠️  TJA1020 недоступен или находится в режиме сна");
+            return false;
+        }
+
         if (getTotalQueueSize() >= configManager.getConfig().bus.maxPriorityQueueSize || containsPriorityCommand(command))
             return false;
 
@@ -204,12 +235,14 @@ public:
         return isQueueEmpty() && state == ProcessingState::IDLE;
     }
 
-    size_t getTotalQueueSize() const {
+    size_t getTotalQueueSize() const
+    {
         return priorityDeque.size() + normalDeque.size();
     }
 
 private:
-    bool isQueueEmpty() const {
+    bool isQueueEmpty() const
+    {
         return priorityDeque.empty() && normalDeque.empty();
     }
 
